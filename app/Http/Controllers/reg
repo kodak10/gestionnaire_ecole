@@ -1,0 +1,347 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Eleve;
+use App\Models\Classe;
+use App\Models\Paiement;
+use App\Models\TypeFrais;
+use App\Models\MoisScolaire;
+use App\Models\AnneeScolaire;
+use App\Models\TarifMensuel;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use PDF;
+
+class ReglementController extends Controller
+{
+    public function index()
+    {
+        $classes = Classe::with('niveau')->orderBy('nom')->get();
+        $typesFrais = TypeFrais::orderBy('nom')->get();
+        $moisScolaires = MoisScolaire::get();
+        $anneesScolaires = AnneeScolaire::orderBy('est_active', 'desc')->orderBy('annee', 'desc')->get();
+
+        return view('dashboard.pages.comptabilites.reglement', compact('classes', 'typesFrais', 'moisScolaires', 'anneesScolaires'));
+    }
+
+    public function getReglementsData(Request $request)
+    {
+        
+        $request->validate([
+            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'classe_id' => 'nullable|exists:classes,id',
+            'type_frais_id' => 'nullable|exists:type_frais,id',
+            'mois_id' => 'nullable|exists:mois_scolaires,id',
+            'statut' => 'nullable|in:paye,impaye,partiel',
+            'page' => 'nullable|integer|min:1'
+        ]);
+        
+
+        try {
+            $perPage = 15;
+            $page = $request->page ?? 1;
+
+            // Requête de base pour les élèves
+            $query = Eleve::with(['classe', 'paiements' => function($q) use ($request) {
+                $q->where('annee_scolaire_id', $request->annee_scolaire_id);
+                if ($request->type_frais_id) {
+                    $q->where('type_frais_id', $request->type_frais_id);
+                }
+                if ($request->mois_id) {
+                    $q->where('mois_id', $request->mois_id);
+                }
+            }]);
+
+            // Filtres
+            if ($request->classe_id) {
+                $query->where('classe_id', $request->classe_id);
+            }
+
+            // Récupérer les élèves avec leurs paiements
+            $eleves = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // Préparer les données pour la réponse
+            $reglements = [];
+            $stats = [
+                'total_attendus' => 0,
+                'total_percus' => 0,
+                'total_restants' => 0
+            ];
+
+            foreach ($eleves as $eleve) {
+                // Pour chaque type de frais applicable à l'élève
+                $typesFrais = TypeFrais::with(['tarifs' => function($q) use ($eleve) {
+                    $q->where('niveau_id', $eleve->classe->niveau_id);
+                }])->get();
+
+                foreach ($typesFrais as $type) {
+                    // Filtrer par type de frais si spécifié
+                    if ($request->type_frais_id && $type->id != $request->type_frais_id) {
+                        continue;
+                    }
+
+                    // Pour les frais mensuels
+                    if ($type->periodicite === 'mensuel') {
+                        $moisQuery = MoisScolaire::where('annee_scolaire_id', $request->annee_scolaire_id);
+                        
+                        // Filtrer par mois si spécifié
+                        if ($request->mois_id) {
+                            $moisQuery->where('id', $request->mois_id);
+                        }
+
+                        $moisList = $moisQuery->get();
+
+                        foreach ($moisList as $mois) {
+                            $montantTotal = $type->tarifs->first()->montant ?? 0;
+                            $montantPaye = $eleve->paiements
+                                ->where('type_frais_id', $type->id)
+                                ->where('mois_id', $mois->id)
+                                ->sum('montant');
+
+                            $reste = max($montantTotal - $montantPaye, 0);
+                            $statut = $this->getStatut($montantTotal, $montantPaye);
+
+                            // Filtrer par statut si spécifié
+                            if ($request->statut && !$this->matchStatut($statut, $request->statut)) {
+                                continue;
+                            }
+
+                            $reglements[] = [
+                                'eleve_id' => $eleve->id,
+                                'eleve_nom' => $eleve->nom . ' ' . $eleve->prenom,
+                                'classe_id' => $eleve->classe_id,
+                                'classe_nom' => $eleve->classe->nom,
+                                'type_frais_id' => $type->id,
+                                'type_frais_nom' => $type->nom,
+                                'mois_id' => $mois->id,
+                                'mois_nom' => $mois->nom,
+                                'annee_scolaire_id' => $request->annee_scolaire_id,
+                                'montant_total' => $montantTotal,
+                                'montant_paye' => $montantPaye,
+                                'reste' => $reste,
+                                'statut' => $statut
+                            ];
+
+                            // Mettre à jour les statistiques
+                            $stats['total_attendus'] += $montantTotal;
+                            $stats['total_percus'] += $montantPaye;
+                            $stats['total_restants'] += $reste;
+                        }
+                    } else {
+                        // Pour les frais annuels
+                        $montantTotal = $type->tarifs->first()->montant ?? 0;
+                        $montantPaye = $eleve->paiements
+                            ->where('type_frais_id', $type->id)
+                            ->sum('montant');
+
+                        $reste = max($montantTotal - $montantPaye, 0);
+                        $statut = $this->getStatut($montantTotal, $montantPaye);
+
+                        // Filtrer par statut si spécifié
+                        if ($request->statut && !$this->matchStatut($statut, $request->statut)) {
+                            continue;
+                        }
+
+                        $reglements[] = [
+                            'eleve_id' => $eleve->id,
+                            'eleve_nom' => $eleve->nom . ' ' . $eleve->prenom,
+                            'classe_id' => $eleve->classe_id,
+                            'classe_nom' => $eleve->classe->nom,
+                            'type_frais_id' => $type->id,
+                            'type_frais_nom' => $type->nom,
+                            'mois_id' => null,
+                            'mois_nom' => null,
+                            'annee_scolaire_id' => $request->annee_scolaire_id,
+                            'montant_total' => $montantTotal,
+                            'montant_paye' => $montantPaye,
+                            'reste' => $reste,
+                            'statut' => $statut
+                        ];
+
+                        // Mettre à jour les statistiques
+                        $stats['total_attendus'] += $montantTotal;
+                        $stats['total_percus'] += $montantPaye;
+                        $stats['total_restants'] += $reste;
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'reglements' => [
+                    'current_page' => $eleves->currentPage(),
+                    'data' => $reglements,
+                    'last_page' => $eleves->lastPage(),
+                    'per_page' => $eleves->perPage(),
+                    'total' => $eleves->total()
+                ],
+                'stats' => $stats
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function prepareRelances(Request $request)
+    {
+        $request->validate([
+            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'classe_id' => 'nullable|exists:classes,id',
+            'type_frais_id' => 'nullable|exists:type_frais,id',
+            'mois_id' => 'nullable|exists:mois_scolaires,id'
+        ]);
+
+        try {
+            // Requête pour les impayés/partiels
+            $query = DB::table('eleves')
+                ->join('classes', 'eleves.classe_id', '=', 'classes.id')
+                ->join('niveaux', 'classes.niveau_id', '=', 'niveaux.id')
+                ->join('type_frais', function($join) {
+                    $join->where('type_frais.periodicite', '=', 'mensuel')
+                         ->orWhere('type_frais.periodicite', '=', 'annuel');
+                })
+                ->leftJoin('tarifs', function($join) {
+                    $join->on('type_frais.id', '=', 'tarifs.type_frais_id')
+                         ->on('niveaux.id', '=', 'tarifs.niveau_id');
+                })
+                ->leftJoin('paiements', function($join) use ($request) {
+                    $join->on('eleves.id', '=', 'paiements.eleve_id')
+                         ->on('type_frais.id', '=', 'paiements.type_frais_id')
+                         ->where('paiements.annee_scolaire_id', '=', $request->annee_scolaire_id);
+                })
+                ->select(
+                    'eleves.id as eleve_id',
+                    DB::raw("CONCAT(eleves.nom, ' ', eleves.prenom) as eleve_nom"),
+                    'classes.nom as classe_nom',
+                    'type_frais.id as type_frais_id',
+                    'type_frais.nom as type_frais_nom',
+                    'tarifs.montant as montant_total',
+                    DB::raw("COALESCE(SUM(paiements.montant), 0) as montant_paye"),
+                    DB::raw("MAX(DATEDIFF(NOW(), paiements.date_paiement)) as jours_retard")
+                )
+                ->where('eleves.is_active', true)
+                ->where('type_frais.obligatoire', true)
+                ->groupBy('eleves.id', 'type_frais.id');
+
+            // Filtres
+            if ($request->classe_id) {
+                $query->where('eleves.classe_id', $request->classe_id);
+            }
+
+            if ($request->type_frais_id) {
+                $query->where('type_frais.id', $request->type_frais_id);
+            }
+
+            if ($request->mois_id) {
+                $query->where('paiements.mois_id', $request->mois_id);
+            }
+
+            $resultats = $query->get()
+                ->map(function($item) {
+                    $item->montant_total = (float) $item->montant_total;
+                    $item->montant_paye = (float) $item->montant_paye;
+                    $item->reste = max($item->montant_total - $item->montant_paye, 0);
+                    $item->jours_retard = $item->jours_retard ? (int) $item->jours_retard : 30; // Par défaut 30 jours
+                    return $item;
+                })
+                ->filter(function($item) {
+                    return $item->reste > 0; // Seulement ceux avec un reste à payer
+                });
+
+            return response()->json([
+                'success' => true,
+                'relances' => $resultats
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la préparation des relances: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function generateRelances(Request $request)
+    {
+        $request->validate([
+            'reglements' => 'required|array',
+            'reglements.*' => 'integer'
+        ]);
+
+        try {
+            // Récupérer les données pour les relances sélectionnées
+            $relances = DB::table('eleves')
+                ->join('classes', 'eleves.classe_id', '=', 'classes.id')
+                ->join('type_frais', 'type_frais.id', '=', DB::raw($request->reglements[0])) // Simplification
+                ->select(
+                    'eleves.id as eleve_id',
+                    DB::raw("CONCAT(eleves.nom, ' ', eleves.prenom) as eleve_nom"),
+                    'classes.nom as classe_nom',
+                    'type_frais.nom as type_frais_nom',
+                    DB::raw("'Montant restant' as motif"),
+                    DB::raw("NOW() as date_relance")
+                )
+                ->whereIn('eleves.id', $request->reglements)
+                ->get();
+
+            // Générer le PDF
+            $pdf = PDF::loadView('reglements.relance-pdf', compact('relances'));
+            
+            // Sauvegarder le PDF
+            $filename = 'relances_' . date('Ymd_His') . '.pdf';
+            $path = storage_path('app/public/relances/' . $filename);
+            $pdf->save($path);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Relances générées avec succès',
+                'pdf_url' => asset('storage/relances/' . $filename)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la génération des relances: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function printReglements(Request $request)
+    {
+        // Logique similaire à getReglementsData mais pour l'impression
+        // ...
+        
+        $pdf = PDF::loadView('reglements.print-pdf', compact('reglements', 'stats'));
+        return $pdf->stream('reglements.pdf');
+    }
+
+    // Helper pour déterminer le statut
+    private function getStatut($montantTotal, $montantPaye)
+    {
+        if ($montantPaye <= 0) {
+            return 'Impayé';
+        } elseif ($montantPaye >= $montantTotal) {
+            return 'Payé';
+        } else {
+            return 'Partiel';
+        }
+    }
+
+    // Helper pour vérifier si le statut correspond au filtre
+    private function matchStatut($statut, $filter)
+    {
+        $statutLower = strtolower($statut);
+        $filterLower = strtolower($filter);
+
+        if ($filterLower === 'paye') return $statutLower === 'payé';
+        if ($filterLower === 'impaye') return $statutLower === 'impayé';
+        if ($filterLower === 'partiel') return $statutLower === 'partiel';
+        
+        return false;
+    }
+}

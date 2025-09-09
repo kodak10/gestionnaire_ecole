@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exports\ClassesExport;
+use App\Models\AnneeScolaire;
+use App\Models\Classe;
+use App\Models\Niveau;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+
+class ClasseController extends Controller
+{
+    public function index(Request $request)
+    {
+        $annee_active = AnneeScolaire::active();
+        $ecoleId = auth()->user()->ecole_id ?? 1;
+
+        $query = Classe::with(['niveau','inscriptions'])
+            ->where('annee_scolaire_id', $annee_active->id)
+            ->where('ecole_id', $ecoleId); // Filtrer par école
+
+        // Filtres
+        if ($request->has('niveau_id') && $request->niveau_id != '') {
+            $query->where('niveau_id', $request->niveau_id);
+        }
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('est_active', $request->status == 'active');
+        }
+
+        // Tri
+        $sort = $request->get('sort', 'asc');
+        if ($request->has('sort_by')) {
+            $query->orderBy($request->sort_by, $sort);
+        } else {
+            $query->orderBy('nom', $sort);
+        }
+
+        $classes = $query->get();
+        $niveaux = Niveau::orderBy('nom')->get();
+
+        return view('dashboard.pages.parametrage.classe', compact('classes', 'niveaux', 'annee_active'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'niveau_id' => 'required|exists:niveaux,id',
+            'nom' => 'required|string|max:50',
+            'capacite' => 'required|integer|min:1',
+        ]);
+
+        $niveau = Niveau::findOrFail($request->niveau_id);
+        $nomComplet = $niveau->nom . '_' . $request->nom;
+
+        // Vérifier si ce nomComplet existe déjà dans la même école et année scolaire
+        $exists = Classe::where('ecole_id', auth()->user()->ecole_id ?? 1)
+            ->where('annee_scolaire_id', AnneeScolaire::active()->id)
+            ->where('nom', $nomComplet)
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
+        }
+
+        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
+
+
+        Classe::create([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => auth()->user()->ecole_id ?? 1,
+            'niveau_id' => $request->niveau_id,
+            'nom' => $nomComplet,
+            'capacite' => $request->capacite,
+        ]);
+
+        return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'niveau_id' => 'required|exists:niveaux,id',
+            'nom' => 'required|string|max:50',
+            'capacite' => 'required|integer|min:1',
+        ]);
+
+        $classe = Classe::findOrFail($id);
+        $niveau = Niveau::findOrFail($request->niveau_id);
+        $nomComplet = $niveau->nom . '_' . $request->nom;
+
+        $exists = Classe::where('ecole_id', auth()->user()->ecole_id ?? 1)
+            ->where('annee_scolaire_id', $classe->annee_scolaire_id)
+            ->where('nom', $nomComplet)
+            ->where('id', '!=', $classe->id)
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
+        }
+
+        $classe->update([
+            'niveau_id' => $request->niveau_id,
+            'nom' => $nomComplet,
+            'capacite' => $request->capacite,
+        ]);
+
+        return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');
+    }
+
+
+    public function destroy(Request $request, $id)
+    {
+        $classe = Classe::findOrFail($id);
+        
+        if ($classe->inscriptions()->count() > 0) {
+            return redirect()->back()>with('error', 'Impossible de supprimer une classe avec des élèves');
+        }
+
+        $classe->delete();
+        return redirect()->route('classes.index')->with('success', 'Classe supprimée avec succès');
+    }
+
+    public function export($type)
+    {
+        if ($type == 'pdf') {
+            $classes = Classe::with(['niveau', 'enseignant'])
+                          ->where('annee_scolaire_id', AnneeScolaire::active()->id)
+                          ->get();
+            $pdf = PDF::loadView('exports.classes-pdf', compact('classes'));
+            return $pdf->download('classes-list.pdf');
+        }
+
+        return Excel::download(new ClassesExport, 'classes-list.xlsx');
+    }
+}

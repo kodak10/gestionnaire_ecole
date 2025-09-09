@@ -1,0 +1,564 @@
+@extends('dashboard.layouts.master')
+@section('content')
+<!-- Page Header -->
+<div class="d-md-flex d-block align-items-center justify-content-between mb-3">
+    <div class="my-auto">
+        <h3 class="mb-1">Gestion de la Scolarité</h3>
+        <nav>
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{{ route('dashboard') }}">Tableau de Bord</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Gestion Scolarité</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <button class="btn btn-primary" id="print-btn"><i class="ti ti-printer me-2"></i>Imprimer</button>
+    </div>
+</div>
+<!-- /Page Header -->
+
+<div class="mb-5">
+    @if ($errors->any())
+        <div class="alert alert-danger mt-4 w-100">
+            <h5 class="mb-2">Erreurs de validation :</h5>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger mt-4 w-100">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success mt-4 w-100">
+            {{ session('success') }}
+        </div>
+    @endif
+</div>
+
+<div class="row">
+    <!-- Colonne de gauche - Sélection Classe/Élève -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h4 class="text-dark">Sélection</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Classe <span class="text-danger">*</span></label>
+                    <select class="form-select select2" id="classe_id" name="classe_id" required>
+                        <option value="">Sélectionner une classe</option>
+                        @foreach($classes as $classe)
+                            <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Élève <span class="text-danger">*</span></label>
+                    <select class="form-select select2" id="eleve_id" name="eleve_id" required disabled>
+                        <option value="">Sélectionner un élève</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Année Scolaire <span class="text-danger">*</span></label>
+                    <select class="form-select" id="annee_scolaire_id" name="annee_scolaire_id" required>
+                        @foreach($anneesScolaires as $annee)
+                            <option value="{{ $annee->id }}" {{ $annee->est_active ? 'selected' : '' }}>
+                                {{ $annee->annee }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <button class="btn btn-primary w-100" id="load-btn" disabled>
+                    <i class="ti ti-search me-2"></i>Charger les données
+                </button>
+            </div>
+        </div>
+
+        <!-- Carte Récapitulatif - Scolarité uniquement -->
+        <div class="card mt-3">
+            <div class="card-header bg-light">
+                <h4 class="text-dark">Récapitulatif - Scolarité</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Total Scolarité</label>
+                    <input type="text" class="form-control" id="total_scolarite" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Total Payé</label>
+                    <input type="text" class="form-control" id="total_paye_scolarite" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Reste à Payer</label>
+                    <input type="text" class="form-control fw-bold text-danger" id="reste_payer_scolarite" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Réduction sur Scolarité</label>
+                    <input type="number" class="form-control" id="reduction_scolarite" value="0" min="0">
+                    <div class="form-text">Cette réduction s'applique uniquement aux frais de scolarité.</div>
+                </div>
+                <button class="btn btn-primary w-100" id="save-reduction-btn">
+                    <i class="ti ti-check me-2"></i>Appliquer Réduction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne de droite - Détails des Paiements -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h4 class="text-dark">Détails des Paiements</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="paiements-table">
+                        <thead>
+                            <tr>
+                                <th>Type Frais</th>
+                                <th>Montant</th>
+                                <th>Payé</th>
+                                <th>Reste</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Les données seront chargées via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Formulaire de paiement -->
+                <div class="mt-4 border-top pt-3">
+                    <h5 class="mb-3">Nouveau Paiement</h5>
+                    <form id="paiement-form">
+                        @csrf
+                        <input type="hidden" id="paiement_eleve_id" name="eleve_id">
+                        <input type="hidden" id="paiement_annee_id" name="annee_scolaire_id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Type de Frais <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="type_frais_id" name="type_frais_id" required>
+                                        <option value="">Sélectionner</option>
+                                        @foreach($typesFrais as $type)
+                                            <option value="{{ $type->id }}">{{ $type->nom }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Mois (si mensuel)</label>
+                                    <select class="form-select" id="mois_id" name="mois_id">
+                                        <option value="">Non applicable</option>
+                                        @foreach($moisScolaires as $mois)
+                                            <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Montant <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="montant" name="montant" required min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="date_paiement" name="date_paiement" value="{{ date('Y-m-d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Mode <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="mode_paiement" name="mode_paiement" required>
+                                        <option value="especes">Espèces</option>
+                                        <option value="cheque">Chèque</option>
+                                        <option value="virement">Virement</option>
+                                        <option value="mobile_money">Mobile Money</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Remarques</label>
+                            <textarea class="form-control" id="remarques" name="remarques" rows="2"></textarea>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-check me-2"></i>Enregistrer Paiement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer ce paiement?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<style>
+.select2-container--default .select2-selection--single {
+    height: 38px;
+    padding: 5px 10px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.fw-bold {
+    font-weight: 600;
+}
+
+#save-reduction-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.reduction-loading {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v4'/%3E%3Cpath d='m16.24 7.76 2.83-2.83'/%3E%3Cpath d='M17 12h4'/%3E%3Cpath d='m16.24 16.24 2.83 2.83'/%3E%3Cpath d='M12 17v4'/%3E%3Cpath d='m7.76 16.24-2.83 2.83'/%3E%3Cpath d='M7 12H3'/%3E%3Cpath d='m7.76 7.76-2.83-2.83'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+}
+</style>
+@endsection
+
+@section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+// Configuration de toastr
+toastr.options = {
+    "closeButton": true,
+    "progressBar": true,
+    "positionClass": "toast-top-right",
+    "timeOut": "5000"
+};
+
+$(document).ready(function() {
+    // Initialisation des select2
+    $('.select2').select2({
+        placeholder: 'Sélectionner une option',
+        allowClear: true
+    });
+
+    // Variables globales
+    let currentEleveId = null;
+    let currentAnneeId = null;
+    let paiementToDelete = null;
+    let currentReduction = 0;
+
+    // Charger les élèves quand une classe est sélectionnée
+    $('#classe_id').change(function() {
+        const classeId = $(this).val();
+        $('#eleve_id').empty().append('<option value="">Sélectionner un élève</option>');
+        
+        if (classeId) {
+            $('#eleve_id').prop('disabled', false);
+            
+            // Requête AJAX pour charger les élèves de la classe
+            $.ajax({
+                url: '{{ route("eleves.by_classe") }}',
+                type: 'GET',
+                data: { classe_id: classeId },
+                success: function(response) {
+                    if (response.length > 0) {
+                        $.each(response, function(index, eleve) {
+                            $('#eleve_id').append(`<option value="${eleve.id}">${eleve.nom_complet} (${eleve.matricule})</option>`);
+                        });
+                    } else {
+                        $('#eleve_id').append('<option value="">Aucun élève dans cette classe</option>');
+                    }
+                },
+                error: function() {
+                    toastr.error('Erreur lors du chargement des élèves');
+                }
+            });
+        } else {
+            $('#eleve_id').prop('disabled', true);
+        }
+        
+        $('#load-btn').prop('disabled', true);
+    });
+
+    // Activer le bouton de chargement quand un élève est sélectionné
+    $('#eleve_id').change(function() {
+        $('#load-btn').prop('disabled', !$(this).val());
+    });
+
+    // Charger les données de l'élève
+    $('#load-btn').click(function() {
+        const eleveId = $('#eleve_id').val();
+        const anneeId = $('#annee_scolaire_id').val();
+        
+        if (eleveId && anneeId) {
+            currentEleveId = eleveId;
+            currentAnneeId = anneeId;
+            
+            // Mettre à jour les champs cachés du formulaire
+            $('#paiement_eleve_id').val(eleveId);
+            $('#paiement_annee_id').val(anneeId);
+            
+            // Charger les données de paiement
+            loadPaiements(eleveId, anneeId);
+        }
+    });
+
+    // Fonction pour charger les paiements d'un élève
+    function loadPaiements(eleveId, anneeId) {
+        $.ajax({
+            url: '{{ route("paiements.eleve_data") }}',
+            type: 'GET',
+            data: { 
+                eleve_id: eleveId,
+                annee_scolaire_id: anneeId
+            },
+            beforeSend: function() {
+                $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Chargement en cours...</td></tr>');
+            },
+            success: function(response) {
+                if (response.success) {
+                    updateSummary(response.summary);
+                    updatePaiementsTable(response.paiements);
+                } else {
+                    toastr.error(response.message);
+                    $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>');
+                }
+            },
+            error: function() {
+                toastr.error('Erreur lors du chargement des paiements');
+                $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Erreur de chargement</td></tr>');
+            }
+        });
+    }
+
+    // Mettre à jour le récapitulatif
+    function updateSummary(summary) {
+        $('#total_scolarite').val(formatMoney(summary.total_scolarite));
+        $('#total_paye_scolarite').val(formatMoney(summary.total_paye_scolarite || summary.total_paye));
+        $('#reste_payer_scolarite').val(formatMoney(summary.reste_payer_scolarite || summary.reste_payer));
+        $('#reduction_scolarite').val(summary.reduction_scolarite || summary.reduction || 0);
+        currentReduction = summary.reduction_scolarite || summary.reduction || 0;
+    }
+
+    // Mettre à jour le tableau des paiements
+    function updatePaiementsTable(paiements) {
+        let html = '';
+        
+        if (paiements.length > 0) {
+            $.each(paiements, function(index, paiement) {
+                html += `
+                <tr>
+                    <td>${paiement.type_frais}</td>
+                    <td>${formatMoney(paiement.montant_total)}</td>
+                    <td>${formatMoney(paiement.montant_paye)}</td>
+                    <td>${formatMoney(paiement.reste)}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-primary btn-payer" data-id="${paiement.type_frais_id}" data-mois="${paiement.mois_id || ''}">
+                                <i class="ti ti-coin"></i>
+                            </button>
+                            ${paiement.reste > 0 ? '' : `
+                            <button class="btn btn-sm btn-success btn-reçu" data-id="${paiement.type_frais_id}" data-mois="${paiement.mois_id || ''}">
+                                <i class="ti ti-printer"></i>
+                            </button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+                `;
+            });
+        } else {
+            html = '<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>';
+        }
+        
+        $('#paiements-table tbody').html(html);
+        
+        // Ajouter les événements aux boutons
+        $('.btn-payer').click(function() {
+            const typeFraisId = $(this).data('id');
+            const moisId = $(this).data('mois');
+            
+            $('#type_frais_id').val(typeFraisId).trigger('change');
+            
+            if (moisId) {
+                $('#mois_id').val(moisId).trigger('change');
+            }
+            
+            // Faire défiler jusqu'au formulaire
+            $('html, body').animate({
+                scrollTop: $('#paiement-form').offset().top - 100
+            }, 500);
+        });
+        
+        $('.btn-reçu').click(function() {
+            const typeFraisId = $(this).data('id');
+            const moisId = $(this).data('mois');
+            
+            // Générer le reçu (à implémenter)
+            generateReceipt(currentEleveId, typeFraisId, moisId, currentAnneeId);
+        });
+    }
+
+    // Formater un montant en argent
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('fr-FR', { 
+            style: 'currency', 
+            currency: 'XOF',
+            minimumFractionDigits: 0
+        }).format(amount);
+    }
+
+    // Soumission du formulaire de paiement
+    $('#paiement-form').submit(function(e) {
+        e.preventDefault();
+        
+        if (!currentEleveId) {
+            toastr.error('Veuillez sélectionner un élève');
+            return;
+        }
+        
+        const formData = $(this).serialize();
+        
+        $.ajax({
+            url: '{{ route("paiements.store") }}',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    $('#paiement-form')[0].reset();
+                    loadPaiements(currentEleveId, currentAnneeId);
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    const errors = xhr.responseJSON.errors;
+                    $.each(errors, function(key, value) {
+                        toastr.error(value[0]);
+                    });
+                } else {
+                    toastr.error('Une erreur est survenue');
+                }
+            }
+        });
+    });
+
+    // Appliquer une réduction spécifique à la scolarité
+    $('#save-reduction-btn').click(function() {
+        if (!currentEleveId) {
+            toastr.error('Veuillez sélectionner un élève');
+            return;
+        }
+
+        const reduction = parseFloat($('#reduction_scolarite').val()) || 0;
+
+        // Désactiver le bouton pendant la requête
+        const button = $(this);
+        button.prop('disabled', true).addClass('reduction-loading');
+
+        $.ajax({
+            url: '{{ route("eleves.apply_reduction") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                eleve_id: currentEleveId,
+                annee_scolaire_id: currentAnneeId,
+                reduction: reduction,
+                type_frais: 'scolarite' // Indiquer que c'est pour la scolarité
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    currentReduction = reduction;
+                    loadPaiements(currentEleveId, currentAnneeId);
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function(xhr) {
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    toastr.error(xhr.responseJSON.message);
+                } else {
+                    toastr.error('Erreur lors de l\'application de la réduction');
+                }
+            },
+            complete: function() {
+                button.prop('disabled', false).removeClass('reduction-loading');
+            }
+        });
+    });
+
+    // Gestion de l'impression
+    $('#print-btn').click(function() {
+        if (!currentEleveId) {
+            toastr.error('Veuillez sélectionner un élève');
+            return;
+        }
+        
+        window.open(`{{ url('scolarite/print') }}/${currentEleveId}/${currentAnneeId}`, '_blank');
+    });
+
+    // Générer un reçu
+    function generateReceipt(eleveId, typeFraisId, moisId, anneeId) {
+        let url = `{{ url('scolarite/receipt') }}/${eleveId}/${typeFraisId}/${anneeId}`;
+        if (moisId) {
+            url += `/${moisId}`;
+        }
+        
+        window.open(url, '_blank');
+    }
+});
+</script>
+@endsection
