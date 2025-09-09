@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Ecole;
@@ -15,39 +17,109 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Récupérer l'école créée ou la créer si elle n'existe pas
-        $ecole = Ecole::firstOrCreate(
-            ['sigle_ecole' => 'EP'],
-            [
-                'nom_ecole'   => 'École Primaire EXCELLE',
-                'adresse'     => '123 Rue des Écoles, 75000 Paris',
-                'telephone'   => '01 23 45 67 89',
-                'email'       => 'contact@ecole-les-lilas.fr',
-                'directeur'   => 'M. Jean Durand',
-                'logo'        => 'logos/ecole-lilas.png',
-            ]
-        );
+        // Vérifier si des écoles existent, sinon en créer
+        $ecoles = Ecole::all();
+        if ($ecoles->isEmpty()) {
+            $ecole1 = Ecole::create([
+                'nom' => 'École Primaire Les Lauriers',
+                'adresse' => '123 Avenue des Écoles, Dakar',
+                'telephone' => '+221 33 123 45 67',
+                'email' => 'contact@lauriers.sn',
+                'directeur' => 'M. Abdoulaye Diop',
+            ]);
 
-        // Créer l'année scolaire si elle n'existe pas
-        $anneeScolaire = AnneeScolaire::firstOrCreate(
-            ['annee' => '2025-2026'],
-            [
-                'date_debut' => '2025-09-01',
-                'date_fin'   => '2026-06-30',
-                'est_active' => true,
-            ]
-        );
+            $ecole2 = Ecole::create([
+                'nom' => 'Collège Moderne Excellence',
+                'adresse' => '456 Rue des Savants, Thiès',
+                'telephone' => '+221 33 987 65 43',
+                'email' => 'info@excellence.sn',
+                'directeur' => 'Mme Aminata Sow',
+            ]);
 
-        // Créer l'utilisateur admin
-        User::firstOrCreate(
-            ['pseudo' => 'admin'],
+            $ecoles = collect([$ecole1, $ecole2]);
+        }
+
+        // Vérifier si des années scolaires existent, sinon en créer
+        $anneesScolaires = AnneeScolaire::all();
+        if ($anneesScolaires->isEmpty()) {
+            $annee1 = AnneeScolaire::create([
+                'annee_debut' => 2024,
+                'annee_fin' => 2025,
+                'is_active' => true,
+            ]);
+
+            $annee2 = AnneeScolaire::create([
+                'annee_debut' => 2023,
+                'annee_fin' => 2024,
+                'is_active' => false,
+            ]);
+
+            $anneesScolaires = collect([$annee1, $annee2]);
+        }
+
+        // Liste des utilisateurs à créer
+        $users = [
+            // Utilisateurs pour la première école
             [
-                'name'             => 'Admin',
-                'password'         => Hash::make('password'), // à changer après installation
-                'ecole_id'         => $ecole->id,
-                'annee_scolaire_id'=> $anneeScolaire->id,
-                'is_active'        => true,
-            ]
-        );
+                'name' => 'Directeur École Lauriers',
+                'pseudo' => 'admin',
+                'password' => 'password',
+                'ecole_id' => $ecoles[0]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+            [
+                'name' => 'Secrétaire École Lauriers',
+                'pseudo' => 'secretaire1',
+                'password' => 'password',
+                'ecole_id' => $ecoles[0]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+            [
+                'name' => 'Comptable École Lauriers',
+                'pseudo' => 'comptable1',
+                'password' => 'password',
+                'ecole_id' => $ecoles[0]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+
+            // Utilisateurs pour la deuxième école
+            [
+                'name' => 'Directeur Collège Excellence',
+                'pseudo' => 'directeur2',
+                'password' => 'password',
+                'ecole_id' => $ecoles[1]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+            [
+                'name' => 'Enseignant Mathématiques',
+                'pseudo' => 'profmath',
+                'password' => 'password',
+                'ecole_id' => $ecoles[1]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+            [
+                'name' => 'Surveillant Général',
+                'pseudo' => 'surveillant',
+                'password' => 'password',
+                'ecole_id' => $ecoles[1]->id,
+                'annee_scolaire_id' => $anneesScolaires[0]->id,
+            ],
+        ];
+
+        $createdCount = 0;
+        foreach ($users as $userData) {
+            $user = User::firstOrCreate(
+                ['pseudo' => $userData['pseudo']],
+                [
+                    'name' => $userData['name'],
+                    'password' => Hash::make($userData['password']),
+                    'ecole_id' => $userData['ecole_id'],
+                    'annee_scolaire_id' => $userData['annee_scolaire_id'],
+                    'is_active' => true,
+                ]
+            );
+
+        }
+
     }
 }
