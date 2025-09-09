@@ -78,7 +78,7 @@
                                                 </label>
                                             </div>
                                             <div class="avatar-preview">
-                                                <div id="avatarPreview" style="background-image: url({{ $eleve->photo_path ? asset('storage/'.$eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
+                                                <div id="avatarPreview" style="background-image: url({{ $eleve->eleve->photo_path ? asset('storage/'.$eleve->eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
                                                 </div>
                                             </div>
                                         </div>
@@ -92,13 +92,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Nom <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="nom" value="{{ old('nom', $eleve->nom) }}" required>
+                                        <input type="text" class="form-control" name="nom" value="{{ old('nom', $eleve->eleve->nom) }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Prénoms <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="prenom" value="{{ old('prenom', $eleve->prenom) }}" required>
+                                        <input type="text" class="form-control" name="prenom" value="{{ old('prenom', $eleve->eleve->prenom) }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -111,7 +111,7 @@
                                             type="date" 
                                             class="form-control" 
                                             name="naissance" 
-                                            value="{{ old('naissance', $eleve->naissance ? $eleve->naissance->format('Y-m-d') : '') }}" 
+                                            value="{{ old('naissance', $eleve->eleve->naissance ? $eleve->eleve->naissance->format('Y-m-d') : '') }}" 
                                             required
                                         >
 
@@ -120,7 +120,7 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Lieu de Naissance</label>
-                                        <input type="text" class="form-control" name="lieu_naissance" value="{{ old('lieu_naissance', $eleve->lieu_naissance) }}">
+                                        <input type="text" class="form-control" name="lieu_naissance" value="{{ old('lieu_naissance', $eleve->eleve->lieu_naissance) }}">
                                     </div>
                                 </div>
                             </div>
@@ -131,15 +131,15 @@
                                         <label class="form-label">Sexe <span class="text-danger">*</span></label>
                                         <select class="form-select" name="sexe" required>
                                             <option value="">Sélectionner</option>
-                                            <option value="Masculin" {{ old('sexe', $eleve->sexe) == 'Masculin' ? 'selected' : '' }}>Masculin</option>
-                                            <option value="Féminin" {{ old('sexe', $eleve->sexe) == 'Féminin' ? 'selected' : '' }}>Féminin</option>
+                                            <option value="Masculin" {{ old('sexe', $eleve->eleve->sexe) == 'Masculin' ? 'selected' : '' }}>Masculin</option>
+                                            <option value="Féminin" {{ old('sexe', $eleve->eleve->sexe) == 'Féminin' ? 'selected' : '' }}>Féminin</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Nationalité</label>
-                                        <input type="text" class="form-control" name="nationalite" value="{{ old('nationalite', $eleve->nationalite ?? 'Ivoirienne') }}">
+                                        <input type="text" class="form-control" name="nationalite" value="{{ old('nationalite', $eleve->eleve->nationalite ?? 'Ivoirienne') }}">
                                     </div>
                                 </div>
                             </div>
@@ -148,7 +148,7 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">N° Extrait</label>
-                                        <input type="text" class="form-control" name="num_extrait" value="{{ old('num_extrait', $eleve->num_extrait) }}">
+                                        <input type="text" class="form-control" name="num_extrait" value="{{ old('num_extrait', $eleve->eleve->num_extrait) }}">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -158,8 +158,8 @@
                                             type="text" 
                                             name="code_national"
                                             class="form-control" 
-                                            value="{{ $eleve->code_national ?? $eleve->matricule }}" 
-                                            @if(!$eleve->code_national) readonly @endif
+                                            value="{{ $eleve->eleve->code_national ?? $eleve->eleve->matricule }}" 
+                                            @if(!$eleve->eleve->code_national) readonly @endif
                                         >
 
                                     </div>
@@ -173,7 +173,7 @@
                                 <div class="col-md-12">
                                     <div class="mb-3">
                                         <label class="form-label">Nom du Parent <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="parent_nom" value="{{ old('parent_nom', $eleve->parent_nom) }}" required>
+                                        <input type="text" class="form-control" name="parent_nom" value="{{ old('parent_nom', $eleve->eleve->parent_nom) }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -182,13 +182,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Téléphone <span class="text-danger">*</span></label>
-                                        <input type="tel" class="form-control" name="parent_telephone" value="{{ old('parent_telephone', $eleve->parent_telephone) }}" required>
+                                        <input type="tel" class="form-control" name="parent_telephone" value="{{ old('parent_telephone', $eleve->eleve->parent_telephone) }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="parent_email" value="{{ old('parent_email', $eleve->parent_email) }}">
+                                        <input type="email" class="form-control" name="parent_email" value="{{ old('parent_email', $eleve->eleve->parent_email) }}">
                                     </div>
                                 </div>
                             </div>
@@ -197,7 +197,7 @@
                                 <div class="col-md-12">
                                     <div class="mb-3">
                                         <label class="form-label">Adresse</label>
-                                        <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse', $eleve->parent_adresse) }}</textarea>
+                                        <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse', $eleve->eleve->parent_adresse) }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -206,13 +206,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Profession</label>
-                                        <input type="text" class="form-control" name="parent_profession" value="{{ old('parent_profession', $eleve->parent_profession) }}">
+                                        <input type="text" class="form-control" name="parent_profession" value="{{ old('parent_profession', $eleve->eleve->parent_profession) }}">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Lien de parenté</label>
-                                        <input type="text" class="form-control" name="parent_lien" value="{{ old('parent_lien', $eleve->parent_lien ?? 'Parent') }}">
+                                        <input type="text" class="form-control" name="parent_lien" value="{{ old('parent_lien', $eleve->eleve->parent_lien ?? 'Parent') }}">
                                     </div>
                                 </div>
                             </div>

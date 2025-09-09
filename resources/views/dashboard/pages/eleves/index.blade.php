@@ -177,7 +177,7 @@
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item rounded-1" href="{{ route('eleves.edit', $eleve->eleve->id) }}">
+                                            <a class="dropdown-item rounded-1" href="{{ route('eleves.edit', $eleve->id) }}">
                                                 <i class="ti ti-edit me-2"></i>Modifier
                                             </a>
                                         </li>

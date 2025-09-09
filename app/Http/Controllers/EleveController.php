@@ -20,7 +20,7 @@ use PDF;
 class EleveController extends Controller
 {
    
-        public function index(Request $request)
+    public function index(Request $request)
     {
         $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
 
@@ -333,7 +333,7 @@ private function genererMatriculeEleve(int $ecoleId): string
         $cantines = TypeFrais::where('nom', 'Cantine')->first();
         $tarifs = Tarif::all();
 
-        $eleve = Eleve::findOrFail($id);
+        $eleve = Inscription::findOrFail($id);
         $classes = Classe::all();
         return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }
