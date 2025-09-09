@@ -37,7 +37,6 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Créer l'utilisateur admin
         User::firstOrCreate(
             ['pseudo' => 'admin'],
             [
