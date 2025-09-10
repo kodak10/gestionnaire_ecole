@@ -13,8 +13,6 @@ return new class extends Migration
     {
         Schema::create('mois_scolaires', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained(); 
             $table->string('nom'); // Septembre, Octobre, etc.
             $table->integer('numero'); // 1 à 12
             $table->timestamps();

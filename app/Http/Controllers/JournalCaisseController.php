@@ -9,6 +9,7 @@ use App\Models\AnneeScolaire;
 use App\Models\Inscription;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class JournalCaisseController extends Controller
 {
@@ -22,79 +23,66 @@ class JournalCaisseController extends Controller
 
     public function getData(Request $request)
     {
+        // Validation des filtres
         $request->validate([
             'type_frais_id' => 'nullable|exists:type_frais,id',
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date',
-            'mode_paiement' => 'nullable|in:especes,cheque,virement,mobile_money'
         ]);
 
-        $anneeScolaireId = session('annee_scolaire_id');
+        // 👇 Log pour vérifier ce que l'utilisateur a choisi
+    Log::info('Type de frais sélectionné : ' . $request->type_frais_id);
+    
+        // Récupérer l'année scolaire de l'utilisateur
+        $userId = Auth::id();
+        $ecoleId = Auth::user()->ecole_id;
 
-        if (!$anneeScolaireId) {
-            return response()->json(['success'=>false,'message'=>'Aucune année scolaire en session']);
+        $userAnnee = \App\Models\UserAnneeScolaire::where('user_id', $userId)
+                        ->where('ecole_id', $ecoleId)
+                        ->latest('id')
+                        ->first();
+
+        if (!$userAnnee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune année scolaire définie pour cet utilisateur.'
+            ]);
         }
 
+        $anneeScolaireId = $userAnnee->annee_scolaire_id;
 
         try {
-            // Construction de la requête
+            // Construire la requête
             $query = Paiement::with(['typeFrais', 'inscription.eleve', 'user', 'anneeScolaire'])
-                ->where('annee_scolaire_id', $anneeScolaireId);
+                        ->where('annee_scolaire_id', $anneeScolaireId);
 
-            // Application des filtres
+            // Appliquer les filtres
             if ($request->type_frais_id) {
                 $query->where('type_frais_id', $request->type_frais_id);
             }
 
-            if ($request->mode_paiement) {
-                $query->where('mode_paiement', $request->mode_paiement);
-            }
-
             if ($request->date_debut) {
-                $query->whereDate('date_paiement', '>=', $request->date_debut);
+                $query->whereDate('created_at', '>=', $request->date_debut);
             }
 
             if ($request->date_fin) {
-                $query->whereDate('date_paiement', '<=', $request->date_fin);
+                $query->whereDate('created_at', '<=', $request->date_fin);
             }
 
-            // Récupération des paiements
-            $paiements = $query->orderBy('date_paiement', 'desc')
-                            ->orderBy('created_at', 'desc')
-                            ->get();
+            // Récupérer les paiements
+            $paiements = $query->orderBy('created_at', 'desc')
+                               ->orderBy('created_at', 'desc')
+                               ->get();
 
             // Calcul des totaux
             $totalPaiements = $paiements->sum('montant');
             $nombrePaiements = $paiements->count();
 
-            // Statistiques par type de frais
-            $statsParType = Paiement::select('type_frais_id', DB::raw('SUM(montant) as total'), DB::raw('COUNT(*) as count'))
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->when($request->type_frais_id, fn($q) => $q->where('type_frais_id', $request->type_frais_id))
-                ->when($request->mode_paiement, fn($q) => $q->where('mode_paiement', $request->mode_paiement))
-                ->when($request->date_debut, fn($q) => $q->whereDate('date_paiement', '>=', $request->date_debut))
-                ->when($request->date_fin, fn($q) => $q->whereDate('date_paiement', '<=', $request->date_fin))
-                ->with('typeFrais')
-                ->groupBy('type_frais_id')
-                ->get();
-
-            // Statistiques par mode de paiement
-            $statsParMode = Paiement::select('mode_paiement', DB::raw('SUM(montant) as total'), DB::raw('COUNT(*) as count'))
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->when($request->type_frais_id, fn($q) => $q->where('type_frais_id', $request->type_frais_id))
-                ->when($request->mode_paiement, fn($q) => $q->where('mode_paiement', $request->mode_paiement))
-                ->when($request->date_debut, fn($q) => $q->whereDate('date_paiement', '>=', $request->date_debut))
-                ->when($request->date_fin, fn($q) => $q->whereDate('date_paiement', '<=', $request->date_fin))
-                ->groupBy('mode_paiement')
-                ->get();
-
             return response()->json([
                 'success' => true,
                 'paiements' => $paiements,
                 'total_paiements' => $totalPaiements,
-                'nombre_paiements' => $nombrePaiements,
-                'stats_par_type' => $statsParType,
-                'stats_par_mode' => $statsParMode
+                'nombre_paiements' => $nombrePaiements
             ]);
 
         } catch (\Exception $e) {
@@ -104,9 +92,6 @@ class JournalCaisseController extends Controller
             ]);
         }
     }
-
-
-    
 
     public function destroy(Paiement $paiement)
     {

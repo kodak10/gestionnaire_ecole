@@ -52,8 +52,6 @@
                 <h4 class="text-dark">Filtres</h4>
             </div>
             <div class="card-body">
-                
-
                 <div class="mb-3">
                     <label class="form-label">Type de Frais</label>
                     <select class="form-select" id="type_frais_id" name="type_frais_id">
@@ -61,19 +59,6 @@
                         @foreach($typesFrais as $typeFrais)
                             <option value="{{ $typeFrais->id }}">{{ $typeFrais->nom }}</option>
                         @endforeach
-                    </select>
-                </div>
-
-                
-
-                <div class="mb-3">
-                    <label class="form-label">Mode de Paiement</label>
-                    <select class="form-select" id="mode_paiement" name="mode_paiement">
-                        <option value="">Tous les modes</option>
-                        <option value="especes">Espèces</option>
-                        <option value="cheque">Chèque</option>
-                        <option value="virement">Virement</option>
-                        <option value="mobile_money">Mobile Money</option>
                     </select>
                 </div>
 
@@ -98,22 +83,6 @@
             </div>
         </div>
 
-        <!-- Statistiques -->
-        <div class="card mt-3">
-            <div class="card-header bg-light">
-                <h4 class="text-dark">Statistiques</h4>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Total Paiements</label>
-                    <input type="text" class="form-control bg-primary bg-opacity-10 text-primary fw-bold" id="total_paiements" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Nombre de Paiements</label>
-                    <input type="text" class="form-control bg-info bg-opacity-10 text-info fw-bold" id="nombre_paiements" readonly>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Colonne de droite - Liste des paiements -->
@@ -161,11 +130,8 @@
                                 <th>Date</th>
                                 <th>Élève</th>
                                 <th>Type</th>
-                                <th>Frais</th>
                                 <th>Montant</th>
-                                <th>Mode</th>
-                                <th>Référence</th>
-                                <th>Actions</th>
+                                <th>Mode de paiement</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,7 +145,6 @@
         </div>
     </div>
 </div>
-
 
 <!-- Modal pour confirmation de suppression -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -245,50 +210,51 @@ toastr.options = {
 $(document).ready(function() {
     let paiementToDelete = null;
 
-    loadPaiements(); // charger directement les paiements filtrés par type, mode, date
+    $('#filter-btn').click(function(e) {
+        e.preventDefault();
+        loadPaiements();
+    });
 
-
-    
     // Charger les paiements selon les filtres
     function loadPaiements() {
         const typeFraisId = $('#type_frais_id').val();
-        const modePaiement = $('#mode_paiement').val();
         const dateDebut = $('#date_debut').val();
         const dateFin = $('#date_fin').val();
 
-        console.log("Filtres appliqués:", { typeFraisId, modePaiement, dateDebut, dateFin });
+        // Ne rien afficher si tous les filtres sont vides
+        if (!typeFraisId && !dateDebut && !dateFin) {
+            $('#paiements-table tbody').html('<tr><td colspan="8" class="text-center">Veuillez appliquer des filtres pour voir les paiements</td></tr>');
+            updateStats(0, 0);
+            return;
+        }
 
         $.ajax({
             url: '{{ route("journal-paiements.data") }}',
             type: 'GET',
             data: { 
                 type_frais_id: typeFraisId,
-                mode_paiement: modePaiement,
                 date_debut: dateDebut,
                 date_fin: dateFin
             },
             beforeSend: function() {
-                console.log("Envoi de la requête AJAX...");
                 $('#paiements-table tbody').html('<tr><td colspan="8" class="text-center">Chargement en cours...</td></tr>');
             },
             success: function(response) {
-                console.log("Réponse AJAX reçue:", response);
-
                 if (response.success) {
                     updatePaiementsTable(response.paiements);
                     updateStats(response.total_paiements, response.nombre_paiements);
                 } else {
                     toastr.error(response.message);
                     $('#paiements-table tbody').html('<tr><td colspan="8" class="text-center">Aucun paiement trouvé</td></tr>');
+                    updateStats(0, 0);
                 }
             },
             error: function(xhr) {
-                console.error("Erreur AJAX:", xhr.responseText);
                 toastr.error('Erreur lors du chargement des données');
                 $('#paiements-table tbody').html('<tr><td colspan="8" class="text-center">Erreur de chargement</td></tr>');
+                updateStats(0, 0);
             }
         });
-    
     }
 
     // Mettre à jour le tableau des paiements
@@ -297,30 +263,17 @@ $(document).ready(function() {
         
         if (paiements.length > 0) {
             $.each(paiements, function(index, paiement) {
-                const badgeClass = paiement.est_frais_inscription ? 'badge-inscription' : 'badge-scolarite';
-                const badgeText = paiement.est_frais_inscription ? 'Inscription' : 'Scolarité';
                 const eleveNom = paiement.inscription && paiement.inscription.eleve ? 
-                    paiement.inscription.eleve.prenom + ' ' + paiement.inscription.eleve.nom : 'N/A';
+                    paiement.inscription.eleve.nom + ' ' + paiement.inscription.eleve.prenom : 'N/A';
                 
                 html += `
                 <tr>
-                    <td>${formatDate(paiement.date_paiement)}</td>
+                    <td>${formatDate(paiement.created_at)}</td>
                     <td>${eleveNom}</td>
-                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
                     <td>${paiement.type_frais ? paiement.type_frais.nom : 'N/A'}</td>
                     <td class="fw-bold text-success">${formatMoney(paiement.montant)}</td>
                     <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                    <td>${paiement.reference || '-'}</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-warning btn-edit" data-id="${paiement.id}">
-                                <i class="ti ti-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
-                                <i class="ti ti-trash"></i>
-                            </button>
-                        </div>
-                    </td>
+                    
                 </tr>
                 `;
             });
@@ -330,16 +283,6 @@ $(document).ready(function() {
         
         $('#paiements-table tbody').html(html);
         
-        // Ajouter les événements aux boutons
-        $('.btn-edit').click(function() {
-            const paiementId = $(this).data('id');
-            editPaiement(paiementId);
-        });
-        
-        $('.btn-delete').click(function() {
-            const paiementId = $(this).data('id');
-            showDeleteModal(paiementId);
-        });
     }
 
     // Mettre à jour les statistiques
@@ -350,6 +293,8 @@ $(document).ready(function() {
         $('#total-paiements-card').text(formatMoney(totalPaiements));
         $('#nombre-paiements-card').text(nombrePaiements);
     }
+
+    
 
     // Formater un montant en argent
     function formatMoney(amount) {
@@ -376,118 +321,6 @@ $(document).ready(function() {
         };
         return modes[mode] || mode;
     }
-
-    // Soumission du formulaire de paiement
-    $('#paiement-form').submit(function(e) {
-        e.preventDefault();
-        
-        const formData = $(this).serialize();
-        const url = $('#paiement_id').val() ? '{{ route("journal-paiements.update", ":id") }}'.replace(':id', $('#paiement_id').val()) : '{{ route("journal-paiements.store") }}';
-        const method = $('#paiement_id').val() ? 'PUT' : 'POST';
-        
-        $.ajax({
-            url: url,
-            type: method,
-            data: formData,
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                    $('#paiement-form')[0].reset();
-                    $('#date_paiement').val('{{ date('Y-m-d') }}');
-                    $('#paiement_id').val('');
-                    $('#cancel-edit').hide();
-                    loadPaiements();
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function(xhr) {
-                if (xhr.status === 422) {
-                    const errors = xhr.responseJSON.errors;
-                    $.each(errors, function(key, value) {
-                        toastr.error(value[0]);
-                    });
-                } else {
-                    toastr.error('Une erreur est survenue');
-                    console.error(xhr.responseText);
-                }
-            }
-        });
-    }
-
-    // Annuler l'édition
-    $('#cancel-edit').click(function() {
-        $('#paiement-form')[0].reset();
-        $('#date_paiement').val('{{ date('Y-m-d') }}');
-        $('#paiement_id').val('');
-        $(this).hide();
-    });
-
-    // Éditer un paiement
-    function editPaiement(paiementId) {
-        $.ajax({
-            url: '{{ url("journal-paiements") }}/' + paiementId,
-            type: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    const paiement = response.paiement;
-                    $('#paiement_id').val(paiement.id);
-                    $('#est_frais_inscription_select').val(paiement.est_frais_inscription ? '1' : '0');
-                    $('#type_frais_id_select').val(paiement.type_frais_id);
-                    $('#montant').val(paiement.montant);
-                    $('#date_paiement').val(paiement.date_paiement);
-                    $('#mode_paiement_select').val(paiement.mode_paiement);
-                    $('#beneficiaire').val(paiement.beneficiaire);
-                    $('#reference').val(paiement.reference);
-                    $('#inscription_id').val(paiement.inscription_id);
-                    $('#description').val(paiement.description);
-                    $('#cancel-edit').show();
-                    
-                    // Scroll to form
-                    $('html, body').animate({
-                        scrollTop: $('#paiement-form').offset().top - 100
-                    }, 500);
-                }
-            },
-            error: function() {
-                toastr.error('Erreur lors du chargement du paiement');
-            }
-        });
-    }
-
-    // Afficher le modal de suppression
-    function showDeleteModal(paiementId) {
-        paiementToDelete = paiementId;
-        $('#deleteModal').modal('show');
-    }
-
-    // Confirmer la suppression
-    $('#confirm-delete').click(function() {
-        if (!paiementToDelete) return;
-        
-        $.ajax({
-            url: '{{ url("journal-paiements") }}/' + paiementToDelete,
-            type: 'DELETE',
-            data: {
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                    loadPaiements();
-                } else {
-                    toastr.error(response.message);
-                }
-                $('#deleteModal').modal('hide');
-            },
-            error: function() {
-                toastr.error('Erreur lors de la suppression du paiement');
-                $('#deleteModal').modal('hide');
-            }
-        });
-    });
-
-    
 });
 </script>
 @endsection

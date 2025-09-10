@@ -70,8 +70,10 @@
                                         <li><a href="{{ route('transport.index') }}">Règlements</a></li>
 									</ul>
 								</li>
-								<li><a href="#"><i class="ti ti-calendar-due"></i><span>Relances</span></a></li>
+								<li><a href="{{ route('relance.index') }}"><i class="ti ti-calendar-due"></i><span>Relances</span></a></li>
 								<li><a href="{{ route('depenses.index') }}"><i class="ti ti-calendar-due"></i><span>Depenses</span></a></li>
+
+								<li><a href="#"><i class="ti ti-calendar-due"></i><span>Messages</span></a></li>
 
 							</ul>
 

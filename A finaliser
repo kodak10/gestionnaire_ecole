@@ -1,7 +1,19 @@
-_ Cantine => Okay
-_ Transport => Okay
+FAIRE LE POINT DE CE QUI NE VA PAS
+
+_ Parametrage Ecole => Okay
+_ Classe Eleve => Okay
+_ Inscription Eleve => Okay
+_ Paiement Scolarité => Okay
+_ Paiement ScolaritéCantine => Okay
+_ Paiement Scolarité Transport => Okay
 _ Depense => Okay
-_ Jounral de Caisse et tri en fonction des types de frais
-_ Recu de paiement avec des fonds en fonction du type de frais
-_ Page d'accueil
+CE SOIR_ Journal de Caisse et tri en fonction des types de frais => Okay
+CE SOIR_ Relance via papier pour tout chaque type de frais (Utilisé le model de depense ou de caisse) => Okay
+CE SOIR_ TESTER ET PARFAIRE CE QUI A ETE DEJA FAIT
+CE SOIR_ POINT POUR SAVOIR TOUT CE QUI A ETE DEJA FAIT ET CE QUI MANQUE
+_ Recu de paiement avec des fonds en fonction du type de frais (EN fonction du type de frais le background va changé)
+_ Page d'accueil (vider pour l'instant)
 _ Mettre EPP EXCELLE comme école de test avec l'année scolaire en cours comme unique 
+_ Relance via SMS
+_ Consultation de scolarité, Bullettin
+_ Paiement de Scolarité

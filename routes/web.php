@@ -20,12 +20,14 @@ use App\Http\Controllers\ParametrageScolariteController;
 use App\Http\Controllers\PreInscriptionController;
 use App\Http\Controllers\ReglementController;
 use App\Http\Controllers\ReinscriptionController;
+use App\Http\Controllers\RelanceController;
 use App\Http\Controllers\ScolariteController;
 use App\Http\Controllers\TarifMensuelController;
 use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
 use App\Models\Eleve;
 use Illuminate\Support\Facades\Route;
+
 
 
 
@@ -245,7 +247,13 @@ use Illuminate\Support\Facades\Route;
         });
         
 
-        Route::get('relances', [ReglementController::class, 'sendRelances'])->name('reglements.relanaces.send');
+        // Routes pour la relance
+        Route::prefix('relance')->group(function () {
+            Route::get('/', [RelanceController::class, 'index'])->name('relance.index');
+            Route::get('/data', [RelanceController::class, 'getRelanceData'])->name('relance.data');
+            Route::get('/imprimer', [RelanceController::class, 'imprimerRelance'])->name('relance.imprimer');
+        });
+
 
     });
 
