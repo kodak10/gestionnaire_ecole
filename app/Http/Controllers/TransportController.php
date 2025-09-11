@@ -7,6 +7,7 @@ use App\Models\Eleve;
 use App\Models\Inscription;
 use App\Models\MoisScolaire;
 use App\Models\Paiement;
+use App\Models\PaiementDetail;
 use App\Models\PaiementTransport;
 use App\Models\Reduction;
 use App\Models\ReductionTransport;
@@ -60,197 +61,196 @@ class TransportController extends Controller
         }
     }
 
-    public function getEleveTransport(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
-        ]);
+   public function getEleveTransport(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
+    ]);
 
-        try {
-            // Récupération de l'inscription avec relations
-            $inscription = Inscription::with(['eleve', 'classe.niveau'])
-                ->findOrFail($request->inscription_id);
+    try {
+        $inscription = Inscription::with(['eleve', 'classe.niveau'])
+            ->findOrFail($request->inscription_id);
 
-            // Vérifier si l'élève a la transport active
-            if (!$inscription->transport_active) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cet élève n\'a pas le Transport active'
-                ]);
-            }
-
-            $anneeId = session('annee_scolaire_id'); 
-
-            $ecoleId = $inscription->eleve->ecole_id;
-            $niveauId = $inscription->classe->niveau->id;
-
-            Log::info('Inscription trouvée', ['inscription_id' => $inscription->id]);
-            Log::info('IDs récupérés', compact('anneeId', 'ecoleId', 'niveauId'));
-
-            // Récupérer les types de frais pour la transport
-            $typeTransport = TypeFrais::where('nom', "Transport")->first();
-
-            Log::info('Type frais trouvés', [
-                'Transport' => $typeTransport->id ?? null
-            ]);
-
-            // Récupérer le tarif de la transport
-            $tarifTransport = Tarif::where('annee_scolaire_id', $anneeId)
-                ->where('niveau_id', $niveauId)
-                ->where('ecole_id', $ecoleId)
-                ->where('type_frais_id', $typeTransport->id ?? 0)
-                ->first();
-
-            Log::info('Tarifs trouvés', [
-                'tarif_transport' => $typeTransport?->montant
-            ]);
-
-            $montantTransport = $tarifTransport ? $tarifTransport->montant : 0;
-
-            // Récupérer tous les paiements pour la transport
-            $paiements = Paiement::where('inscription_id', $inscription->id)
-                ->where('type_frais_id', $typeTransport->id ?? 0)
-                ->get();
-                
-            Log::info('Paiements trouvés', ['count' => $paiements->count()]);
-
-            // Total payé pour la transport
-            $totalPayeTransport = $paiements->sum('montant');
-            $resteAPayerTransport = max(0, $montantTransport - $totalPayeTransport);
-
-            Log::info('Totaux payés', [
-                'transport' => $resteAPayerTransport
-            ]);
-
-            $tousPaiements = $paiements->sortByDesc('created_at')->values();
-
-            return response()->json([
-                'success' => true,
-                'eleve' => [
-                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
-                    'matricule' => $inscription->eleve->matricule,
-                    'classe' => $inscription->classe->nom
-                ],
-                'frais' => [
-                    'transport' => $montantTransport
-                ],
-                'paiements' => $tousPaiements,
-                'total_paye' => [
-                    'transport' => $totalPayeTransport
-                ],
-                'reste_a_payer' => [
-                    'transport' => $resteAPayerTransport
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur eleveData Transport', ['message' => $e->getMessage()]);
+        if (!$inscription->transport_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors du chargement des données de transport: ' . $e->getMessage()
+                'message' => 'Cet élève n\'a pas le transport actif.'
             ]);
         }
-    }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'montant_transport' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,cheque,virement,mobile_money',
-            'date_paiement' => 'required|date'
-        ]);
+        $anneeId = session('annee_scolaire_id');
+        $ecoleId = $inscription->eleve->ecole_id;
+        $niveauId = $inscription->classe->niveau->id;
 
-        try {
-            $anneeId = session('annee_scolaire_id'); // 🔑 On force à utiliser la session
-            if (!$anneeId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Aucune année scolaire active dans la session.'
-                ], 422);
-            }
-
-            $inscription = Inscription::findOrFail($request->inscription_id);
-            
-            // Vérifier si l'élève a la transport active
-            if (!$inscription->transport_active) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cet élève n\'a pas la transport active'
-                ]);
-            }
-
-            $ecoleId = $inscription->eleve->ecole_id;
-            $niveauId = $inscription->classe->niveau->id;
-
-
-            // Récupérer le type de frais pour la transport
-            $typeTransport = TypeFrais::where('nom', "transport")->first();
-
-            if (!$typeTransport) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Type de frais "transport" non trouvé'
-                ]);
-            }
-
-            // Récupérer le tarif de la transport
-            $tarifTransport = Tarif::where('annee_scolaire_id', $anneeId)
-                ->where('niveau_id', $niveauId)
-                ->where('ecole_id', $ecoleId)
-                ->where('type_frais_id', $typeTransport->id)
-                ->first();
-
-            if (!$tarifTransport) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tarif de transport non trouvé pour cette configuration'
-                ]);
-            }
-
-            // Récupérer le total déjà payé pour la transport
-            $totalPayeTransport = Paiement::where('inscription_id', $request->inscription_id)
-                ->where('type_frais_id', $typeTransport->id)
-                ->sum('montant');
-
-            $resteAPayer = max(0, $tarifTransport->montant - $totalPayeTransport);
-
-            // Vérifier que le montant saisi ne dépasse pas le reste à payer
-            if ($request->montant_transport > $resteAPayer) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Le montant saisi dépasse le reste à payer (' . $resteAPayer . ' FCFA)'
-                ]);
-            }
-
-            // Créer le paiement
-            $paiement = Paiement::create([
-                'user_id' => auth()->id(),
-                'inscription_id' => $request->inscription_id,
-                'annee_scolaire_id' => $anneeId,
-                'ecole_id' => $ecoleId,
-                'type_frais_id' => $typeTransport->id,
-                'montant' => $request->montant_transport,
-                'mode_paiement' => $request->mode_paiement,
-                'date_paiement' => $request->date_paiement,
-                'description' => 'Paiement transport'
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Paiement enregistré avec succès',
-                'paiement_id' => $paiement->id
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur storePaiementTransport', ['message' => $e->getMessage()]);
+        $typeTransport = TypeFrais::where('nom', "Transport")->first();
+        if (!$typeTransport) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage()
+                'message' => 'Type de frais "Transport" non trouvé.'
             ]);
         }
+
+        $tarifTransport = Tarif::where([
+            'annee_scolaire_id' => $anneeId,
+            'niveau_id' => $niveauId,
+            'ecole_id' => $ecoleId,
+            'type_frais_id' => $typeTransport->id
+        ])->first();
+
+        $montantTransport = $tarifTransport->montant ?? 0;
+
+        // Récupérer les paiements via PaiementDetail
+        $paiements = Paiement::with('details.typeFrais')
+            ->whereHas('details', function($q) use ($inscription, $typeTransport) {
+                $q->where('inscription_id', $inscription->id)
+                  ->where('type_frais_id', $typeTransport->id ?? 0);
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        $totalPayeTransport = 0;
+        foreach ($paiements as $paiement) {
+            foreach ($paiement->details as $detail) {
+                if ($detail->type_frais_id == ($typeTransport->id ?? 0)) {
+                    $totalPayeTransport += $detail->montant;
+                }
+            }
+        }
+
+        $resteTransport = max(0, $montantTransport - $totalPayeTransport);
+
+        return response()->json([
+            'success' => true,
+            'eleve' => [
+                'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                'matricule' => $inscription->eleve->matricule,
+                'classe' => $inscription->classe->nom
+            ],
+            'frais' => [
+                'transport' => $montantTransport
+            ],
+            'total_paye' => [
+                'transport' => $totalPayeTransport
+            ],
+            'reste_a_payer' => [
+                'transport' => $resteTransport
+            ],
+            'paiements' => $paiements
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du chargement des données de transport: ' . $e->getMessage()
+        ]);
     }
+}
+
+
+public function store(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'montant_transport' => 'required|numeric|min:0',
+        'mode_paiement' => 'required|in:especes,cheque,virement,mobile_money',
+        'date_paiement' => 'required|date'
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $anneeId = session('annee_scolaire_id');
+        if (!$anneeId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucune année scolaire active dans la session.'
+            ], 422);
+        }
+
+        $inscription = Inscription::with('eleve', 'classe.niveau')->findOrFail($request->inscription_id);
+
+        if (!$inscription->transport_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cet élève n\'a pas le transport actif.'
+            ]);
+        }
+
+        $ecoleId = $inscription->eleve->ecole_id;
+        $niveauId = $inscription->classe->niveau->id;
+
+        $typeTransport = TypeFrais::where('nom', 'Transport')->first();
+        if (!$typeTransport) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Type de frais "Transport" non trouvé.'
+            ]);
+        }
+
+        $tarifTransport = Tarif::where([
+            'annee_scolaire_id' => $anneeId,
+            'niveau_id' => $niveauId,
+            'ecole_id' => $ecoleId,
+            'type_frais_id' => $typeTransport->id
+        ])->first();
+
+        $totalPayeTransport = PaiementDetail::where('inscription_id', $request->inscription_id)
+            ->where('type_frais_id', $typeTransport->id)
+            ->sum('montant');
+
+        $resteAPayer = max(0, ($tarifTransport->montant ?? 0) - $totalPayeTransport);
+
+        if ($request->montant_transport > $resteAPayer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le montant saisi dépasse le reste à payer (' . $resteAPayer . ' FCFA).'
+            ]);
+        }
+
+        // Paiement global
+        $paiement = Paiement::create([
+            'user_id' => auth()->id(),
+            'annee_scolaire_id' => $anneeId,
+            'ecole_id' => $ecoleId,
+            'montant' => $request->montant_transport,
+            'mode_paiement' => $request->mode_paiement,
+            'reference' => null,
+            'description' => 'Paiement Transport',
+            'created_at' => $request->date_paiement,
+            'updated_at' => $request->date_paiement
+        ]);
+
+        // Détail paiement
+        PaiementDetail::create([
+            'paiement_id' => $paiement->id,
+            'inscription_id' => $request->inscription_id,
+            'annee_scolaire_id' => $anneeId,
+            'ecole_id' => $ecoleId,
+            'type_frais_id' => $typeTransport->id,
+            'montant' => $request->montant_transport,
+            'created_at' => $request->date_paiement,
+            'updated_at' => $request->date_paiement
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Paiement Transport enregistré avec succès.',
+            'paiement_id' => $paiement->id
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur storePaiementTransport', ['message' => $e->getMessage()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage()
+        ]);
+    }
+}
+
 
   
 
