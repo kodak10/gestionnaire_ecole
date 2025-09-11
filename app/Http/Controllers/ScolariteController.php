@@ -39,61 +39,75 @@ class ScolariteController extends Controller
         return view('dashboard.pages.scolarites.index', compact('classes', 'typesFrais', 'moisScolaires', 'anneesScolaires'));
     }
 
-    
-   public function getElevesByClasse(Request $request)
+  public function getElevesByClasse(Request $request)
 {
     $request->validate(['classe_id' => 'required|exists:classes,id']);
 
-    $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
+    try {
+        // Récupérer l'année scolaire depuis user_annees_scolaires
+        $userAnnee = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->latest('id')
+            ->first();
 
+        if (!$userAnnee) {
+            return response()->json(['error' => 'Aucune année scolaire assignée à cet utilisateur'], 404);
+        }
 
-    // Récupérer l'année scolaire active
-    $anneeActive = AnneeScolaire::where('est_active', true)->first();
-    
-    if (!$anneeActive) {
-        return response()->json(['error' => 'Aucune année scolaire active trouvée'], 404);
+        $anneeId = $userAnnee->annee_scolaire_id;
+
+        $eleves = Inscription::with(['eleve', 'classe'])
+            ->where('classe_id', $request->classe_id)
+            ->where('annee_scolaire_id', $anneeId)
+            ->get()
+            ->map(function ($inscription) {
+                return [
+                    'inscription_id' => $inscription->id, 
+                    'eleve_id' => $inscription->eleve->id,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
+                    'matricule' => $inscription->eleve->matricule,
+                    'classe_nom' => $inscription->classe->nom,
+                ];
+            });
+
+        return response()->json($eleves);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Erreur lors du chargement des élèves: ' . $e->getMessage()], 500);
     }
-
-    $eleves = Inscription::with(['eleve', 'classe'])
-        ->where('classe_id', $request->classe_id)
-        ->where('annee_scolaire_id', $anneeActive->id)
-        ->get()
-        ->map(function ($inscription) {
-            return [
-                'inscription_id' => $inscription->id, 
-                'eleve_id' => $inscription->eleve->id,
-                'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-                'matricule' => $inscription->eleve->matricule,
-                'classe_nom' => $inscription->classe->nom,
-            ];
-        });
-
-    return response()->json($eleves);
 }
-
-
 
 public function getElevePaiements(Request $request)
 {
     $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
+        'inscription_id' => 'required|exists:inscriptions,id'
     ]);
 
     try {
         $inscription = Inscription::with('classe.niveau', 'eleve')->findOrFail($request->inscription_id);
-
-        // On récupère l'année scolaire depuis la session si nécessaire
-        $anneeScolaireId = session('annee_scolaire_id');
-        $anneeScolaire = AnneeScolaire::findOrFail($anneeScolaireId);
-
         $ecoleId = $inscription->ecole_id;
+
+        // Récupérer l'année scolaire depuis user_annees_scolaires
+        $userAnnee = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $ecoleId)
+            ->latest('id')
+            ->first();
+
+        if (!$userAnnee) {
+            return response()->json([
+                'success' => false,
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
+            ]);
+        }
+
+        $anneeId = $userAnnee->annee_scolaire_id;
         $niveauId = $inscription->classe->niveau_id;
 
         // Récupérer tous les paiements
         $paiements = Paiement::with(['typeFrais'])
             ->where('inscription_id', $inscription->id)
-            ->where('annee_scolaire_id', $anneeScolaire->id)
+            ->where('annee_scolaire_id', $anneeId)
             ->get();
 
         // Récupérer le type "Scolarité"
@@ -102,7 +116,7 @@ public function getElevePaiements(Request $request)
         // Montant scolarité (tarif de référence)
         $montantScolarite = 0;
         if ($typeScolarite) {
-            $tarifScolarite = Tarif::where('annee_scolaire_id', $anneeScolaire->id)
+            $tarifScolarite = Tarif::where('annee_scolaire_id', $anneeId)
                 ->where('ecole_id', $ecoleId)
                 ->where('niveau_id', $niveauId)
                 ->where('type_frais_id', $typeScolarite->id)
@@ -118,7 +132,7 @@ public function getElevePaiements(Request $request)
 
         // Réduction appliquée à la scolarité
         $reductionScolarite = Reduction::where('inscription_id', $inscription->id)
-            ->where('annee_scolaire_id', $anneeScolaire->id)
+            ->where('annee_scolaire_id', $anneeId)
             ->where('type_frais_id', $typeScolarite->id ?? 0)
             ->sum('montant');
 
@@ -136,17 +150,16 @@ public function getElevePaiements(Request $request)
             'reste_a_payer' => $resteAPayer,
         ]);
 
-       return response()->json([
-    'success' => true,
-    'summary' => [
-        'total_scolarite' => $montantScolarite,
-        'total_paye_scolarite' => $totalPayeScolarite,
-        'reste_payer_scolarite' => $resteAPayer,
-        'reduction_scolarite' => $reductionScolarite,
-    ],
-    'paiements' => $paiements 
-]);
-
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_scolarite' => $montantScolarite,
+                'total_paye_scolarite' => $totalPayeScolarite,
+                'reste_payer_scolarite' => $resteAPayer,
+                'reduction_scolarite' => $reductionScolarite,
+            ],
+            'paiements' => $paiements 
+        ]);
 
     } catch (\Exception $e) {
         \Log::error("Erreur getElevePaiements", ['message' => $e->getMessage()]);
@@ -157,67 +170,76 @@ public function getElevePaiements(Request $request)
     }
 }
 
+public function applyReduction(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'reduction' => 'required|numeric|min:0'
+    ]);
+    
+    $ecole_id = auth()->user()->ecole_id;
 
+    DB::beginTransaction();
 
+    try {
+        $inscription = Inscription::findOrFail($request->inscription_id);
 
+        // Récupérer l'année scolaire depuis user_annees_scolaires
+        $userAnnee = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $ecole_id)
+            ->latest('id')
+            ->first();
 
-   public function applyReduction(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'reduction' => 'required|numeric|min:0'
-        ]);
-        
-        $ecole_id = auth()->user()->ecole_id;
-        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
-
-
-        DB::beginTransaction();
-
-        try {
-            $inscription = Inscription::findOrFail($request->inscription_id);
-
-            // Récupérer l'ID du type de frais Scolarité
-            $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
-
-            if (!$typeScolarite) {
-                throw new \Exception("Type de frais 'Scolarité' introuvable");
-            }
-
-            // Supprimer les anciennes réductions pour la scolarité de cette année
-            $inscription->reductions()
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->where('type_frais_id', $typeScolarite->id)
-                ->where('ecole_id', $ecole_id)
-                ->delete();
-
-            // Ajouter la nouvelle réduction si > 0
-            if ($request->reduction > 0) {
-                $inscription->reductions()->create([
-                    'annee_scolaire_id' => $anneeScolaireId,
-                    'montant' => $request->reduction,
-                    'raison' => 'Réduction manuelle sur scolarité',
-                    'type_frais_id' => $typeScolarite->id, 
-                    'ecole_id' => $ecole_id,
-                ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Réduction appliquée avec succès'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
+        if (!$userAnnee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'application de la réduction: ' . $e->getMessage()
-            ], 500);
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
+            ]);
         }
-    }
 
+        $anneeId = $userAnnee->annee_scolaire_id;
+
+        // Récupérer l'ID du type de frais Scolarité
+        $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
+
+        if (!$typeScolarite) {
+            throw new \Exception("Type de frais 'Scolarité' introuvable");
+        }
+
+        // Supprimer les anciennes réductions pour la scolarité de cette année
+        $inscription->reductions()
+            ->where('annee_scolaire_id', $anneeId)
+            ->where('type_frais_id', $typeScolarite->id)
+            ->where('ecole_id', $ecole_id)
+            ->delete();
+
+        // Ajouter la nouvelle réduction si > 0
+        if ($request->reduction > 0) {
+            $inscription->reductions()->create([
+                'annee_scolaire_id' => $anneeId,
+                'montant' => $request->reduction,
+                'raison' => 'Réduction manuelle sur scolarité',
+                'type_frais_id' => $typeScolarite->id, 
+                'ecole_id' => $ecole_id,
+            ]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Réduction appliquée avec succès'
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors de l\'application de la réduction: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
     public function printScolarite($eleveId, $anneeId)
     {

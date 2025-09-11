@@ -31,76 +31,88 @@ class TransportController extends Controller
 }
 
 
-   public function elevesByClasseTransport(Request $request)
-    {
-        $request->validate([
-            'classe_id' => 'required|exists:classes,id'
-        ]);
-        
-        try {
-            $eleves = Inscription::with('eleve')
-                ->where('classe_id', $request->classe_id)
-                ->where('transport_active', true) // Filtrer uniquement les élèves avec transport active
-                ->whereHas('anneeScolaire', function($query) {
-                    $query->where('est_active', true);
-                })
-                ->get()
-                ->map(function($inscription) {
-                    return [
-                        'id' => $inscription->id,
-                        'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
-                        'matricule' => $inscription->eleve->matricule,
-                        'transport_active' => $inscription->transport_active // Inclure l'état de la transport
-                    ];
-                });
-                
-            return response()->json($eleves);
-            
-        } catch (\Exception $e) {
-            return response()->json([], 500);
-        }
-    }
+ public function elevesByClasseTransport(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id'
+    ]);
 
-   public function getEleveTransport(Request $request)
+    try {
+        // Récupérer l'année scolaire active de l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
+            return response()->json([], 422);
+        }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
+
+        $eleves = Inscription::with('eleve')
+            ->where('classe_id', $request->classe_id)
+            ->where('transport_active', true) // Filtrer uniquement les élèves avec transport actif
+            ->where('annee_scolaire_id', $anneeId)
+            ->get()
+            ->map(function($inscription) {
+                return [
+                    'id' => $inscription->id,
+                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'matricule' => $inscription->eleve->matricule,
+                    'transport_active' => $inscription->transport_active
+                ];
+            });
+
+        return response()->json($eleves);
+
+    } catch (\Exception $e) {
+        return response()->json([], 500);
+    }
+}
+
+public function getEleveTransport(Request $request)
 {
     $request->validate([
         'inscription_id' => 'required|exists:inscriptions,id',
-        'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
     ]);
 
     try {
         $inscription = Inscription::with(['eleve', 'classe.niveau'])
             ->findOrFail($request->inscription_id);
 
-        if (!$inscription->transport_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cet élève n\'a pas le transport actif.'
-            ]);
-        }
-
-        $anneeId = session('annee_scolaire_id');
         $ecoleId = $inscription->eleve->ecole_id;
         $niveauId = $inscription->classe->niveau->id;
 
-        $typeTransport = TypeFrais::where('nom', "Transport")->first();
-        if (!$typeTransport) {
+        // Récupérer l'année scolaire assignée à l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $ecoleId)
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'Type de frais "Transport" non trouvé.'
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
             ]);
         }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
+
+        // Type de frais Transport
+        $typeTransport = TypeFrais::where('nom', "Transport")->first();
 
         $tarifTransport = Tarif::where([
             'annee_scolaire_id' => $anneeId,
             'niveau_id' => $niveauId,
             'ecole_id' => $ecoleId,
-            'type_frais_id' => $typeTransport->id
+            'type_frais_id' => $typeTransport->id ?? 0
         ])->first();
 
         $montantTransport = $tarifTransport->montant ?? 0;
 
-        // Récupérer les paiements via PaiementDetail
+        // Récupérer les paiements liés au Transport
         $paiements = Paiement::with('details.typeFrais')
             ->whereHas('details', function($q) use ($inscription, $typeTransport) {
                 $q->where('inscription_id', $inscription->id)
@@ -109,14 +121,10 @@ class TransportController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $totalPayeTransport = 0;
-        foreach ($paiements as $paiement) {
-            foreach ($paiement->details as $detail) {
-                if ($detail->type_frais_id == ($typeTransport->id ?? 0)) {
-                    $totalPayeTransport += $detail->montant;
-                }
-            }
-        }
+        // Calcul du total payé pour le Transport
+        $totalPayeTransport = $paiements->sum(function($paiement) use ($typeTransport) {
+            return $paiement->details->where('type_frais_id', $typeTransport->id ?? 0)->sum('montant');
+        });
 
         $resteTransport = max(0, $montantTransport - $totalPayeTransport);
 
@@ -140,13 +148,9 @@ class TransportController extends Controller
         ]);
 
     } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors du chargement des données de transport: ' . $e->getMessage()
-        ]);
+        return response()->json(['success' => false, 'message' => $e->getMessage()]);
     }
 }
-
 
 public function store(Request $request)
 {
@@ -160,13 +164,20 @@ public function store(Request $request)
     try {
         DB::beginTransaction();
 
-        $anneeId = session('annee_scolaire_id');
-        if (!$anneeId) {
+        // Récupérer l'année scolaire active de l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'Aucune année scolaire active dans la session.'
+                'message' => 'Aucune année scolaire active pour cet utilisateur.'
             ], 422);
         }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
 
         $inscription = Inscription::with('eleve', 'classe.niveau')->findOrFail($request->inscription_id);
 
@@ -195,11 +206,18 @@ public function store(Request $request)
             'type_frais_id' => $typeTransport->id
         ])->first();
 
+        if (!$tarifTransport) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tarif de transport non trouvé pour cette configuration.'
+            ]);
+        }
+
         $totalPayeTransport = PaiementDetail::where('inscription_id', $request->inscription_id)
             ->where('type_frais_id', $typeTransport->id)
             ->sum('montant');
 
-        $resteAPayer = max(0, ($tarifTransport->montant ?? 0) - $totalPayeTransport);
+        $resteAPayer = max(0, $tarifTransport->montant - $totalPayeTransport);
 
         if ($request->montant_transport > $resteAPayer) {
             return response()->json([
@@ -221,7 +239,7 @@ public function store(Request $request)
             'updated_at' => $request->date_paiement
         ]);
 
-        // Détail paiement
+        // Paiement détail
         PaiementDetail::create([
             'paiement_id' => $paiement->id,
             'inscription_id' => $request->inscription_id,
@@ -250,6 +268,7 @@ public function store(Request $request)
         ]);
     }
 }
+
 
 
   

@@ -68,17 +68,6 @@
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Année Scolaire <span class="text-danger">*</span></label>
-                    <select class="form-select" id="annee_scolaire_id" name="annee_scolaire_id" required>
-                        @foreach($anneesScolaires as $annee)
-                            <option value="{{ $annee->id }}" {{ ($annee->est_active || old('annee_scolaire_id') == $annee->id) ? 'selected' : '' }}>
-                                {{ $annee->annee }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <button class="btn btn-primary w-100" id="load-btn" disabled>
                     <i class="ti ti-search me-2"></i>Charger les données
                 </button>
@@ -235,7 +224,6 @@ $(document).ready(function() {
 
     // Variables globales
     let currentinscriptionId = null;
-    let currentAnneeId = null;
     let paiementToDelete = null;
     let currentReduction = 0;
 
@@ -282,29 +270,25 @@ $(document).ready(function() {
     // Charger les données de l'élève
     $('#load-btn').click(function() {
         const inscriptionId = $('#inscription_id').val();
-        const anneeId = $('#annee_scolaire_id').val();
         
-        if (inscriptionId && anneeId) {
+        if (inscriptionId) {
             currentinscriptionId = inscriptionId;
-            currentAnneeId = anneeId;
             
             // Charger les données de paiement
-            loadPaiements(inscriptionId, anneeId);
+            loadPaiements(inscriptionId);
         }
     });
 
     // Fonction pour charger les paiements d'un élève
-    function loadPaiements(inscriptionId, anneeId) {
+    function loadPaiements(inscriptionId) {
 
         console.log("Inscription ID envoyé:", inscriptionId);
-        console.log("Année scolaire ID envoyé:", anneeId);
 
         $.ajax({
             url: '{{ route("reglements.eleve_data") }}',
             type: 'GET',
             data: { 
                 inscription_id: inscriptionId,
-                annee_scolaire_id: anneeId
             },
             beforeSend: function() {
                 $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Chargement en cours...</td></tr>');
@@ -428,14 +412,13 @@ $(document).ready(function() {
             data: {
                 _token: '{{ csrf_token() }}',
                 inscription_id: currentinscriptionId,
-                annee_scolaire_id: currentAnneeId,
                 reduction: reduction
             },
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
                     currentReduction = reduction;
-                    loadPaiements(currentinscriptionId, currentAnneeId);
+                    loadPaiements(currentinscriptionId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -472,7 +455,7 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    loadPaiements(currentinscriptionId, currentAnneeId);
+                    loadPaiements(currentinscriptionId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -492,7 +475,7 @@ $(document).ready(function() {
             return;
         }
         
-        window.open(`{{ url('scolarite/print') }}/${currentinscriptionId}/${currentAnneeId}`, '_blank');
+        window.open(`{{ url('scolarite/print') }}/${currentinscriptionId}/`, '_blank');
     });
 
     // Générer un reçu
