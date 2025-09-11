@@ -141,7 +141,7 @@
                         <input type="text" class="form-control fw-bold text-danger" id="reste_payer_scolarite" readonly>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Réduction Scolarité</label>
+                        <label class="form-label">Réduction Accordée</label>
                         <input type="number" class="form-control" id="reduction_scolarite" value="{{ old('reduction_scolarite', 0) }}" min="0">
                     </div>
                 </div>
@@ -316,7 +316,7 @@ $(document).ready(function() {
                         total_scolarite: response.frais.scolarite,
                         total_paye_scolarite: response.total_paye.scolarite,
                         reste_payer_scolarite: response.reste_a_payer.scolarite,
-                        reduction_scolarite: response.frais.scolarite - response.reste_a_payer.scolarite - response.total_paye.scolarite
+                        reduction_scolarite: response.reduction.scolarite || 0
                     };
                     updateSummary(summary);
                     updatePaiementsTable(response.paiements);

@@ -79,6 +79,7 @@ class ReglementController extends Controller
         $montantScolarite  = $tarifScolarite->montant ?? 0;
 
         $reduction = $inscription->reductions->sum('montant');
+        Log::info('Réduction totale pour l\'inscription', ['inscription_id' => $inscription->id, 'reduction' => $reduction]);
         $montantScolarite = max(0, $montantScolarite - $reduction);
 
         // Récupérer directement les paiements liés à cette inscription
@@ -126,6 +127,9 @@ class ReglementController extends Controller
             'reste_a_payer' => [
                 'inscription' => $resteInscription,
                 'scolarite' => $resteScolarite
+            ],
+            'reduction' => [
+                'scolarite' => $reduction   // <= ICI tu ajoutes la réduction totale
             ],
             'paiements' => $paiements
         ]);
