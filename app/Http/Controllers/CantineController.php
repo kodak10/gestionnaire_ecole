@@ -31,52 +31,75 @@ class CantineController extends Controller
     return view('dashboard.pages.cantines.index', compact('classes', 'anneesScolaires', 'moisScolaires'));
 }
 
-    public function elevesByClasseCantine(Request $request)
-    {
-        $request->validate([
-            'classe_id' => 'required|exists:classes,id'
-        ]);
-        
-        try {
-            $eleves = Inscription::with('eleve')
-                ->where('classe_id', $request->classe_id)
-                ->where('cantine_active', true) // Filtrer uniquement les élèves avec cantine active
-                ->whereHas('anneeScolaire', function($query) {
-                    $query->where('est_active', true);
-                })
-                ->get()
-                ->map(function($inscription) {
-                    return [
-                        'id' => $inscription->id,
-                        'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
-                        'matricule' => $inscription->eleve->matricule,
-                        'cantine_active' => $inscription->cantine_active // Inclure l'état de la cantine
-                    ];
-                });
-                
-            return response()->json($eleves);
-            
-        } catch (\Exception $e) {
-            return response()->json([], 500);
+  public function elevesByClasseCantine(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id'
+    ]);
+
+    try {
+        // Récupérer l'année scolaire active de l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
+            return response()->json([], 422); // ou message d'erreur spécifique
         }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
+
+        $eleves = Inscription::with('eleve')
+            ->where('classe_id', $request->classe_id)
+            ->where('cantine_active', true) // Filtrer uniquement les élèves avec cantine active
+            ->where('annee_scolaire_id', $anneeId) // filtrer par année scolaire de l'utilisateur
+            ->get()
+            ->map(function($inscription) {
+                return [
+                    'id' => $inscription->id,
+                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'matricule' => $inscription->eleve->matricule,
+                    'cantine_active' => $inscription->cantine_active
+                ];
+            });
+
+        return response()->json($eleves);
+
+    } catch (\Exception $e) {
+        return response()->json([], 500);
     }
+}
 
-    
 
-   public function getEleveCantine(Request $request)
+public function getEleveCantine(Request $request)
 {
     $request->validate([
         'inscription_id' => 'required|exists:inscriptions,id',
-        'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
     ]);
 
     try {
         $inscription = Inscription::with(['eleve', 'classe.niveau'])
             ->findOrFail($request->inscription_id);
 
-        $anneeId = session('annee_scolaire_id');
         $ecoleId = $inscription->eleve->ecole_id;
         $niveauId = $inscription->classe->niveau->id;
+
+        // Récupérer l'année scolaire assignée à l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $ecoleId)
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
+            return response()->json([
+                'success' => false,
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
+            ]);
+        }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
 
         // Type de frais Cantine
         $typeCantine = TypeFrais::where('nom', "Cantine")->first();
@@ -100,14 +123,9 @@ class CantineController extends Controller
             ->get();
 
         // Calcul du total payé pour la Cantine
-        $totalPayeCantine = 0;
-        foreach ($paiements as $paiement) {
-            foreach ($paiement->details as $detail) {
-                if ($detail->type_frais_id == ($typeCantine->id ?? 0)) {
-                    $totalPayeCantine += $detail->montant;
-                }
-            }
-        }
+        $totalPayeCantine = $paiements->sum(function($paiement) use ($typeCantine) {
+            return $paiement->details->where('type_frais_id', $typeCantine->id ?? 0)->sum('montant');
+        });
 
         $resteCantine = max(0, $montantCantine - $totalPayeCantine);
 

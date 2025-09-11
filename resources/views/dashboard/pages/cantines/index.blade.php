@@ -51,17 +51,6 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label">Année Scolaire <span class="text-danger">*</span></label>
-                    <select class="form-select" id="annee_scolaire_id" name="annee_scolaire_id" required>
-                        @foreach($anneesScolaires as $annee)
-                            <option value="{{ $annee->id }}" {{ $annee->est_active ? 'selected' : '' }}>
-                                {{ $annee->annee }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="mb-3">
                     <label class="form-label">Classe <span class="text-danger">*</span></label>
                     <select class="form-select select2" id="classe_id" name="classe_id" required>
                         <option value="">Sélectionner une classe</option>
@@ -145,7 +134,6 @@
                     <form id="paiement-form">
                         @csrf
                         <input type="hidden" id="paiement_inscription_id" name="inscription_id">
-                        <input type="hidden" id="paiement_annee_id" name="annee_scolaire_id">
                         
                         <div class="row">
                             <div class="col-md-12">
@@ -273,7 +261,6 @@ $(document).ready(function() {
     });
 
     let currentEleveId = null;
-    let currentAnneeId = null;
     let paiementToDelete = null;
     let currentResteCantine = 0;
 
@@ -316,27 +303,23 @@ $(document).ready(function() {
     // Charger les données de l'élève
     $('#load-btn').click(function() {
         const inscriptionId = $('#inscription_id').val();
-        const anneeId = $('#annee_scolaire_id').val();
 
-        if (inscriptionId && anneeId) {
+        if (inscriptionId) {
             currentEleveId = inscriptionId;
-            currentAnneeId = anneeId;
 
             $('#paiement_inscription_id').val(inscriptionId);
-            $('#paiement_annee_id').val(anneeId);
 
-            loadEleveCantineData(inscriptionId, anneeId);
+            loadEleveCantineData(inscriptionId);
         }
     });
 
     // Charger les données d'un élève pour la cantine
-    function loadEleveCantineData(inscriptionId, anneeId) {
+    function loadEleveCantineData(inscriptionId) {
         $.ajax({
             url: '{{ route("reglements.eleve_cantine_data") }}', // Nouvelle route pour les données cantine
             type: 'GET',
             data: { 
                 inscription_id: inscriptionId,
-                annee_scolaire_id: anneeId
             },
             beforeSend: function() {
                 $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Chargement en cours...</td></tr>');
@@ -466,7 +449,7 @@ $(document).ready(function() {
                     toastr.success(response.message);
                     $('#paiement-form')[0].reset();
                     $('#date_paiement').val('{{ date("Y-m-d") }}');
-                    loadEleveCantineData(currentEleveId, currentAnneeId);
+                    loadEleveCantineData(currentEleveId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -504,7 +487,7 @@ $(document).ready(function() {
                     toastr.error(response.message);
                 }
                 $('#deleteModal').modal('hide');
-                loadEleveCantineData(currentEleveId, currentAnneeId);
+                loadEleveCantineData(currentEleveId);
             },
             error: function() { 
                 toastr.error('Erreur lors de la suppression du paiement'); 
