@@ -263,17 +263,13 @@ $(document).ready(function() {
         
         if (paiements.length > 0) {
             $.each(paiements, function(index, paiement) {
-                const eleveNom = paiement.inscription && paiement.inscription.eleve ? 
-                    paiement.inscription.eleve.nom + ' ' + paiement.inscription.eleve.prenom : 'N/A';
-                
                 html += `
                 <tr>
-                    <td>${formatDate(paiement.created_at)}</td>
-                    <td>${eleveNom}</td>
-                    <td>${paiement.type_frais ? paiement.type_frais.nom : 'N/A'}</td>
+                    <td>${formatDate(paiement.date)}</td>
+                    <td>${paiement.eleve}</td>
+                    <td>${paiement.type_frais}</td>
                     <td class="fw-bold text-success">${formatMoney(paiement.montant)}</td>
                     <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                    
                 </tr>
                 `;
             });
@@ -282,8 +278,8 @@ $(document).ready(function() {
         }
         
         $('#paiements-table tbody').html(html);
-        
     }
+
 
     // Mettre à jour les statistiques
     function updateStats(totalPaiements, nombrePaiements) {

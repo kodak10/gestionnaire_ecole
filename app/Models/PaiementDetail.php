@@ -19,4 +19,13 @@ class PaiementDetail extends Model
     {
         return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
+    public function eleve()
+{
+    return $this->inscription->eleve ?? null;
+}
+public function inscription()
+    {
+        return $this->belongsTo(Inscription::class);
+    }
+
 }
