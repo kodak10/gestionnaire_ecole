@@ -85,7 +85,14 @@ class RelanceController extends Controller
             ->where('statut', 'active')
             ->get();
 
-        $moisScolaires = MoisScolaire::orderBy('numero')->get();
+        // $moisScolaires = MoisScolaire::orderBy('numero')->get();
+        $moisScolaires = MoisScolaire::orderByRaw("
+            CASE
+                WHEN numero >= 8 THEN numero + 0
+                ELSE numero + 12
+            END
+        ")->get();
+
         $result = [];
 
         foreach ($inscriptions as $inscription) {
@@ -150,12 +157,24 @@ class RelanceController extends Controller
                 ];
             }
 
+            // $result[] = [
+            //     'eleve' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+            //     'classe' => $inscription->classe->nom,
+            //     'niveau' => $niveau->nom,
+            //     'frais' => $fraisData
+            // ];
             $result[] = [
-                'eleve' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                 'classe' => $inscription->classe->nom,
                 'niveau' => $niveau->nom,
-                'frais' => $fraisData
+                'total_attendu' => collect($fraisData)->sum('total_attendu'),
+                'total_paye' => collect($fraisData)->sum('total_paye'),
+                'reste_a_payer' => collect($fraisData)->sum('reste_a_payer'),
+                'statut' => collect($fraisData)->pluck('statut')->contains('En retard') ? 'En retard' : 'À jour',
+                'details_mois' => collect($fraisData)->pluck('details_mois')->flatten(1), // fusionner tous les mois
+                'en_retard_depuis' => collect($fraisData)->pluck('en_retard_depuis')->filter()->first() ?? null
             ];
+
         }
 
         return response()->json([

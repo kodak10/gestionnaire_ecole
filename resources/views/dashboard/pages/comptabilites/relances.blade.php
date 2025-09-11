@@ -93,7 +93,6 @@
                                     <th>Total Payé</th>
                                     <th>Reste à Payer</th>
                                     <th>Statut</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -102,13 +101,7 @@
                         </table>
                     </div>
 
-                    <!-- Détails par mois -->
-                    <div class="mt-4" id="details-container">
-                        <h5 class="mb-3">Détails mois par mois</h5>
-                        <div id="mois-details" class="row">
-                            <!-- Les détails seront chargés ici par JavaScript -->
-                        </div>
-                    </div>
+                   
                 </div>
 
                 <div id="no-data" class="text-center py-5">
@@ -120,68 +113,7 @@
     </div>
 </div>
 
-<!-- Modal Détails Élève -->
-<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Détails des paiements - <span id="eleve-name"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card bg-primary bg-opacity-10">
-                            <div class="card-body text-center">
-                                <h6>Total Attendu</h6>
-                                <h4 id="modal-total-attendu" class="text-primary">0 FCFA</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-success bg-opacity-10">
-                            <div class="card-body text-center">
-                                <h6>Total Payé</h6>
-                                <h4 id="modal-total-paye" class="text-success">0 FCFA</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-danger bg-opacity-10">
-                            <div class="card-body text-center">
-                                <h6>Reste à Payer</h6>
-                                <h4 id="modal-reste" class="text-danger">0 FCFA</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <h6>Détail mois par mois:</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Mois</th>
-                                <th>Attendu (cumul)</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modal-details-body">
-                            <!-- Détails chargés par JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-3">
-                    <strong>En retard depuis:</strong> <span id="modal-retard-depuis" class="badge bg-danger">-</span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
 @section('styles')
@@ -314,11 +246,7 @@ $(document).ready(function() {
                     <td class="text-success">${formatMoney(eleve.total_paye)}</td>
                     <td class="text-danger">${formatMoney(eleve.reste_a_payer)}</td>
                     <td><span class="statut-badge ${statutClass}">${eleve.statut}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-info btn-details" data-eleve='${JSON.stringify(eleve)}'>
-                            <i class="ti ti-eye"></i> Détails
-                        </button>
-                    </td>
+                    
                 </tr>
             `);
         });
@@ -336,37 +264,10 @@ $(document).ready(function() {
         
         $('#relance-results').removeClass('d-none');
         
-        // Ajouter les événements sur les boutons de détails
-        $('.btn-details').click(function() {
-            const eleve = $(this).data('eleve');
-            afficherDetailsEleve(eleve);
-        });
+        
     }
 
-    function afficherDetailsEleve(eleve) {
-        $('#eleve-name').text(eleve.eleve);
-        $('#modal-total-attendu').text(formatMoney(eleve.total_attendu));
-        $('#modal-total-paye').text(formatMoney(eleve.total_paye));
-        $('#modal-reste').text(formatMoney(eleve.reste_a_payer));
-        
-        const detailsBody = $('#modal-details-body');
-        detailsBody.empty();
-        
-        eleve.details_mois.forEach(function(mois) {
-            const statutClass = mois.statut.includes('✅') ? '' : 'text-danger';
-            detailsBody.append(`
-                <tr>
-                    <td>${mois.mois}</td>
-                    <td>${formatMoney(mois.attendu_cumul)}</td>
-                    <td class="${statutClass}">${mois.statut}</td>
-                </tr>
-            `);
-        });
-        
-        $('#modal-retard-depuis').text(eleve.en_retard_depuis || 'À jour');
-        
-        $('#detailsModal').modal('show');
-    }
+   
 
     function formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR', { 
