@@ -32,7 +32,7 @@
                     <select class="form-select" id="classe_id" name="classe_id">
                         <option value="">Sélectionner une classe</option>
                         @foreach($classes as $classe)
-                            <option value="{{ $classe->id }}">{{ $classe->nom }} ({{ $classe->niveau->nom }})</option>
+                            <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
                         @endforeach
                     </select>
                 </div>
