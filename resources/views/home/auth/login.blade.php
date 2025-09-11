@@ -41,8 +41,7 @@
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
                             <div>
-                                <div class="mx-auto mb-5 text-center">
-                                    <img src="{{ asset('assets/img/authentication/authentication-logo.svg') }}" class="img-fluid" alt="Logo">
+                                <div class="mx-auto mb-3 text-center">
                                     <h3 class="mt-3">{{ config('app.name', 'SchoolManager') }}</h3>
                                 </div>
                                 <div class="card">
@@ -63,7 +62,7 @@
                                         @endif
 
                                         <div class="mb-3">
-                                            <label class="form-label">Année Scolaire</label>
+                                            <label class="form-label">Année Scolaire / Ecole</label>
                                             <div class="input-icon mb-3 position-relative">
                                                 <span class="input-icon-addon">
                                                     <i class="ti ti-calendar"></i>
@@ -72,7 +71,7 @@
                                                     <option value="">Sélectionnez une année scolaire</option>
                                                     @foreach($anneesScolaires as $annee)
                                                         <option value="{{ $annee->id }}" {{ old('annee_scolaire_id') == $annee->id ? 'selected' : '' }}>
-                                                            {{ $annee->annee }}
+                                                            {{ $annee->annee }} => {{ $annee->ecole->nom_ecole }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -83,7 +82,7 @@
                                                 @enderror
                                             </div>
 
-                                            <label class="form-label">École</label>
+                                            {{-- <label class="form-label">École</label>
                                             <div class="input-icon mb-3 position-relative">
                                                 <span class="input-icon-addon">
                                                     <i class="ti ti-building"></i>
@@ -101,7 +100,7 @@
                                                         <strong>{{ $message }}</strong>
                                                     </span>
                                                 @enderror
-                                            </div>
+                                            </div> --}}
 
                                             <label class="form-label">Nom d'utilisateur</label>
                                             <div class="input-icon mb-3 position-relative">
@@ -135,11 +134,7 @@
                                                 </div>
                                                 <label class="ms-1 mb-0" for="remember">Se souvenir de moi</label>
                                             </div>
-                                            <div class="text-end">
-                                                @if (Route::has('password.request'))
-                                                    <a href="{{ route('password.request') }}" class="link-danger">Mot de passe oublié?</a>
-                                                @endif
-                                            </div>
+                                            
                                         </div>
                                         <div class="mb-3">
                                             <button type="submit" class="btn btn-primary w-100">Se connecter</button>
@@ -149,7 +144,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="mt-5 text-center">
+                                <div class="mt-3 text-center">
                                     <p class="mb-0">Copyright &copy; {{ date('Y') }} - {{ config('app.name', 'SchoolManager') }}</p>
                                 </div>
                             </div>

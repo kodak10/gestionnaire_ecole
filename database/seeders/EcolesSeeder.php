@@ -14,13 +14,13 @@ class EcolesSeeder extends Seeder
     public function run()
     {
         Ecole::create([
-            'nom_ecole'   => 'École Primaire Les Lilas',
-            'sigle_ecole' => 'EPLL',
+            'nom_ecole'   => 'Groupe Scolaire Excelle',
+            'sigle_ecole' => 'GS Excelle',
             'adresse'     => '123 Rue des Écoles, 75000 Paris',
-            'telephone'   => '01 23 45 67 89',
-            'email'       => 'contact@ecole-les-lilas.fr',
-            'directeur'   => 'M. Jean Durand',
-            'logo'        => 'logos/ecole-lilas.png',
+            'telephone'   => '0708395524 / 0708395524',
+            'email'       => 'Groupeexcelle01@gmail.com',
+            'directeur'   => 'KONE ISMAEL ABOUBAKAR',
+            'logo'        => 'logos/gs-excelle.png',
         ]);
 
         Ecole::create([

@@ -21,4 +21,9 @@ class AnneeScolaire extends Model
         return self::where('est_active', true)->firstOrFail();
     }
     
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class, 'ecole_id');
+    }
+
 }
