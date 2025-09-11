@@ -43,18 +43,31 @@ class ReglementController extends Controller
         return response()->json($eleves);
     }
 
-    public function eleveData(Request $request)
+public function eleveData(Request $request)
 {
     $request->validate([
         'inscription_id' => 'required|exists:inscriptions,id',
-        'annee_scolaire_id' => 'required|exists:annee_scolaires,id'
     ]);
 
     try {
         $inscription = Inscription::with(['eleve', 'classe.niveau', 'reductions'])
             ->findOrFail($request->inscription_id);
 
-        $anneeId = session('annee_scolaire_id');
+        // Récupérer l'année scolaire de l'utilisateur pour cette école
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $inscription->eleve->ecole_id)
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
+            return response()->json([
+                'success' => false,
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
+            ]);
+        }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
         $ecoleId = $inscription->eleve->ecole_id;
         $niveauId = $inscription->classe->niveau->id;
 
@@ -79,22 +92,17 @@ class ReglementController extends Controller
         $montantScolarite  = $tarifScolarite->montant ?? 0;
 
         $reduction = $inscription->reductions->sum('montant');
-        Log::info('Réduction totale pour l\'inscription', ['inscription_id' => $inscription->id, 'reduction' => $reduction]);
         $montantScolarite = max(0, $montantScolarite - $reduction);
 
-        // Récupérer directement les paiements liés à cette inscription
+        // Paiements liés
         $paiements = Paiement::with('details.typeFrais')
-            ->whereHas('details', function($q) use ($inscription) {
-                $q->where('inscription_id', $inscription->id);
-            })
+            ->whereHas('details', fn($q) => $q->where('inscription_id', $inscription->id))
             ->orderByDesc('created_at')
             ->get();
 
-        Log::info('Nombre de paiements récupérés', ['count' => $paiements->count()]);
-
-        // Calcul du total payé par type
         $totalPayeInscription = 0;
         $totalPayeScolarite = 0;
+
         foreach ($paiements as $paiement) {
             foreach ($paiement->details as $detail) {
                 if ($detail->type_frais_id == ($typeInscription->id ?? 0)) {
@@ -129,7 +137,7 @@ class ReglementController extends Controller
                 'scolarite' => $resteScolarite
             ],
             'reduction' => [
-                'scolarite' => $reduction   // <= ICI tu ajoutes la réduction totale
+                'scolarite' => $reduction
             ],
             'paiements' => $paiements
         ]);
@@ -138,73 +146,87 @@ class ReglementController extends Controller
     }
 }
 
+public function storePaiement(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'montant_inscription' => 'nullable|numeric|min:0',
+        'montant_scolarite' => 'nullable|numeric|min:0',
+        'date_paiement' => 'required|date',
+        'mode_paiement' => 'required|string',
+        'reference' => 'nullable|string|max:255'
+    ]);
 
-    public function storePaiement(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'montant_inscription' => 'nullable|numeric|min:0',
-            'montant_scolarite' => 'nullable|numeric|min:0',
-            'date_paiement' => 'required|date',
-            'mode_paiement' => 'required|string',
-            'reference' => 'nullable|string|max:255'
+    try {
+        DB::beginTransaction();
+
+        $inscription = Inscription::findOrFail($request->inscription_id);
+        $ecoleId = $inscription->ecole_id;
+
+        // Récupérer l'année scolaire assignée à l'utilisateur
+        $anneeUser = DB::table('user_annees_scolaires')
+            ->where('user_id', auth()->id())
+            ->where('ecole_id', $ecoleId)
+            ->latest('id')
+            ->first();
+
+        if (!$anneeUser) {
+            return response()->json([
+                'success' => false,
+                'message' => "Aucune année scolaire assignée à cet utilisateur pour cette école."
+            ]);
+        }
+
+        $anneeId = $anneeUser->annee_scolaire_id;
+
+        $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
+
+        $paiement = Paiement::create([
+            'annee_scolaire_id' => $anneeId,
+            'ecole_id' => $ecoleId,
+            'montant' => $total,
+            'mode_paiement' => $request->mode_paiement,
+            'reference' => $request->reference,
+            'user_id' => auth()->id(),
+            'created_at' => $request->date_paiement
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            $inscription = Inscription::findOrFail($request->inscription_id);
-            $ecoleId = $inscription->ecole_id;
-
-            $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
-
-            // Paiement global
-            $paiement = Paiement::create([
-                'annee_scolaire_id' => $request->annee_scolaire_id, // <--- Obligatoire
-                'ecole_id' => $ecoleId,  
-                'montant' => $total,
-                'mode_paiement' => $request->mode_paiement,
-                'reference' => $request->reference,
-                'user_id' => auth()->id(),
-                'created_at' => $request->date_paiement
+        if ($request->montant_inscription > 0) {
+            $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+            PaiementDetail::create([
+                'paiement_id' => $paiement->id,
+                'annee_scolaire_id' => $anneeId,
+                'ecole_id' => $ecoleId,
+                'inscription_id' => $request->inscription_id,
+                'type_frais_id' => $typeInscription->id,
+                'montant' => $request->montant_inscription
             ]);
-
-            // Détails
-            if ($request->montant_inscription > 0) {
-                $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
-                PaiementDetail::create([
-                    'paiement_id' => $paiement->id,
-                    'annee_scolaire_id' => $request->annee_scolaire_id,
-                    'ecole_id' => $ecoleId,
-                    'inscription_id' => $request->inscription_id,
-                    'type_frais_id' => $typeInscription->id,
-                    'montant' => $request->montant_inscription
-                ]);
-            }
-
-            if ($request->montant_scolarite > 0) {
-                $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
-
-                PaiementDetail::create([
-                    'paiement_id' => $paiement->id,
-                    'inscription_id' => $request->inscription_id, // obligatoire !
-                    'type_frais_id' => $typeScolarite->id,       // obligatoire !
-                    'montant' => $request->montant_scolarite,
-                    'created_at' => $request->date_paiement,
-                    'updated_at' => $request->date_paiement,
-                ]);
-            }
-
-
-            DB::commit();
-            return response()->json(['success' => true, 'paiement_id' => $paiement->id]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
+
+        if ($request->montant_scolarite > 0) {
+            $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+            PaiementDetail::create([
+                'paiement_id' => $paiement->id,
+                'annee_scolaire_id' => $anneeId,
+                'ecole_id' => $ecoleId,
+                'inscription_id' => $request->inscription_id,
+                'type_frais_id' => $typeScolarite->id,
+                'montant' => $request->montant_scolarite,
+                'created_at' => $request->date_paiement,
+                'updated_at' => $request->date_paiement,
+            ]);
+        }
+
+        DB::commit();
+        return response()->json(['success' => true, 'paiement_id' => $paiement->id]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'message' => $e->getMessage()]);
     }
+}
+
+
 
     public function deletePaiement(Request $request)
     {
