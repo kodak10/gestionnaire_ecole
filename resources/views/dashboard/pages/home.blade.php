@@ -142,7 +142,7 @@
 
 				</div>
 
-				<div class="row">
+				{{-- <div class="row">
 
 					<!-- Schedules -->
 					<div class="col-xxl-4 col-xl-6 col-md-12 d-flex">
@@ -436,7 +436,7 @@
 
 					
 
-				</div>
+				</div> --}}
 
 				
 
