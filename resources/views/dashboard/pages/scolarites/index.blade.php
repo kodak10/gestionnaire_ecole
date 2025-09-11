@@ -339,7 +339,8 @@ $(document).ready(function() {
         $('#total_paye_scolarite').val(formatMoney(summary.total_paye_scolarite));
         $('#reste_payer_scolarite').val(formatMoney(summary.reste_payer_scolarite));
         $('#reduction_scolarite').val(summary.reduction_scolarite || 0);
-        currentReduction = summary.reduction_scolarite || 0;
+        
+        currentReduction = summary.reduction_scolarite
     }
 
     // Mettre à jour le tableau des paiements

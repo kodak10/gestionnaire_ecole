@@ -10,9 +10,10 @@ class EcoleController extends Controller
 {
     public function index()
     {
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
         $ecole = Ecole::find($ecoleId);
 
+        dd( $ecole->nom_ecole);
         return view('dashboard.pages.parametrage.ecole', compact('ecole'));
     }
 

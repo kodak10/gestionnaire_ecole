@@ -18,8 +18,10 @@ class Paiement extends Model
 
     public function typeFrais()
     {
-        return $this->belongsTo(TypeFrais::class);
+        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
+    
+    
 
     public function mois()
     {
@@ -38,11 +40,21 @@ class Paiement extends Model
         return $this->belongsTo(AnneeScolaire::class, 'annee_scolaire_id');
     }
     
+    // public function getTotalPayeAttribute()
+    // {
+    //     return $this->mois->sum(function ($mois) {
+    //         return $mois->pivot->montant;
+    //     });
+    // }
     public function getTotalPayeAttribute()
     {
-        return $this->mois->sum(function ($mois) {
-            return $mois->pivot->montant;
-        });
+        return $this->details->sum('montant');
+    }
+
+    // Ajoutez cette relation pour les détails de paiement
+    public function details()
+    {
+        return $this->hasMany(PaiementDetail::class);
     }
 
     public function getResteAPayerAttribute()

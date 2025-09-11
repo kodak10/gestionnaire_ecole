@@ -13,10 +13,9 @@ return new class extends Migration
     {
         Schema::create('paiements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ecole_id')->constrained();
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires');
-            $table->foreignId('inscription_id')->constrained();
-            $table->foreignId('type_frais_id')->constrained();
+            $table->foreignId('ecole_id')->constrained();
+
             $table->decimal('montant', 10, 2);
             $table->string('mode_paiement'); // Espèce, Chèque, Mobile Money...
             $table->string('reference')->nullable(); // N° chèque ou transaction

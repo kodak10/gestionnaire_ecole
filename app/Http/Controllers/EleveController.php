@@ -338,51 +338,89 @@ private function genererMatriculeEleve(int $ecoleId): string
         return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }
 
+    // public function update(Request $request, $id)
+    // {
+    //     //dd($request->all());
+    //     $validatedData = $request->validate([
+    //         'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096', // max 4MB
+    //         'nom' => 'required|string|max:255',
+    //         'prenom' => 'required|string|max:255',
+    //         'naissance' => 'required|date',
+    //         'lieu_naissance' => 'nullable|string|max:255',
+    //         'sexe' => 'required|in:Masculin,Féminin',
+    //         'nationalite' => 'nullable|string|max:255',
+    //         'num_extrait' => 'nullable|string|max:255',
+    //         'parent_nom' => 'required|string|max:255',
+    //         'parent_telephone' => 'required|string|max:20',
+    //         'parent_email' => 'nullable|email|max:255',
+    //         'parent_adresse' => 'nullable|string|max:1000',
+    //         'parent_profession' => 'nullable|string|max:255',
+    //         'parent_lien' => 'nullable|string|max:255',
+    //         'classe_id' => 'required|exists:classes,id',
+    //         'reduction' => 'nullable|numeric|min:0',
+    //     ]);
+
+    //     $eleve = Eleve::findOrFail($id);
+
+    //     $validated['transport_active'] = $request->has('transport_active');
+    //     $validated['cantine_active']   = $request->has('cantine_active');
+
+
+
+    //     // Gérer l'upload photo si présent
+    //     if ($request->hasFile('photo_path')) {
+    //         $path = $request->file('photo_path')->store('eleves_photos', 'public');
+    //         $validatedData['photo_path'] = $path;
+
+    //         // Optionnel: supprimer l'ancienne photo ici si nécessaire
+    //     }
+
+    //     // Pour checkbox, s'assurer que la valeur est booléenne (parfois absent si non cochée)
+    //     $validatedData['transport_active'] = $request->has('transport_active');
+    //     $validatedData['cantine_active'] = $request->has('cantine_active');
+
+    //     $eleve->update($validatedData);
+
+    //     return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
+    // }
+
     public function update(Request $request, $id)
-    {
-        //dd($request->all());
-        $validatedData = $request->validate([
-            'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096', // max 4MB
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
-            'naissance' => 'required|date',
-            'lieu_naissance' => 'nullable|string|max:255',
-            'sexe' => 'required|in:Masculin,Féminin',
-            'nationalite' => 'nullable|string|max:255',
-            'num_extrait' => 'nullable|string|max:255',
-            'parent_nom' => 'required|string|max:255',
-            'parent_telephone' => 'required|string|max:20',
-            'parent_email' => 'nullable|email|max:255',
-            'parent_adresse' => 'nullable|string|max:1000',
-            'parent_profession' => 'nullable|string|max:255',
-            'parent_lien' => 'nullable|string|max:255',
-            'classe_id' => 'required|exists:classes,id',
-            'reduction' => 'nullable|numeric|min:0',
-        ]);
+{
+    $validatedData = $request->validate([
+        'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
+        'nom' => 'required|string|max:255',
+        'prenom' => 'required|string|max:255',
+        'naissance' => 'required|date',
+        'lieu_naissance' => 'nullable|string|max:255',
+        'sexe' => 'required|in:Masculin,Féminin',
+        'classe_id' => 'required|exists:classes,id',
+        'parent_nom' => 'required|string|max:255',
+        'parent_telephone' => 'required|string|max:20',
+        'parent_email' => 'nullable|email|max:255',
+        'reduction' => 'nullable|numeric|min:0',
+    ]);
 
-        $eleve = Eleve::findOrFail($id);
+    $inscription = Inscription::with('eleve')->findOrFail($id);
+    $eleve = $inscription->eleve;
 
-        $validated['transport_active'] = $request->has('transport_active');
-        $validated['cantine_active']   = $request->has('cantine_active');
-
-
-
-        // Gérer l'upload photo si présent
-        if ($request->hasFile('photo_path')) {
-            $path = $request->file('photo_path')->store('eleves_photos', 'public');
-            $validatedData['photo_path'] = $path;
-
-            // Optionnel: supprimer l'ancienne photo ici si nécessaire
-        }
-
-        // Pour checkbox, s'assurer que la valeur est booléenne (parfois absent si non cochée)
-        $validatedData['transport_active'] = $request->has('transport_active');
-        $validatedData['cantine_active'] = $request->has('cantine_active');
-
-        $eleve->update($validatedData);
-
-        return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
+    // Upload photo si nécessaire
+    if ($request->hasFile('photo_path')) {
+        $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
     }
+
+    // Mettre à jour l'élève
+    $eleve->update($validatedData);
+
+    // Mettre à jour l'inscription : classe, transport et cantine
+    $inscription->update([
+        'classe_id' => $request->classe_id,
+        'cantine_active' => $request->has('cantine_active'),
+        'transport_active' => $request->has('transport_active'),
+    ]);
+
+    return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
+}
+
 
 
     public function destroy(Eleve $eleve)

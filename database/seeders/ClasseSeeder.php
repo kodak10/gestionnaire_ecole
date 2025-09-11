@@ -19,7 +19,7 @@ class ClasseSeeder extends Seeder
         $niveaux = Niveau::all();
 
         foreach ($niveaux as $niveau) {
-            for ($i = 1; $i <= 2; $i++) { // 2 classes par niveau (A et B)
+            for ($i = 1; $i <= 1; $i++) { 
                 Classe::create([
                     'niveau_id' => $niveau->id,
                     'annee_scolaire_id' => $anneeActive->id,

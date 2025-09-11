@@ -102,6 +102,8 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
+                                            {{ dd($ecole) }}
+
                                             <input type="text" class="form-control" name="nom_ecole" value="{{ $ecole->nom_ecole ?? '' }}" placeholder="Entrez le nom de l'école">
                                         </div>
                                     </div>

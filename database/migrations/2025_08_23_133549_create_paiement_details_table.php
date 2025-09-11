@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('paiement_details', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('inscription_id')->constrained();
+            $table->foreignId('type_frais_id')->constrained();
             $table->foreignId('paiement_id')->constrained()->onDelete('cascade');
-            $table->foreignId('mois_id')->constrained('mois_scolaires')->onDelete('cascade');
             $table->decimal('montant', 10, 2);
             $table->timestamps();
         });

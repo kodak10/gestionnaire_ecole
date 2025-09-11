@@ -294,6 +294,7 @@ $(document).ready(function() {
     let paiementToDelete = null;
     let currentResteInscription = 0;
     let currentResteScolarite = 0;
+    
 
     // Charger les élèves quand une classe est sélectionnée
     $('#classe_id').change(function() {
@@ -406,40 +407,50 @@ $(document).ready(function() {
     }
 
     function updatePaiementsTable(paiements) {
-        let html = '';
-        if (paiements.length > 0) {
-            $.each(paiements, function(index, paiement) {
-                html += `
-                <tr>
-                    <td>${formatDate(paiement.created_at)}</td>
-                    <td>${paiement.type_frais_id == 1 ? 'Inscription' : 'Scolarité'}</td>
-                    <td>${formatMoney(paiement.montant)}</td>
-                    <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-success btn-reçu" data-id="${paiement.id}">
-                                <i class="ti ti-printer"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
-                                <i class="ti ti-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                `;
-            });
-        } else {
-            html = '<tr><td colspan="6" class="text-center">Aucun paiement trouvé</td></tr>';
-        }
-        $('#paiements-table tbody').html(html);
+    let html = '';
+    if (paiements.length > 0) {
+        $.each(paiements, function(index, paiement) {
+            // Calculer le total du paiement
+            let totalMontant = paiement.details.reduce((sum, detail) => sum + parseFloat(detail.montant), 0);
 
-        $('.btn-reçu').click(function() {
-            generateReceipt($(this).data('id'));
+            // Construire la chaîne des types
+            let types = paiement.details.map(detail => detail.type_frais.nom).join(' + ');
+
+            html += `
+            <tr>
+                <td>${formatDate(paiement.created_at)}</td>
+                <td>${types}</td>
+                <td>${formatMoney(totalMontant)}</td>
+                <td>${formatModePaiement(paiement.mode_paiement)}</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
+                            <i class="ti ti-printer"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            `;
         });
-        $('.btn-delete').click(function() {
-            showDeleteModal($(this).data('id'));
-        });
+
+
+    } else {
+        html = '<tr><td colspan="6" class="text-center">Aucun paiement trouvé</td></tr>';
     }
+    $('#paiements-table tbody').html(html);
+
+    $('.btn-recu').click(function() {
+        generateReceipt($(this).data('id'));
+    });
+    $('.btn-delete').click(function() {
+        showDeleteModal($(this).data('id'));
+    });
+}
+
+
 
     function formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);
