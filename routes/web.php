@@ -114,6 +114,7 @@ use Illuminate\Support\Facades\Route;
 
 
         
+        Route::get('/eleves/export', [EleveController::class, 'export'])->name('eleves.export');
 
         Route::resource('eleves', EleveController::class);
         Route::get('reinscriptions/eleves-by-classe/{classe}', [ReinscriptionController::class, 'getElevesByClasse'])->name('reinscriptions.eleves-by-classe');
