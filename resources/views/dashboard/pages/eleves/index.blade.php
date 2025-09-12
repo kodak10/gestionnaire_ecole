@@ -294,7 +294,8 @@
     <!-- /List View -->
 @endif
 
-<div class="col-md-12 text-center mt-4">
+<div class="d-flex justify-content-center mt-4 mb-5">
     {{ $inscriptions->appends(request()->query())->links() }}
 </div>
+
 @endsection

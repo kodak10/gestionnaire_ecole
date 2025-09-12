@@ -67,6 +67,19 @@ class EleveController extends Controller
         });
 
         // Tri
+        // $sort = $request->get('sort', 'asc');
+        // $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
+        //     if (in_array($request->sort_by, ['nom', 'prenom', 'sexe', 'cantine_active', 'transport_active'])) {
+        //         return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+        //                 ->orderBy('eleves.'.$request->sort_by, $sort)
+        //                 ->select('inscriptions.*');
+        //     } else {
+        //         return $q->orderBy($request->sort_by, $sort);
+        //     }
+        // }, function($q) {
+        //     return $q->orderBy('created_at', 'desc');
+        // });
+        // Tri
         $sort = $request->get('sort', 'asc');
         $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
             if (in_array($request->sort_by, ['nom', 'prenom', 'sexe', 'cantine_active', 'transport_active'])) {
@@ -77,8 +90,13 @@ class EleveController extends Controller
                 return $q->orderBy($request->sort_by, $sort);
             }
         }, function($q) {
-            return $q->orderBy('created_at', 'desc');
+            // Tri par défaut : nom puis prénom
+            return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+                    ->orderBy('eleves.nom', 'asc')
+                    ->orderBy('eleves.prenom', 'asc')
+                    ->select('inscriptions.*');
         });
+
 
         $inscriptions = $query->paginate(12);
         $classes = Classe::all();
