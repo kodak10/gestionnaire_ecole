@@ -21,90 +21,74 @@ class EleveController extends Controller
 {
    
     public function index(Request $request)
-    {
-        $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+{
+    $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
 
-        // Filtre par classe
-        $query->when($request->filled('classe_id'), function($q) use ($request) {
-            return $q->where('classe_id', $request->classe_id);
+    // Filtre par classe
+    $query->when($request->filled('classe_id'), function($q) use ($request) {
+        return $q->where('classe_id', $request->classe_id);
+    });
+
+    // Filtre par nom ou prénom
+    $query->when($request->filled('nom'), function($q) use ($request) {
+        return $q->whereHas('eleve', function($q) use ($request) {
+            $q->where('nom', 'like', '%'.$request->nom.'%')
+            ->orWhere('prenom', 'like', '%'.$request->nom.'%');
         });
+    });
 
-        // Filtre par nom ou prénom
-        $query->when($request->filled('nom'), function($q) use ($request) {
-            return $q->whereHas('eleve', function($q) use ($request) {
-                $q->where('nom', 'like', '%'.$request->nom.'%')
-                ->orWhere('prenom', 'like', '%'.$request->nom.'%');
-            });
+    // Filtre par sexe
+    $query->when($request->filled('sexe'), function($q) use ($request) {
+        return $q->whereHas('eleve', function($q) use ($request) {
+            $q->where('sexe', $request->sexe);
         });
+    });
 
-        // Filtre par sexe
-        $query->when($request->filled('sexe'), function($q) use ($request) {
-            return $q->whereHas('eleve', function($q) use ($request) {
-                $q->where('sexe', $request->sexe);
-            });
-        });
+    // Filtre par cantine (CORRIGÉ - sur la table inscriptions)
+    $query->when($request->filled('cantine'), function($q) use ($request) {
+        if ($request->cantine == '1') {
+            return $q->where('cantine_active', true);
+        } else {
+            return $q->where('cantine_active', false);
+        }
+    });
 
-        // Filtre par cantine
-        $query->when($request->filled('cantine'), function($q) use ($request) {
-            return $q->whereHas('eleve', function($q) use ($request) {
-                if ($request->cantine == '1') {
-                    $q->where('cantine_active', true);
-                } else {
-                    $q->where('cantine_active', false);
-                }
-            });
-        });
+    // Filtre par transport (CORRIGÉ - sur la table inscriptions)
+    $query->when($request->filled('transport'), function($q) use ($request) {
+        if ($request->transport == '1') {
+            return $q->where('transport_active', true);
+        } else {
+            return $q->where('transport_active', false);
+        }
+    });
 
-        // Filtre par transport
-        $query->when($request->filled('transport'), function($q) use ($request) {
-            return $q->whereHas('eleve', function($q) use ($request) {
-                if ($request->transport == '1') {
-                    $q->where('transport_active', true);
-                } else {
-                    $q->where('transport_active', false);
-                }
-            });
-        });
-
-        // Tri
-        // $sort = $request->get('sort', 'asc');
-        // $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
-        //     if (in_array($request->sort_by, ['nom', 'prenom', 'sexe', 'cantine_active', 'transport_active'])) {
-        //         return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-        //                 ->orderBy('eleves.'.$request->sort_by, $sort)
-        //                 ->select('inscriptions.*');
-        //     } else {
-        //         return $q->orderBy($request->sort_by, $sort);
-        //     }
-        // }, function($q) {
-        //     return $q->orderBy('created_at', 'desc');
-        // });
-        // Tri
-        $sort = $request->get('sort', 'asc');
-        $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
-            if (in_array($request->sort_by, ['nom', 'prenom', 'sexe', 'cantine_active', 'transport_active'])) {
-                return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-                        ->orderBy('eleves.'.$request->sort_by, $sort)
-                        ->select('inscriptions.*');
-            } else {
-                return $q->orderBy($request->sort_by, $sort);
-            }
-        }, function($q) {
-            // Tri par défaut : nom puis prénom
+    // Appliquer le tri
+    $sort = $request->get('sort', 'asc');
+    $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
+        if (in_array($request->sort_by, ['nom', 'prenom', 'sexe'])) {
             return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-                    ->orderBy('eleves.nom', 'asc')
-                    ->orderBy('eleves.prenom', 'asc')
+                    ->orderBy('eleves.'.$request->sort_by, $sort)
                     ->select('inscriptions.*');
-        });
+        } elseif (in_array($request->sort_by, ['cantine_active', 'transport_active'])) {
+            return $q->orderBy($request->sort_by, $sort);
+        } else {
+            return $q->orderBy($request->sort_by, $sort);
+        }
+    }, function($q) {
+        // Tri par défaut : nom puis prénom
+        return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+                ->orderBy('eleves.nom', 'asc')
+                ->orderBy('eleves.prenom', 'asc')
+                ->select('inscriptions.*');
+    });
 
+    $inscriptions = $query->paginate(12);
+    $classes = Classe::all();
+    $fraiss = TypeFrais::all();
+    $viewMode = $request->get('view_mode', 'grid');
 
-        $inscriptions = $query->paginate(12);
-        $classes = Classe::all();
-        $fraiss = TypeFrais::all();
-        $viewMode = $request->get('view_mode', 'grid');
-
-        return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
-    }
+    return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
+}
  
 
     public function refresh()
@@ -139,24 +123,20 @@ class EleveController extends Controller
 
     // Filtre par cantine (corrigé)
     $query->when($request->filled('cantine'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            if ($request->cantine == '1') {
-                $q->where('cantine_active', true);
-            } else {
-                $q->where('cantine_active', false);
-            }
-        });
+        if ($request->cantine == '1') {
+            return $q->where('cantine_active', true);
+        } else {
+            return $q->where('cantine_active', false);
+        }
     });
 
     // Filtre par transport (corrigé)
     $query->when($request->filled('transport'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            if ($request->transport == '1') {
-                $q->where('transport_active', true);
-            } else {
-                $q->where('transport_active', false);
-            }
-        });
+        if ($request->transport == '1') {
+            return $q->where('transport_active', true);
+        } else {
+            return $q->where('transport_active', false);
+        }
     });
 
     // Appliquer le tri

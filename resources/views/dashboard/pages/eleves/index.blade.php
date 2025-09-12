@@ -29,10 +29,10 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end p-3">
                 <li>
-                    <a href="{{ route('eleves.export', ['format' => 'pdf']) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
+                    <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
                 </li>
                 <li>
-                    <a href="{{ route('eleves.export', ['format' => 'excel']) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-xls me-2"></i>Excel</a>
+                    <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'excel'])) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-xls me-2"></i>Excel</a>
                 </li>
             </ul>	
         </div>                  
@@ -76,7 +76,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Genre</label>
-                                <select class="form-select" name="gender">
+                                <select class="form-select" name="sexe">
                                     <option value="">Tous</option>
                                     <option value="Masculin" {{ request('sexe') == 'Masculin' ? 'selected' : '' }}>Masculin</option>
                                     <option value="Féminin" {{ request('sexe') == 'Féminin' ? 'selected' : '' }}>Féminin</option>
@@ -117,10 +117,10 @@
         </form>
         
         <div class="d-flex align-items-center bg-white border rounded-2 p-1 mb-3 me-2">
-            <a href="{{ route('eleves.index', ['view_mode' => 'list']) }}" class="btn btn-icon btn-sm me-1 bg-light primary-hover {{ $viewMode == 'list' ? 'active' : '' }}">
+            <a href="{{ route('eleves.index', array_merge(request()->query(), ['view_mode' => 'list'])) }}" class="btn btn-icon btn-sm me-1 bg-light primary-hover {{ $viewMode == 'list' ? 'active' : '' }}">
                 <i class="ti ti-list-tree"></i>
             </a>
-            <a href="{{ route('eleves.index', ['view_mode' => 'grid']) }}" class="btn btn-icon btn-sm primary-hover {{ $viewMode == 'grid' ? 'active' : '' }}">
+            <a href="{{ route('eleves.index', array_merge(request()->query(), ['view_mode' => 'grid'])) }}" class="btn btn-icon btn-sm primary-hover {{ $viewMode == 'grid' ? 'active' : '' }}">
                 <i class="ti ti-grid-dots"></i>
             </a>
         </div>
@@ -161,7 +161,7 @@
         <div class="col-xxl-3 col-xl-4 col-md-6 d-flex">
             <div class="card flex-fill">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <a href="{{ route('eleves.show', $eleve->id) }}" class="link-primary">{{ $eleve->eleve->code_national ?? $eleve->eleve->matricule }}</a>
+                    <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="link-primary">{{ $eleve->eleve->code_national ?? $eleve->eleve->matricule }}</a>
                     <div class="d-flex align-items-center">
                         
                         <div class="dropdown">

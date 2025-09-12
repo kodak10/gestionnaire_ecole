@@ -105,8 +105,8 @@
                 <td>{{ $inscription->eleve->sexe }}</td>
                 <td>{{ $inscription->eleve->parent_nom }}</td>
                 <td>{{ $inscription->eleve->parent_telephone }}</td>
-                <td>{{ $inscription->eleve->cantine_active ? 'Oui' : 'Non' }}</td>
-                <td>{{ $inscription->eleve->transport_active ? 'Oui' : 'Non' }}</td>
+                <td>{{ $inscription->cantine_active ? 'Oui' : 'Non' }}</td>
+                <td>{{ $inscription->transport_active ? 'Oui' : 'Non' }}</td>
             </tr>
             @endforeach
         </tbody>

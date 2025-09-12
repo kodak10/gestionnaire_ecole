@@ -61,8 +61,8 @@ class ElevesExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $inscription->eleve->sexe,
             $inscription->eleve->parent_nom,
             $inscription->eleve->parent_telephone,
-            $inscription->eleve->cantine_active ? 'Oui' : 'Non',
-            $inscription->eleve->transport_active ? 'Oui' : 'Non',
+            $inscription->cantine_active ? 'Oui' : 'Non',
+            $inscription->transport_active ? 'Oui' : 'Non', 
             $inscription->created_at->format('d/m/Y')
         ];
     }
