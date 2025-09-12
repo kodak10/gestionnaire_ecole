@@ -554,8 +554,9 @@ $(document).ready(function() {
     });
 
     function generateReceipt(paiementId) {
-        window.open('{{ url("reglements/receipt") }}/' + paiementId, '_blank');
+        // Ouvrir dans un nouvel onglet
+        window.open(`{{ url('reglements/receipt') }}/${paiementId}`, '_blank');
+        
     }
-});
 </script>
 @endsection

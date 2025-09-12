@@ -8,12 +8,11 @@ Fonctuonalité de tracabilité
 Saisi des notes et generation des bulletin avec classement
 _ Relance via SMS
 _ Consultation de scolarité, Bullettin
-CE SOIR _Pourvoir tirer la liste des eleves en focntion du type avec le nom et contact de leurs parents => sa tri pas encore bien
 CE SOIR _Mettre un select 2 pour faire les niveau et les mois dans le parametrage de frais mensuel
 Navbar et sidebar
 CE SOIR _Installer laravel spatie pour gerer les roles surout pour la caisse
 CE SOIR _soumettre le siggle de l'cole pour les sms
 CE SOIR _retirer le 1 par defaut ecole_id ?? 1;
-CE SOIR _Dans parametrage de frais ne pas depasser le montant total 
+CE SOIR _Dans parametrage de frais ne doit pas depasser le montant total 
 dans le bulletin mettre la photo de leleve
 TOUT RETESTER

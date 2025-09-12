@@ -167,10 +167,12 @@ use Illuminate\Support\Facades\Route;
        // Routes pour les règlements
         Route::prefix('reglements')->group(function () {
             Route::get('/', [ReglementController::class, 'index'])->name('reglements.index');
-            Route::get('/receipt/{paiementId}', [ReglementController::class, 'receipt'])->name('reglements.receipt');
+            // Route::get('/receipt/{paiementId}', [ReglementController::class, 'receipt'])->name('reglements.receipt');
             // Route::get('/eleve-data', [ReglementController::class, 'eleveData'])->name('reglements.eleve_data');
             Route::post('/store-paiement', [ReglementController::class, 'storePaiement'])->name('reglements.store_paiement');
             Route::delete('/delete-paiement', [ReglementController::class, 'deletePaiement'])->name('reglements.delete_paiement');
+
+            Route::get('/reglements/receipt/{paiement}', [ReglementController::class, 'generateReceipt']) ->name('reglements.receipt');
         });
 
         // Route pour charger les élèves par classe

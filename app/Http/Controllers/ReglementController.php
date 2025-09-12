@@ -227,6 +227,56 @@ public function storePaiement(Request $request)
 }
 
 
+public function generateReceipt($paiementId)
+{
+    try {
+        $paiement = Paiement::with([
+            'details.typeFrais',
+            'user',
+            'inscription.eleve',
+            'inscription.classe'
+        ])->findOrFail($paiementId);
+
+        $eleve = $paiement->inscription->eleve;
+        $classe = $paiement->inscription->classe;
+
+        // Calculer le montant total attendu et le reste à payer
+        $montantTotal = 0;
+        $resteAPayer = 0;
+
+        foreach ($paiement->details as $detail) {
+            $tarif = TarifMensuel::where('type_frais_id', $detail->type_frais_id)
+                ->where('niveau_id', $classe->niveau_id)
+                ->where('annee_scolaire_id', $paiement->annee_scolaire_id)
+                ->sum('montant');
+            
+            $montantTotal += $tarif;
+            
+            $dejaPaye = PaiementDetail::where('inscription_id', $paiement->inscription_id)
+                ->where('type_frais_id', $detail->type_frais_id)
+                ->sum('montant');
+            
+            $resteAPayer += max(0, $tarif - $dejaPaye);
+        }
+
+        $data = [
+            'paiement' => $paiement,
+            'eleve' => $eleve,
+            'classe' => $classe,
+            'montant_total' => $montantTotal,
+            'reste_a_payer' => $resteAPayer,
+            'ecole' => Auth::user()->ecole
+        ];
+
+        $pdf = PDF::loadView('dashboard.documents.scolarite.recu_paiement', $data);
+        
+        return $pdf->stream('recu_paiement_' . $paiement->id . '.pdf');
+
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Erreur lors de la génération du reçu: ' . $e->getMessage());
+    }
+}
+
 
     public function deletePaiement(Request $request)
     {

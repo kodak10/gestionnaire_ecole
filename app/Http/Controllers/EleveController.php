@@ -238,31 +238,58 @@ class EleveController extends Controller
     }
 }
 
+// private function genererMatriculeEleve(int $ecoleId): string
+// {
+//     // Récupérer l'alias de l'école
+//     $ecole = Ecole::findOrFail($ecoleId);
+//     $alias = strtoupper($ecole->sigle_ecole);
+
+//    // Trouver le dernier matricule pour cette école en cherchant par pattern '%ALIAS-%'
+//     $dernierEleve = Eleve::where('ecole_id', $ecoleId)
+//     ->where('matricule', 'like', $alias . '-%')
+//     ->orderByDesc('created_at')
+//     ->first();
+
+
+//     $dernierNumero = 0;
+
+//     if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
+//         $dernierNumero = intval($matches[1]);
+//     }
+
+//     $nouveauNumero = $dernierNumero + 1;
+
+//     // Formatage sur 5 chiffres, ex: 00001
+//     $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
+
+//     return $alias . '-' . $numeroFormate;
+// }
+
 private function genererMatriculeEleve(int $ecoleId): string
 {
-    // Récupérer l'alias de l'école
     $ecole = Ecole::findOrFail($ecoleId);
     $alias = strtoupper($ecole->sigle_ecole);
 
-   // Trouver le dernier matricule pour cette école en cherchant par pattern '%ALIAS-%'
-    $dernierEleve = Eleve::where('ecole_id', $ecoleId)
-    ->where('matricule', 'like', $alias . '-%')
-    ->orderByDesc('created_at')
-    ->first();
+    do {
+        // Récupérer le dernier numéro
+        $dernierEleve = Eleve::where('ecole_id', $ecoleId)
+            ->where('matricule', 'like', $alias . '-%')
+            ->orderByDesc('id') // id est plus fiable que created_at
+            ->first();
 
+        $dernierNumero = 0;
+        if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
+            $dernierNumero = intval($matches[1]);
+        }
 
-    $dernierNumero = 0;
+        $nouveauNumero = $dernierNumero + 1;
+        $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
+        $matricule = $alias . '-' . $numeroFormate;
 
-    if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
-        $dernierNumero = intval($matches[1]);
-    }
+        // On boucle tant que le matricule existe déjà
+    } while (Eleve::where('matricule', $matricule)->exists());
 
-    $nouveauNumero = $dernierNumero + 1;
-
-    // Formatage sur 5 chiffres, ex: 00001
-    $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
-
-    return $alias . '-' . $numeroFormate;
+    return $matricule;
 }
 
    
