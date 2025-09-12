@@ -233,7 +233,7 @@ $(document).ready(function() {
     // Ouvrir modal modification et pré-remplir les champs
     $('.edit-tarif').click(function() {
         var tarifId = $(this).data('id');
-        var formAction = '/scolarite/tarif/' + tarifId;
+        var formAction = '/scolarite/tarifs/' + tarifId;
         $('#editTarifForm').attr('action', formAction);
 
         // Type de frais
