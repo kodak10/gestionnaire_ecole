@@ -253,6 +253,8 @@ use Illuminate\Support\Facades\Route;
             Route::get('/', [RelanceController::class, 'index'])->name('relance.index');
             Route::get('/data', [RelanceController::class, 'getRelanceData'])->name('relance.data');
             Route::get('/imprimer', [RelanceController::class, 'imprimerRelance'])->name('relance.imprimer');
+            Route::get('/export', [RelanceController::class, 'export'])->name('relance.export');
+
         });
 
 

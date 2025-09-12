@@ -13,9 +13,34 @@
             </ol>
         </nav>
     </div>
-    <div>
-        <button class="btn btn-primary" id="print-btn"><i class="ti ti-printer me-2"></i>Imprimer</button>
+    
+
+<!-- Dans la section Page Header, ajoutez ces boutons -->
+<div>
+    <div class="dropdown me-2 d-inline-block">
+        <a href="javascript:void(0);" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="ti ti-file-export me-2"></i>Exporter
+        </a>
+        <ul class="dropdown-menu">
+            <li>
+                <a href="#" class="dropdown-item" id="export-pdf">
+                    <i class="ti ti-file-type-pdf me-2"></i>PDF
+                </a>
+            </li>
+            <li>
+                <a href="#" class="dropdown-item" id="export-excel">
+                    <i class="ti ti-file-type-xls me-2"></i>Excel
+                </a>
+            </li>
+            
+        </ul>
     </div>
+            <button class="btn btn-primary" id="print-btn"><i class="ti ti-printer me-2"></i>Imprimer les relances papiers</button>
+
+</div>
+
+
+   
 </div>
 <!-- /Page Header -->
 
@@ -276,6 +301,38 @@ $(document).ready(function() {
             minimumFractionDigits: 0
         }).format(amount);
     }
+
+
+    // Gestion de l'exportation
+    $('#export-excel').click(function(e) {
+        e.preventDefault();
+        exporter('excel');
+    });
+
+    $('#export-pdf').click(function(e) {
+        e.preventDefault();
+        exporter('pdf');
+    });
+
+    function exporter(format) {
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const typeFraisId = $('#type_frais_id').val();
+
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        let url = `/relance/export?classe_id=${classeId}&date_reference=${dateRef}&format=${format}`;
+        
+        if (typeFraisId) {
+            url += `&type_frais_id=${typeFraisId}`;
+        }
+
+        window.location.href = url;
+    }
+
 });
 </script>
 @endsection
