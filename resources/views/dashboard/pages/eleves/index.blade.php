@@ -18,11 +18,7 @@
                 <i class="ti ti-refresh"></i>
             </a>
         </div>
-        <div class="pe-1 mb-2">
-            <button type="button" class="btn btn-outline-light bg-white btn-icon me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Imprimer" onclick="window.print()">
-                <i class="ti ti-printer"></i>
-            </button>
-        </div>    
+           
         <div class="dropdown me-2 mb-2">
             <a href="javascript:void(0);" class="dropdown-toggle btn btn-light fw-medium d-inline-flex align-items-center" data-bs-toggle="dropdown">
                 <i class="ti ti-file-export me-2"></i>Exporter
