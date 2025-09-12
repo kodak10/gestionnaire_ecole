@@ -31,7 +31,47 @@ class TransportController extends Controller
 }
 
 
- public function elevesByClasseTransport(Request $request)
+//  public function elevesByClasseTransport(Request $request)
+// {
+//     $request->validate([
+//         'classe_id' => 'required|exists:classes,id'
+//     ]);
+
+//     try {
+//         // Récupérer l'année scolaire active de l'utilisateur
+//         $anneeUser = DB::table('user_annees_scolaires')
+//             ->where('user_id', auth()->id())
+//             ->latest('id')
+//             ->first();
+
+//         if (!$anneeUser) {
+//             return response()->json([], 422);
+//         }
+
+//         $anneeId = $anneeUser->annee_scolaire_id;
+
+//         $eleves = Inscription::with('eleve')
+//             ->where('classe_id', $request->classe_id)
+//             ->where('transport_active', true) // Filtrer uniquement les élèves avec transport actif
+//             ->where('annee_scolaire_id', $anneeId)
+//             ->get()
+//             ->map(function($inscription) {
+//                 return [
+//                     'id' => $inscription->id,
+//                     'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+//                     'matricule' => $inscription->eleve->matricule,
+//                     'transport_active' => $inscription->transport_active
+//                 ];
+//             });
+
+//         return response()->json($eleves);
+
+//     } catch (\Exception $e) {
+//         return response()->json([], 500);
+//     }
+// }
+
+public function elevesByClasseTransport(Request $request)
 {
     $request->validate([
         'classe_id' => 'required|exists:classes,id'
@@ -52,13 +92,18 @@ class TransportController extends Controller
 
         $eleves = Inscription::with('eleve')
             ->where('classe_id', $request->classe_id)
-            ->where('transport_active', true) // Filtrer uniquement les élèves avec transport actif
+            ->where('transport_active', true)
             ->where('annee_scolaire_id', $anneeId)
             ->get()
+            ->sortBy(function($inscription) {
+                // Tri par nom puis prénom
+                return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
+            })
+            ->values()
             ->map(function($inscription) {
                 return [
                     'id' => $inscription->id,
-                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                     'matricule' => $inscription->eleve->matricule,
                     'transport_active' => $inscription->transport_active
                 ];
@@ -70,6 +115,7 @@ class TransportController extends Controller
         return response()->json([], 500);
     }
 }
+
 
 public function getEleveTransport(Request $request)
 {

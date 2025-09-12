@@ -39,9 +39,49 @@ class ScolariteController extends Controller
         return view('dashboard.pages.scolarites.index', compact('classes', 'typesFrais', 'moisScolaires', 'anneesScolaires'));
     }
 
-  public function getElevesByClasse(Request $request)
+//   public function getElevesByClasse(Request $request)
+// {
+//     $request->validate(['classe_id' => 'required|exists:classes,id']);
+
+//     try {
+//         // Récupérer l'année scolaire depuis user_annees_scolaires
+//         $userAnnee = DB::table('user_annees_scolaires')
+//             ->where('user_id', auth()->id())
+//             ->latest('id')
+//             ->first();
+
+//         if (!$userAnnee) {
+//             return response()->json(['error' => 'Aucune année scolaire assignée à cet utilisateur'], 404);
+//         }
+
+//         $anneeId = $userAnnee->annee_scolaire_id;
+
+//         $eleves = Inscription::with(['eleve', 'classe'])
+//             ->where('classe_id', $request->classe_id)
+//             ->where('annee_scolaire_id', $anneeId)
+//             ->get()
+//             ->map(function ($inscription) {
+//                 return [
+//                     'inscription_id' => $inscription->id, 
+//                     'eleve_id' => $inscription->eleve->id,
+//                     'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
+//                     'matricule' => $inscription->eleve->matricule,
+//                     'classe_nom' => $inscription->classe->nom,
+//                 ];
+//             });
+
+//         return response()->json($eleves);
+
+//     } catch (\Exception $e) {
+//         return response()->json(['error' => 'Erreur lors du chargement des élèves: ' . $e->getMessage()], 500);
+//     }
+// }
+
+public function getElevesByClasse(Request $request)
 {
-    $request->validate(['classe_id' => 'required|exists:classes,id']);
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id'
+    ]);
 
     try {
         // Récupérer l'année scolaire depuis user_annees_scolaires
@@ -60,6 +100,11 @@ class ScolariteController extends Controller
             ->where('classe_id', $request->classe_id)
             ->where('annee_scolaire_id', $anneeId)
             ->get()
+            ->sortBy(function($inscription) {
+                // Tri par nom puis prénom
+                return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
+            })
+            ->values() // réindexe les clés
             ->map(function ($inscription) {
                 return [
                     'inscription_id' => $inscription->id, 
@@ -76,6 +121,7 @@ class ScolariteController extends Controller
         return response()->json(['error' => 'Erreur lors du chargement des élèves: ' . $e->getMessage()], 500);
     }
 }
+
 
 public function getElevePaiements(Request $request)
 {

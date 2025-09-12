@@ -243,7 +243,7 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.length > 0) {
                         $.each(response, function(index, eleve) {
-                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet} (${eleve.matricule})</option>`);
+                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
                         });
 
                         

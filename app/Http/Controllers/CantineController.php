@@ -31,34 +31,78 @@ class CantineController extends Controller
     return view('dashboard.pages.cantines.index', compact('classes', 'anneesScolaires', 'moisScolaires'));
 }
 
-  public function elevesByClasseCantine(Request $request)
+//   public function elevesByClasseCantine(Request $request)
+// {
+//     $request->validate([
+//         'classe_id' => 'required|exists:classes,id'
+//     ]);
+
+//     try {
+//         // Récupérer l'année scolaire active de l'utilisateur
+//         $anneeUser = DB::table('user_annees_scolaires')
+//             ->where('user_id', auth()->id())
+//             ->latest('id')
+//             ->first();
+
+//         if (!$anneeUser) {
+//             return response()->json([], 422); // ou message d'erreur spécifique
+//         }
+
+//         $anneeId = $anneeUser->annee_scolaire_id;
+
+//         $eleves = Inscription::with('eleve')
+//             ->where('classe_id', $request->classe_id)
+//             ->where('cantine_active', true) // Filtrer uniquement les élèves avec cantine active
+//             ->where('annee_scolaire_id', $anneeId) // filtrer par année scolaire de l'utilisateur
+//             ->get()
+//             ->map(function($inscription) {
+//                 return [
+//                     'id' => $inscription->id,
+//                     'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
+//                     'matricule' => $inscription->eleve->matricule,
+//                     'cantine_active' => $inscription->cantine_active
+//                 ];
+//             });
+
+//         return response()->json($eleves);
+
+//     } catch (\Exception $e) {
+//         return response()->json([], 500);
+//     }
+// }
+
+public function elevesByClasseCantine(Request $request)
 {
     $request->validate([
         'classe_id' => 'required|exists:classes,id'
     ]);
 
     try {
-        // Récupérer l'année scolaire active de l'utilisateur
         $anneeUser = DB::table('user_annees_scolaires')
             ->where('user_id', auth()->id())
             ->latest('id')
             ->first();
 
         if (!$anneeUser) {
-            return response()->json([], 422); // ou message d'erreur spécifique
+            return response()->json([], 422);
         }
 
         $anneeId = $anneeUser->annee_scolaire_id;
 
         $eleves = Inscription::with('eleve')
             ->where('classe_id', $request->classe_id)
-            ->where('cantine_active', true) // Filtrer uniquement les élèves avec cantine active
-            ->where('annee_scolaire_id', $anneeId) // filtrer par année scolaire de l'utilisateur
+            ->where('cantine_active', true)
+            ->where('annee_scolaire_id', $anneeId)
             ->get()
+            ->sortBy(function($inscription) {
+                // Tri par nom puis prénom
+                return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
+            })
+            ->values() // réindexe les clés
             ->map(function($inscription) {
                 return [
                     'id' => $inscription->id,
-                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                     'matricule' => $inscription->eleve->matricule,
                     'cantine_active' => $inscription->cantine_active
                 ];
@@ -70,6 +114,7 @@ class CantineController extends Controller
         return response()->json([], 500);
     }
 }
+
 
 
 public function getEleveCantine(Request $request)
