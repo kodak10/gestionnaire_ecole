@@ -449,6 +449,10 @@ $(document).ready(function() {
                     $('#paiement-form')[0].reset();
                     $('#date_paiement').val('{{ date("Y-m-d") }}');
                     loadEleveTransportData(currentEleveId);
+
+                    if (response.paiement_id) {
+                        window.open(`{{ url('transport/receipt') }}/${response.paiement_id}`, '_blank');
+                    }
                 } else {
                     toastr.error(response.message);
                 }
@@ -499,7 +503,9 @@ $(document).ready(function() {
     });
 
     function generateReceipt(paiementId) {
-        window.open('{{ url("reglements/receipt") }}/' + paiementId, '_blank');
+        // Ouvrir dans un nouvel onglet
+        window.open(`{{ url('transport/receipt') }}/${paiementId}`, '_blank');
+        
     }
 });
 </script>

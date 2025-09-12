@@ -20,6 +20,12 @@ class Paiement extends Model
     {
         return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
+
+public function ecole()
+{
+    return $this->belongsTo(Ecole::class, 'ecole_id', 'id');
+}
+
     
     
 
@@ -39,6 +45,9 @@ class Paiement extends Model
     {
         return $this->belongsTo(AnneeScolaire::class, 'annee_scolaire_id');
     }
+
+    
+    
     
     // public function getTotalPayeAttribute()
     // {

@@ -8,11 +8,13 @@ use App\Models\Inscription;
 use App\Models\Paiement;
 use App\Models\PaiementDetail;
 use App\Models\Tarif;
+use App\Models\TarifMensuel;
 use App\Models\TypeFrais;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log; // si ce n'est pas déjà importé
+use Illuminate\Support\Facades\Auth;
 
 class ReglementController extends Controller
 {
@@ -227,55 +229,94 @@ public function storePaiement(Request $request)
 }
 
 
+
+
 public function generateReceipt($paiementId)
 {
-    try {
-        $paiement = Paiement::with([
-            'details.typeFrais',
-            'user',
-            'inscription.eleve',
-            'inscription.classe'
-        ])->findOrFail($paiementId);
+    $paiement = Paiement::with([
+        'details.inscription.eleve',
+        'details.inscription.classe',
+        'details.inscription.reductions',
+        'details.typeFrais',
+        'user',
+        'anneeScolaire',
+        'ecole'
+    ])->find($paiementId);
 
-        $eleve = $paiement->inscription->eleve;
-        $classe = $paiement->inscription->classe;
-
-        // Calculer le montant total attendu et le reste à payer
-        $montantTotal = 0;
-        $resteAPayer = 0;
-
-        foreach ($paiement->details as $detail) {
-            $tarif = TarifMensuel::where('type_frais_id', $detail->type_frais_id)
-                ->where('niveau_id', $classe->niveau_id)
-                ->where('annee_scolaire_id', $paiement->annee_scolaire_id)
-                ->sum('montant');
-            
-            $montantTotal += $tarif;
-            
-            $dejaPaye = PaiementDetail::where('inscription_id', $paiement->inscription_id)
-                ->where('type_frais_id', $detail->type_frais_id)
-                ->sum('montant');
-            
-            $resteAPayer += max(0, $tarif - $dejaPaye);
-        }
-
-        $data = [
-            'paiement' => $paiement,
-            'eleve' => $eleve,
-            'classe' => $classe,
-            'montant_total' => $montantTotal,
-            'reste_a_payer' => $resteAPayer,
-            'ecole' => Auth::user()->ecole
-        ];
-
-        $pdf = PDF::loadView('dashboard.documents.scolarite.recu_paiement', $data);
-        
-        return $pdf->stream('recu_paiement_' . $paiement->id . '.pdf');
-
-    } catch (\Exception $e) {
-        return redirect()->back()->with('error', 'Erreur lors de la génération du reçu: ' . $e->getMessage());
+    if (!$paiement) {
+        abort(404, "Paiement introuvable.");
     }
+
+    $inscription = $paiement->details->first()?->inscription;
+    if (!$inscription) {
+        abort(404, "Inscription introuvable pour ce paiement.");
+    }
+
+    $eleve = $inscription->eleve;
+    $classe = $inscription->classe;
+    $ecole = $paiement->ecole;
+
+    // Récupérer l'année scolaire
+    $anneeId = $paiement->annee_scolaire_id;
+    $niveauId = $classe->niveau_id;
+
+    // Trouver les types de frais
+    $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+    $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+
+    // Récupérer les tarifs
+    $tarifInscription = Tarif::where([
+        'annee_scolaire_id' => $anneeId,
+        'niveau_id' => $niveauId,
+        'ecole_id' => $ecole->id,
+        'type_frais_id' => $typeInscription->id ?? 0
+    ])->first();
+
+    $tarifScolarite = Tarif::where([
+        'annee_scolaire_id' => $anneeId,
+        'niveau_id' => $niveauId,
+        'ecole_id' => $ecole->id,
+        'type_frais_id' => $typeScolarite->id ?? 0
+    ])->first();
+
+    $montantInscription = $tarifInscription->montant ?? 0;
+    $montantScolarite = $tarifScolarite->montant ?? 0;
+
+    // Appliquer les réductions
+    $reduction = $inscription->reductions->sum('montant');
+    $montantScolarite = max(0, $montantScolarite - $reduction);
+
+    // Calculer les totaux déjà payés pour cette inscription
+    $totalPayeInscription = PaiementDetail::where('inscription_id', $inscription->id)
+        ->where('type_frais_id', $typeInscription->id ?? 0)
+        ->sum('montant');
+
+    $totalPayeScolarite = PaiementDetail::where('inscription_id', $inscription->id)
+        ->where('type_frais_id', $typeScolarite->id ?? 0)
+        ->sum('montant');
+
+    // Calculer les restes à payer
+    $resteInscription = max(0, $montantInscription - $totalPayeInscription);
+    $resteScolarite = max(0, $montantScolarite - $totalPayeScolarite);
+
+    // Montant total du paiement actuel
+    $montant_total = $paiement->details->sum('montant');
+
+    // Reste total à payer (inscription + scolarité)
+    $reste_total = $resteInscription + $resteScolarite;
+
+    $pdf = Pdf::loadView('dashboard.documents.scolarite.recu_paiement', compact(
+        'paiement',
+        'eleve',
+        'classe',
+        'ecole',
+        'montant_total',
+        'reste_total'
+    ));
+
+    return $pdf->stream("recu_paiement_{$paiement->id}.pdf");
 }
+
 
 
     public function deletePaiement(Request $request)

@@ -167,12 +167,10 @@ use Illuminate\Support\Facades\Route;
        // Routes pour les règlements
         Route::prefix('reglements')->group(function () {
             Route::get('/', [ReglementController::class, 'index'])->name('reglements.index');
-            // Route::get('/receipt/{paiementId}', [ReglementController::class, 'receipt'])->name('reglements.receipt');
-            // Route::get('/eleve-data', [ReglementController::class, 'eleveData'])->name('reglements.eleve_data');
             Route::post('/store-paiement', [ReglementController::class, 'storePaiement'])->name('reglements.store_paiement');
             Route::delete('/delete-paiement', [ReglementController::class, 'deletePaiement'])->name('reglements.delete_paiement');
 
-            Route::get('/reglements/receipt/{paiement}', [ReglementController::class, 'generateReceipt']) ->name('reglements.receipt');
+            Route::get('/receipt/{paiement}', [ReglementController::class, 'generateReceipt']) ->name('reglements.receipt');
         });
 
         // Route pour charger les élèves par classe
@@ -200,8 +198,9 @@ use Illuminate\Support\Facades\Route;
             // Supprimer un paiement
             Route::delete('/paiement/delete', [CantineController::class, 'delete'])->name('cantine.delete_paiement');
 
+
             // Générer le reçu
-            Route::get('/receipt/{paiement}', [CantineController::class, 'generateReceipt'])->name('cantine.receipt');
+            Route::get('/receipt/{paiement}', [CantineController::class, 'generateReceipt']) ->name('cantine.receipt');
 
             // Imprimer la scolarité d'un élève
             Route::get('/print/{eleve}/{annee}', [CantineController::class, 'printScolarite'])->name('cantine.print');
@@ -230,7 +229,7 @@ use Illuminate\Support\Facades\Route;
             Route::delete('/paiement/delete', [TransportController::class, 'delete'])->name('transport.delete_paiement');
 
             // Générer le reçu
-            Route::get('/receipt/{paiement}', [TransportController::class, 'generateReceipt'])->name('transport.receipt');
+            Route::get('/receipt/{paiement}', [TransportController::class, 'generateReceipt']) ->name('transport.receipt');
 
             // Imprimer la scolarité d'un élève
             Route::get('/print/{eleve}/{annee}', [TransportController::class, 'printScolarite'])->name('transport.print');

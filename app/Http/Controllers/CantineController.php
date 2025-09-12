@@ -312,7 +312,73 @@ public function getEleveCantine(Request $request)
 
 
     
-   
+public function generateReceipt($paiementId)
+{
+    $paiement = Paiement::with([
+        'details.inscription.eleve',
+        'details.inscription.classe',
+        'details.typeFrais',
+        'user',
+        'anneeScolaire',
+        'ecole'
+    ])->find($paiementId);
+
+    if (!$paiement) {
+        abort(404, "Paiement introuvable.");
+    }
+
+    $inscription = $paiement->details->first()?->inscription;
+    if (!$inscription) {
+        abort(404, "Inscription introuvable pour ce paiement.");
+    }
+
+    $eleve = $inscription->eleve;
+    $classe = $inscription->classe;
+    $ecole = $paiement->ecole;
+
+    // Récupérer l'année scolaire et niveau
+    $anneeId = $paiement->annee_scolaire_id;
+    $niveauId = $classe->niveau_id;
+
+    // On ne prend que le type frais "Cantine"
+    $typeCantine = TypeFrais::where('nom', "Cantine")->first();
+    if (!$typeCantine) {
+        abort(404, "Type de frais 'Cantine' introuvable.");
+    }
+
+    // Récupérer le tarif cantine
+    $tarifCantine = Tarif::where([
+        'annee_scolaire_id' => $anneeId,
+        'niveau_id' => $niveauId,
+        'ecole_id' => $ecole->id,
+        'type_frais_id' => $typeCantine->id
+    ])->first();
+
+    $montantCantine = $tarifCantine->montant ?? 0;
+
+    // Déjà payé (uniquement cantine)
+    $totalPayeCantine = PaiementDetail::where('inscription_id', $inscription->id)
+        ->where('type_frais_id', $typeCantine->id)
+        ->sum('montant');
+
+    // Reste à payer
+    $reste_total = max(0, $montantCantine - $totalPayeCantine);
+
+    // Montant total payé sur ce reçu
+    $montant_total = $paiement->details->sum('montant');
+
+    $pdf = Pdf::loadView('dashboard.documents.scolarite.recu_paiement', compact(
+        'paiement',
+        'eleve',
+        'classe',
+        'ecole',
+        'montant_total',
+        'reste_total'
+    ));
+
+    return $pdf->stream("recu_paiement_{$paiement->id}.pdf");
+}
+
     
 
 
@@ -358,16 +424,5 @@ public function getEleveCantine(Request $request)
         return $pdf->stream('scolarite-' . $eleve->matricule . '.pdf');
     }
 
-    public function generateReceipt($paiementId)
-    {
-        $paiement = Paiement::with(['eleve', 'typeFrais', 'anneeScolaire'])
-            ->findOrFail($paiementId);
-        
-        $data = [
-            'paiement' => $paiement
-        ];
 
-        $pdf = PDF::loadView('scolarite.receipt', $data);
-        return $pdf->stream('recu-paiement-' . $paiement->id . '.pdf');
-    }
 }

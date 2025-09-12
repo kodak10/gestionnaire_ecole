@@ -39,6 +39,11 @@ class Inscription extends Model
         return $this->hasMany(Paiement::class);
     }
 
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class);
+    }
+
     
  public function reductions()
     {

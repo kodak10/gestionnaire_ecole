@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Reçu</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .receipt {
+    width: 100%;
+    border: 1px solid #000;
+    box-sizing: border-box;
+  }
+
+  /* Bandeau d'en-tête */
+  .header {
+    background: #f6b60a;
+    padding: 15px;
+    position: relative;
+    color: #0f2740;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  .header .meta {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    text-align: right;
+    font-size: 12px;
+  }
+
+  /* Contenu */
+  .content {
+    padding: 15px;
+    background: #fff;
+  }
+
+  .field {
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  .label {
+    display: inline-block;
+    width: 35%;
+    font-weight: bold;
+  }
+  .dots {
+    display: inline-block;
+    width: 60%;
+    border-bottom: 1px dashed #555;
+    height: 16px;
+  }
+
+  .observation {
+    margin: 15px 0;
+  }
+  .observation .dots {
+    height: 40px;
+  }
+
+  /* Modes de paiement */
+  .payment {
+    margin: 15px 0;
+  }
+  .payment span {
+    display: inline-block;
+    margin-right: 20px;
+    font-size: 12px;
+  }
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #f6b60a;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+
+  /* Signature */
+  .signature {
+    text-align: right;
+    margin-top: 40px;
+  }
+  .signature .line {
+    display: inline-block;
+    width: 200px;
+    border-top: 1px solid #000;
+    margin-bottom: 5px;
+  }
+  .signature div {
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="header">
+      <h1>LOGO</h1>
+      <span>Numéro de telephoe ecole</span>
+      
+    </div>
+   <div>
+     <p>Recu paiement de : Scolairté, Cantine, Transport</p>
+      <div class="meta">
+        N°: 000001<br>
+        Date: ____/____/____
+      </div>
+   </div>
+
+    <div class="content">
+      <div class="field"><span class="label">Classe  :</span><span class="dots"></span></div>
+      <div class="field"><span class="label">Matricule / Nom et prenoms :</span><span class="dots"></span></div>
+      <div class="field"><span class="label">Libellé de reglement:</span><span class="dots"></span></div>
+      <div class="field"><span class="label">Montant verser Reste à payer :</span><span class="dots"></span></div>
+      <div class="field"><span class="label">Mode de paiement Encaisser par :</span><span class="dots"></span></div>
+      <div class="payment">
+        <span><span class="dot"></span> Espèces</span>
+        <span><span class="dot"></span> Carte</span>
+        <span><span class="dot"></span> Chèque</span>
+        <span><span class="dot"></span> Mandat</span>
+      </div>
+
+      <div class="signature">
+        <div class="line"></div>
+        <div>Signature autorisée</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

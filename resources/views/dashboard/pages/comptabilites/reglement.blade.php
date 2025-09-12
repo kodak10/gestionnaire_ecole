@@ -298,7 +298,7 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.length > 0) {
                         $.each(response, function(index, eleve) {
-                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet} (${eleve.matricule})</option>`);
+                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
                         });
 
                     } else {
@@ -504,6 +504,10 @@ $(document).ready(function() {
                     $('#paiement-form')[0].reset();
                     $('#date_paiement').val('{{ date("Y-m-d") }}');
                     loadEleveData(currentEleveId);
+
+                    if (response.paiement_id) {
+                        window.open(`{{ url('reglements/receipt') }}/${response.paiement_id}`, '_blank');
+                    }
                 } else {
                     toastr.error(response.message);
                 }

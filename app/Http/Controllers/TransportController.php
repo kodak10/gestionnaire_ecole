@@ -317,6 +317,112 @@ public function store(Request $request)
 
 
 
+
+public function generateReceipt($paiementId)
+{
+    $paiement = Paiement::with([
+        'details.inscription.eleve',
+        'details.inscription.classe.niveau',
+        'details.typeFrais',
+        'user',
+        'anneeScolaire',
+        'ecole'
+    ])->find($paiementId);
+
+    if (!$paiement) {
+        abort(404, "Paiement introuvable.");
+    }
+
+    $inscription = $paiement->details->first()?->inscription;
+    if (!$inscription) {
+        abort(404, "Inscription introuvable pour ce paiement.");
+    }
+
+    $eleve  = $inscription->eleve;
+    $classe = $inscription->classe;
+    $ecole  = $paiement->ecole;
+
+    Log::debug("📄 Génération du reçu", [
+        'paiement_id' => $paiement->id,
+        'eleve' => $eleve->prenom . ' ' . $eleve->nom,
+        'classe' => $classe->nom,
+        'ecole' => $ecole->nom_ecole,
+    ]);
+
+    // Récupérer année scolaire assignée à l'utilisateur
+    $anneeUser = DB::table('user_annees_scolaires')
+        ->where('user_id', auth()->id())
+        ->where('ecole_id', $ecole->id)
+        ->latest('id')
+        ->first();
+
+    if (!$anneeUser) {
+        abort(404, "Aucune année scolaire assignée pour cet utilisateur.");
+    }
+
+    $anneeId = $anneeUser->annee_scolaire_id;
+    Log::debug("✅ Année scolaire utilisée", ['anneeId' => $anneeId]);
+
+    // Type de frais Transport
+    $typeTransport = TypeFrais::where('nom', "Transport")->first();
+    if (!$typeTransport) {
+        abort(404, "Type de frais 'Transport' introuvable.");
+    }
+    Log::debug("✅ Type de frais Transport trouvé", ['typeTransport_id' => $typeTransport->id]);
+
+    // Tarif transport
+    $tarifTransport = Tarif::where([
+        'annee_scolaire_id' => $anneeId,
+        'niveau_id' => $classe->niveau->id,
+        'ecole_id' => $ecole->id,
+        'type_frais_id' => $typeTransport->id
+    ])->first();
+
+    $montantTransport = $tarifTransport->montant ?? 0;
+    Log::debug("💰 Tarif Transport", ['montantTransport' => $montantTransport]);
+
+    // Paiements liés au Transport
+    $paiementsTransport = Paiement::with('details.typeFrais')
+        ->whereHas('details', function($q) use ($inscription, $typeTransport) {
+            $q->where('inscription_id', $inscription->id)
+              ->where('type_frais_id', $typeTransport->id);
+        })
+        ->get();
+
+    Log::debug("📌 Paiements Transport trouvés", [
+        'count' => $paiementsTransport->count(),
+        'paiements_ids' => $paiementsTransport->pluck('id'),
+    ]);
+
+    // Total payé
+    $totalPayeTransport = $paiementsTransport->sum(function($p) use ($typeTransport) {
+        return $p->details->where('type_frais_id', $typeTransport->id)->sum('montant');
+    });
+
+    Log::debug("💵 Total payé Transport", ['totalPayeTransport' => $totalPayeTransport]);
+
+    // Reste à payer
+    $reste_total = max(0, $montantTransport - $totalPayeTransport);
+
+    // Montant total payé sur CE reçu
+    $montant_total = $paiement->details->sum('montant');
+    Log::debug("🧾 Montant total de CE reçu", ['montant_total' => $montant_total]);
+
+    $pdf = Pdf::loadView('dashboard.documents.scolarite.recu_paiement', compact(
+        'paiement',
+        'eleve',
+        'classe',
+        'ecole',
+        'montant_total',
+        'reste_total',
+    ));
+
+    return $pdf->stream("recu_paiement_{$paiement->id}.pdf");
+}
+
+
+
+
   
 
     public function applyReduction(Request $request)
@@ -409,16 +515,5 @@ public function store(Request $request)
         return $pdf->stream('scolarite-' . $eleve->matricule . '.pdf');
     }
 
-    public function generateReceipt($paiementId)
-    {
-        $paiement = Paiement::with(['eleve', 'typeFrais', 'anneeScolaire'])
-            ->findOrFail($paiementId);
-        
-        $data = [
-            'paiement' => $paiement
-        ];
-
-        $pdf = PDF::loadView('scolarite.receipt', $data);
-        return $pdf->stream('recu-paiement-' . $paiement->id . '.pdf');
-    }
+   
 }
