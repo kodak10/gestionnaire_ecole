@@ -347,7 +347,7 @@ private function genererMatriculeEleve(int $ecoleId): string
         'infos_medicales' => $request->infos_medicales,
         'parent_nom' => $request->parent_nom,
         'parent_telephone' => $request->parent_telephone,
-        'parent_email' => $request->parent_email,
+        'parent_telephone02' => $request->parent_telephone02,
         'code_national' => $request->code_national,
         'ecole_id' => $ecoleId,
         'annee_scolaire_id' => $anneeScolaireId,
@@ -505,8 +505,8 @@ private function genererMatriculeEleve(int $ecoleId): string
         'sexe' => 'required|in:Masculin,Féminin',
         'classe_id' => 'required|exists:classes,id',
         'parent_nom' => 'required|string|max:255',
-        'parent_telephone' => 'required|string|max:20',
-        'parent_email' => 'nullable|email|max:255',
+        'parent_telephone' => 'required|string|max:11',
+        'parent_telephone02' => 'nullable|string|max:11',
         'reduction' => 'nullable|numeric|min:0',
     ]);
 

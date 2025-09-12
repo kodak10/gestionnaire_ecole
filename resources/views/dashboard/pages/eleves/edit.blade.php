@@ -187,8 +187,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="parent_email" value="{{ old('parent_email', $eleve->eleve->parent_email) }}">
+                                        <label class="form-label">Telephone 02</label>
+                                        <input type="tel" class="form-control" name="parent_telephone02" value="{{ old('parent_telephone02', $eleve->eleve->parent_telephone02) }}">
                                     </div>
                                 </div>
                             </div>

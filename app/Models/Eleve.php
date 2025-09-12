@@ -8,7 +8,7 @@ class Eleve extends Model
 {
     protected $fillable = [
         'annee_scolaire_id', 'ecole_id', 'matricule', 'nom', 'prenom','num_extrait', 'sexe', 'naissance', 'lieu_naissance', 'photo_path',
-        'infos_medicales', 'parent_nom', 'parent_telephone', 'parent_email', 'code_national'
+        'infos_medicales', 'parent_nom', 'parent_telephone', 'parent_telephone02', 'code_national'
     ];
 
     protected $casts = [

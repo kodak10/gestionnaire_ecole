@@ -45,6 +45,9 @@ class Inscription extends Model
         return $this->hasMany(Reduction::class);
     }
 
-
+public function getNaissanceFormatteeAttribute()
+{
+    return $this->naissance ? $this->naissance->format('d/m/Y') : 'N/A';
+}
 
 }

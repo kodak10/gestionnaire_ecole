@@ -168,14 +168,14 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                        <label class="form-label">Téléphone 01<span class="text-danger">*</span></label>
                                         <input type="tel" class="form-control" name="parent_telephone" value="{{ old('parent_telephone') }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="parent_email" value="{{ old('parent_email') }}">
+                                        <label class="form-label">Téléphone 02</label>
+                                        <input type="tel" class="form-control" name="parent_telephone02" value="{{ old('parent_telephone02') }}">
                                     </div>
                                 </div>
                             </div>
