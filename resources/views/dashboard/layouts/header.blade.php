@@ -3,14 +3,14 @@
 
 			<!-- Logo -->
 			<div class="header-left active">
-				<a href="index.html" class="logo logo-normal">
+				<a href="#" class="logo logo-normal">
 
 					<img src="{{ asset('assets/img/logo.png') }}" class="img-fluid" alt="Logo">
 				</a>
-				<a href="index.html" class="logo-small">
+				<a href="#" class="logo-small">
 					<img src="{{ asset('assets/img/logo-small.png') }}" alt="Logo">
 				</a>
-				<a href="index.html" class="dark-logo">
+				<a href="#" class="dark-logo">
 					<img src="{{ asset('assets/img/logo.png') }}" alt="Logo">
 				</a>
 				<a id="toggle_btn" href="javascript:void(0);">
@@ -155,9 +155,9 @@
 			<div class="dropdown mobile-user-menu">
 				<a href="javascript:void(0);" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
 				<div class="dropdown-menu dropdown-menu-end">
-					<a class="dropdown-item" href="profile.html">My Profile</a>
-					<a class="dropdown-item" href="profile-settings.html">Settings</a>
-					<a class="dropdown-item" href="login.html">Logout</a>
+					<a class="dropdown-item" href="#">My Profile</a>
+					<a class="dropdown-item" href="#">Settings</a>
+					<a class="dropdown-item" href="#">Logout</a>
 				</div>
 			</div>
 			<!-- /Mobile Menu -->

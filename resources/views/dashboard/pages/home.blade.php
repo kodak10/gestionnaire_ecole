@@ -7,7 +7,7 @@
 						<nav>
 							<ol class="breadcrumb mb-0">
 								<li class="breadcrumb-item">
-									<a href="index.html">Tableau de Bord</a>
+									<a href="#">Tableau de Bord</a>
 								</li>
 								<li class="breadcrumb-item active" aria-current="page">Admin</li>
 							</ol>
@@ -444,7 +444,7 @@
 
 					<!-- Links -->
 					<div class="col-xl-3 col-md-6 d-flex">
-						<a href="student-attendance.html" class="card bg-warning-transparent border border-5 border-white animate-card flex-fill">
+						<a href="#" class="card bg-warning-transparent border border-5 border-white animate-card flex-fill">
 							<div class="card-body">
 								<div class="d-flex align-items-center justify-content-between">
 									<div class="d-flex align-items-center">
@@ -462,7 +462,7 @@
 
 					<!-- Links -->
 					<div class="col-xl-3 col-md-6 d-flex">
-						<a href="events.html" class="card bg-success-transparent border border-5 border-white animate-card flex-fill ">
+						<a href="#" class="card bg-success-transparent border border-5 border-white animate-card flex-fill ">
 							<div class="card-body">
 								<div class="d-flex align-items-center justify-content-between">
 									<div class="d-flex align-items-center">
@@ -480,7 +480,7 @@
 
 					<!-- Links -->
 					<div class="col-xl-3 col-md-6 d-flex">
-						<a href="membership-plans.html" class="card bg-danger-transparent border border-5 border-white animate-card flex-fill">
+						<a href="#" class="card bg-danger-transparent border border-5 border-white animate-card flex-fill">
 							<div class="card-body">
 								<div class="d-flex align-items-center justify-content-between">
 									<div class="d-flex align-items-center">
@@ -498,7 +498,7 @@
 
 					<!-- Links -->
 					<div class="col-xl-3 col-md-6 d-flex">
-						<a href="student-attendance.html" class="card bg-secondary-transparent border border-5 border-white animate-card flex-fill">
+						<a href="#" class="card bg-secondary-transparent border border-5 border-white animate-card flex-fill">
 							<div class="card-body">
 								<div class="d-flex align-items-center justify-content-between">
 									<div class="d-flex align-items-center">
