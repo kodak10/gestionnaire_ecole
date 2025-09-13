@@ -96,14 +96,91 @@ class EleveController extends Controller
         return redirect()->route('eleves.index')->with('success', 'Liste actualisée');
     }
 
-   public function export(Request $request)
+
+// public function export(Request $request)
+// {
+//     $format = $request->format;
+    
+//     // Récupérer les élèves avec les mêmes filtres que l'index
+//     $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+
+//     // Appliquer les mêmes filtres que dans la méthode index
+//     $query->when($request->filled('classe_id'), function($q) use ($request) {
+//         return $q->where('classe_id', $request->classe_id);
+//     });
+
+//     $query->when($request->filled('nom'), function($q) use ($request) {
+//         return $q->whereHas('eleve', function($q) use ($request) {
+//             $q->where('nom', 'like', '%'.$request->nom.'%')
+//               ->orWhere('prenom', 'like', '%'.$request->nom.'%');
+//         });
+//     });
+
+//     $query->when($request->filled('sexe'), function($q) use ($request) {
+//         return $q->whereHas('eleve', function($q) use ($request) {
+//             $q->where('sexe', $request->sexe);
+//         });
+//     });
+
+//     $query->when($request->filled('cantine'), function($q) use ($request) {
+//         return $q->where('cantine_active', $request->cantine == '1');
+//     });
+
+//     $query->when($request->filled('transport'), function($q) use ($request) {
+//         return $q->where('transport_active', $request->transport == '1');
+//     });
+
+//     // 🔹 Tri toujours par nom puis prénom
+//     $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+//           ->orderBy('eleves.nom', 'asc')
+//           ->orderBy('eleves.prenom', 'asc')
+//           ->select('inscriptions.*');
+
+//     $eleves = $query->get();
+
+//     if ($format === 'excel') {
+//         $filters = [
+//             'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
+//             'nom' => $request->nom ?: 'Tous',
+//             'sexe' => $request->sexe ?: 'Tous',
+//             'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
+//             'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
+//         ];
+        
+//         return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
+//     }
+
+//     if ($format === 'pdf') {
+//         $data = [
+//             'eleves' => $eleves,
+//             'title' => 'Liste des Élèves',
+//             'date' => now()->locale('fr')->translatedFormat('d F Y'),
+//             'filters' => [
+//                 'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
+//                 'nom' => $request->nom ?: 'Tous',
+//                 'sexe' => $request->sexe ?: 'Tous',
+//                 'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
+//                 'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
+//             ]
+//         ];
+        
+//         $pdf = PDF::loadView('dashboard.documents.liste', $data)
+//                   ->setPaper('a4', 'landscape');
+
+//         return $pdf->download('liste_eleves_' . date('Y-m-d') . '.pdf');
+//     }
+
+//     return redirect()->back()->with('error', 'Format non supporté');
+// }
+
+public function export(Request $request)
 {
     $format = $request->format;
     
     // Récupérer les élèves avec les mêmes filtres que l'index
     $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
 
-    // Appliquer les mêmes filtres que dans la méthode index
+    // Appliquer les filtres
     $query->when($request->filled('classe_id'), function($q) use ($request) {
         return $q->where('classe_id', $request->classe_id);
     });
@@ -111,7 +188,7 @@ class EleveController extends Controller
     $query->when($request->filled('nom'), function($q) use ($request) {
         return $q->whereHas('eleve', function($q) use ($request) {
             $q->where('nom', 'like', '%'.$request->nom.'%')
-            ->orWhere('prenom', 'like', '%'.$request->nom.'%');
+              ->orWhere('prenom', 'like', '%'.$request->nom.'%');
         });
     });
 
@@ -121,72 +198,60 @@ class EleveController extends Controller
         });
     });
 
-    // Filtre par cantine (corrigé)
     $query->when($request->filled('cantine'), function($q) use ($request) {
-        if ($request->cantine == '1') {
-            return $q->where('cantine_active', true);
-        } else {
-            return $q->where('cantine_active', false);
-        }
+        return $q->where('cantine_active', $request->cantine == '1');
     });
 
-    // Filtre par transport (corrigé)
     $query->when($request->filled('transport'), function($q) use ($request) {
-        if ($request->transport == '1') {
-            return $q->where('transport_active', true);
-        } else {
-            return $q->where('transport_active', false);
-        }
+        return $q->where('transport_active', $request->transport == '1');
     });
 
-    // Appliquer le tri
-    $sort = $request->get('sort', 'asc');
-    $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
-        if (in_array($request->sort_by, ['nom', 'prenom', 'sexe', 'cantine_active', 'transport_active'])) {
-            return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-                    ->orderBy('eleves.'.$request->sort_by, $sort)
-                    ->select('inscriptions.*');
-        } else {
-            return $q->orderBy($request->sort_by, $sort);
-        }
-    }, function($q) {
-        return $q->orderBy('created_at', 'desc');
-    });
+    // 🔹 Tri toujours par nom puis prénom
+    $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+          ->orderBy('eleves.nom', 'asc')
+          ->orderBy('eleves.prenom', 'asc')
+          ->select('inscriptions.*');
 
     $eleves = $query->get();
 
+    // 🔹 Construire les filtres dynamiquement
+    $filters = [
+        'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
+        'nom'    => $request->nom ?: 'Tous',
+        'sexe'   => $request->sexe ?: 'Tous',
+    ];
+
+    if ($request->filled('cantine')) {
+        $filters['cantine'] = $request->cantine == '1' ? 'Oui' : 'Non';
+    }
+
+    if ($request->filled('transport')) {
+        $filters['transport'] = $request->transport == '1' ? 'Oui' : 'Non';
+    }
+
+    // 🔹 Export Excel
     if ($format === 'excel') {
-        $filters = [
-            'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
-            'nom' => $request->nom ?: 'Tous',
-            'sexe' => $request->sexe ?: 'Tous',
-            'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
-            'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
-        ];
-        
         return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
     }
 
+    // 🔹 Export PDF
     if ($format === 'pdf') {
         $data = [
-            'eleves' => $eleves,
-            'title' => 'Liste des Élèves',
-            'date' => date('d/m/Y'),
-            'filters' => [
-                'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
-                'nom' => $request->nom ?: 'Tous',
-                'sexe' => $request->sexe ?: 'Tous',
-                'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
-                'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
-            ]
+            'eleves'  => $eleves,
+            'title'   => 'Liste des Élèves',
+            'date'    => now()->locale('fr')->translatedFormat('d F Y'),
+            'filters' => $filters
         ];
         
-        $pdf = PDF::loadView('dashboard.documents.liste', $data);
+        $pdf = PDF::loadView('dashboard.documents.liste', $data)
+                  ->setPaper('a4', 'landscape');
+
         return $pdf->download('liste_eleves_' . date('Y-m-d') . '.pdf');
     }
 
     return redirect()->back()->with('error', 'Format non supporté');
 }
+
 
     public function create()
     {

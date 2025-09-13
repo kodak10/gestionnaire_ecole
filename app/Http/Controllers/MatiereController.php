@@ -102,6 +102,15 @@ public function updateClasses(Request $request, $id)
             'coefficient' => 'required|integer|min:1|max:10',
         ]);
 
+
+        Matiere::create([
+            'niveau_id' => $anneeScolaireId,
+            'ecole_id' => auth()->user()->ecole_id ?? 1,
+            'niveau_id' => $request->niveau_id,
+            'nom' => $nomComplet,
+            'capacite' => $request->capacite,
+        ]);
+
         $validated['ecole_id'] = auth()->user()->ecole_id ?? 1;
 
         $matiere = Matiere::create($validated);

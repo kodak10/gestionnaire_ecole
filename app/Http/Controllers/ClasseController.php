@@ -65,7 +65,7 @@ class ClasseController extends Controller
             return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
         }
 
-        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
+        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1; // faux
 
 
         Classe::create([
