@@ -71,24 +71,66 @@ class MigrateEleves extends Command
 
         //     $this->info("Élève migré: {$eleve->nom} {$eleve->prenom} (Matricule: {$eleve->matricule})");
         // }
-        foreach ($elevesAncien as $ligne) {
-            // Trouver l'élève correspondant (ex: par nom + prénom, ou mieux par matricule si dispo)
-            $eleve = Eleve::where('nom', $ligne->NomEleve)
-                ->where('prenom', $ligne->PrenomEleve)
-                ->where('ecole_id', $ecoleId)
-                ->first();
+        // foreach ($elevesAncien as $ligne) {
+        //     // Trouver l'élève correspondant (ex: par nom + prénom, ou mieux par matricule si dispo)
+        //     $eleve = Eleve::where('nom', $ligne->NomEleve)
+        //         ->where('prenom', $ligne->PrenomEleve)
+        //         ->where('ecole_id', $ecoleId)
+        //         ->first();
 
-            if ($eleve) {
-                $eleve->update([
-                    'parent_telephone'   => $ligne->TelPere ?? '0000000000',
-                    'parent_telephone02' => $ligne->TelMere ?? '0000000000',
-                ]);
+        //     if ($eleve) {
+        //         $eleve->update([
+        //             'parent_telephone'   => $ligne->TelPere ?? '0000000000',
+        //             'parent_telephone02' => $ligne->TelMere ?? '0000000000',
+        //         ]);
 
-                $this->info("Téléphones mis à jour pour {$eleve->nom} {$eleve->prenom}");
-            } else {
-                $this->warn("Élève introuvable: {$ligne->NomEleve} {$ligne->PrenomEleve}");
-            }
+        //         $this->info("Téléphones mis à jour pour {$eleve->nom} {$eleve->prenom}");
+        //     } else {
+        //         $this->warn("Élève introuvable: {$ligne->NomEleve} {$ligne->PrenomEleve}");
+        //     }
+        // }
+
+      function normalizeString($str) {
+    return strtolower(
+        str_replace(
+            ['à','á','â','ã','ä','å','ç','è','é','ê','ë','ì','í','î','ï','ò','ó','ô','õ','ö','ù','ú','û','ü','ÿ','ñ'],
+            ['a','a','a','a','a','a','c','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','y','n'],
+            $str
+        )
+    );
+}
+
+foreach ($elevesAncien as $ligne) {
+    $eleve = Eleve::where('nom', $ligne->NomEleve)
+                  ->where('prenom', $ligne->PrenomEleve)
+                  ->where('ecole_id', $ecoleId)
+                  ->first();
+
+    if ($eleve) {
+        $sexeSource = normalizeString($ligne->Sexe);
+        
+        // Gérer toutes les variations possibles
+        if (in_array($sexeSource, ['garcon', 'masculin', 'homme', 'male', 'garçon'])) {
+            $sexeFinal = 'Masculin';
+        } elseif (in_array($sexeSource, ['fille', 'feminin', 'femme', 'femelle', 'féminin'])) {
+            $sexeFinal = 'Féminin';
+        } else {
+            // Valeur par défaut si le sexe n'est pas reconnu
+            $sexeFinal = 'Masculin'; // ou 'Féminin' selon votre préférence
+            $this->warn("Sexe non reconnu '{$ligne->Sexe}' pour {$eleve->nom} {$eleve->prenom}, défini sur '{$sexeFinal}'");
         }
+
+        $eleve->update([
+            'sexe' => $sexeFinal,
+        ]);
+
+        $this->info("Sexe mis à jour pour {$eleve->nom} {$eleve->prenom} : {$sexeFinal}");
+    } else {
+        $this->warn("Élève introuvable: {$ligne->NomEleve} {$ligne->PrenomEleve}");
+    }
+}
+
+
 
 
         $this->info("Migration terminée !");
