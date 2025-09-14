@@ -21,9 +21,9 @@
 @foreach($elevesAvecMoyennes as $eleveData)
 <div class="bulletin">
     <div class="header">
-        <h2>École: {{ auth()->user()->ecole->nom ?? 'Nom de l\'école' }}</h2>
+        <h2>École: {{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}</h2>
         <h3>Classe: {{ $classe->nom }} - {{ $classe->niveau->nom }}</h3>
-        <p>Période: {{ $mois->nom }} | Année scolaire: {{ auth()->user()->anneeScolaire->annee ?? 'N/A' }}</p>
+        <p>Période: {{ $mois->nom }} | Année scolaire: {{ auth()->user()->anneeScolaire->annee ?? '2025 - 2026' }}</p>
     </div>
 
     <div class="eleve-info">
