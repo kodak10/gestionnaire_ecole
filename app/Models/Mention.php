@@ -16,4 +16,9 @@ class Mention extends Model
         'min_note',
         'max_note',
     ];
+
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class);
+    }
 }

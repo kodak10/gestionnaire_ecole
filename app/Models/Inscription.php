@@ -54,5 +54,8 @@ public function getNaissanceFormatteeAttribute()
 {
     return $this->naissance ? $this->naissance->format('d/m/Y') : 'N/A';
 }
-
+public function notes()
+{
+    return $this->hasMany(Note::class);
+}
 }

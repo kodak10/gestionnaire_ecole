@@ -10,7 +10,8 @@ class Note extends Model
         'inscription_id',
         'matiere_id',
         'classe_id',
-        'annee_scolaire',
+        'annee_scolaire_id',
+        'ecole_id',
         'valeur',
         'coefficient',
         'appreciation',
@@ -41,6 +42,12 @@ class Note extends Model
     {
         return $this->belongsTo(Classe::class);
     }
+
+    public function inscription()
+    {
+        return $this->belongsTo(Inscription::class);
+    }
+
 
     
 
