@@ -219,16 +219,17 @@
                 <div class="modal-body">
                     <!-- Sélection de la classe -->
                     <div class="mb-3">
-                        <label for="classe_id" class="form-label">Choisir le Niveau <span class="text-danger">*</span></label>
-                        <select id="classe_id" name="classe_id" class="form-select @error('classe_id') is-invalid @enderror" required>
+                        <label for="niveau_id" class="form-label">Choisir le Niveau <span class="text-danger">*</span></label>
+                        <select id="niveau_id" name="niveau_id" class="form-select @error('niveau_id') is-invalid @enderror" required>
                             <option value="" disabled selected>-- Sélectionner un niveau --</option>
-                            @foreach($classes as $classe)
-                                <option value="{{ $classe->id }}" {{ old('classe_id') == $classe->id ? 'selected' : '' }}>
-                                    {{ $classe->niveau->nom }}
+                            @foreach($niveaux as $niveau)
+                                <option value="{{ $niveau->id }}" {{ old('niveau_id') == $niveau->id ? 'selected' : '' }}>
+                                    {{ $niveau->nom }}
                                 </option>
                             @endforeach
+
                         </select>
-                        @error('classe_id')
+                        @error('niveau_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -350,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // Gestion du changement de classe avec affichage du spinner pendant le chargement AJAX
-    $('#classe_id').on('change', function() {
+    $('#niveau_id').on('change', function() {
         let classeId = $(this).val();
 
         // Afficher le spinner dès le début

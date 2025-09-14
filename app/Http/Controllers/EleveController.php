@@ -397,8 +397,9 @@ private function genererMatriculeEleve(int $ecoleId): string
         }
     }
 
-    $ecoleId = auth()->user()->ecole_id ?? 1;
-    $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ;
+    $ecoleId = auth()->user()->ecole_id;
+   
+    $anneeScolaireId = auth()->user()->annee_scolaire_id ;
 
     $eleve = Eleve::create([
         'matricule' => $matricule,

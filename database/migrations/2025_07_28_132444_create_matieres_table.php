@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('annee_scolaire_id')->constrained();
             $table->foreignId('ecole_id')->constrained(); 
+            $table->foreignId('niveau_id')->constrained();
             $table->string('nom');
             $table->integer('coefficient')->default(1);
             $table->timestamps();

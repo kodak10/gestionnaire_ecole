@@ -9,35 +9,16 @@ class Matiere extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['niveau_id', 'annee_scolaire_id', 'nom', 'ecole_id'];
+    protected $fillable = ['annee_scolaire_id', 'ecole_id', 'nom', 'coefficient'];
     
-    public function classes()
-    {
-        return $this->belongsToMany(Classe::class)
-                    ->withPivot('coefficient')
-                    ->withTimestamps();
-    }
+   
 
-    public function scopePrincipales($query)
-    {
-        return $query->whereIn('nom', [
-            'Français',
-            'Mathématiques',
-            'Éducation scientifique',
-            'Histoire-Géographie'
-        ]);
-    }
+    public function niveaux()
+{
+    return $this->belongsToMany(Niveau::class, 'niveau_matiere')
+                ->withPivot('coefficient')
+                ->withTimestamps();
+}
 
-    /**
-     * Scope pour les matières spécifiques
-     */
-    public function scopeSpecifiques($query)
-    {
-        return $query->whereIn('nom', [
-            'Lecture',
-            'Écriture',
-            'Langues nationales',
-            'Informatique'
-        ]);
-    }
+
 }

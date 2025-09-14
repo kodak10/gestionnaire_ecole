@@ -8,41 +8,43 @@ use App\Models\Classe;
 use App\Models\Niveau;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ClasseController extends Controller
 {
     public function index(Request $request)
     {
-        $annee_active = AnneeScolaire::active();
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $user = auth()->user();
+        $ecoleId = $user->ecole_id;
 
-        $query = Classe::with(['niveau','inscriptions'])
-            ->where('annee_scolaire_id', $annee_active->id)
-            ->where('ecole_id', $ecoleId); // Filtrer par école
+        // Récupérer l'année scolaire assignée à l'utilisateur pour cette école
+        $userAnnee = DB::table('user_annees_scolaires')
+                        ->where('user_id', $user->id)
+                        ->where('ecole_id', $ecoleId)
+                        ->latest('created_at')
+                        ->first();
 
-        // Filtres
-        if ($request->has('niveau_id') && $request->niveau_id != '') {
-            $query->where('niveau_id', $request->niveau_id);
+        if (!$userAnnee) {
+            return redirect()->back()->with('error', 'Aucune année scolaire assignée à cet utilisateur.');
         }
 
-        if ($request->has('status') && $request->status != '') {
-            $query->where('est_active', $request->status == 'active');
-        }
+        $anneeScolaireId = $userAnnee->annee_scolaire_id;
 
-        // Tri
-        $sort = $request->get('sort', 'asc');
-        if ($request->has('sort_by')) {
-            $query->orderBy($request->sort_by, $sort);
-        } else {
-            $query->orderBy('nom', $sort);
-        }
+        $query = Classe::with(['niveau', 'inscriptions'])
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId);
 
         $classes = $query->get();
         $niveaux = Niveau::orderBy('nom')->get();
 
-        return view('dashboard.pages.parametrage.classe', compact('classes', 'niveaux', 'annee_active'));
+        return view('dashboard.pages.parametrage.classe', [
+            'classes' => $classes,
+            'niveaux' => $niveaux,
+            'annee_active' => $userAnnee // on garde la variable pour la vue
+        ]);
     }
+
 
     public function store(Request $request)
     {
