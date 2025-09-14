@@ -12,10 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('notes', function (Blueprint $table) {
-            // Supprimer la colonne 'annee_scolaire'
-            if (Schema::hasColumn('notes', 'annee_scolaire')) {
-                $table->dropColumn('annee_scolaire');
-            }
+           
 
             // Ajouter 'ecole_id'
             $table->foreignId('ecole_id')->after('classe_id')->constrained('ecoles')->onDelete('cascade');
