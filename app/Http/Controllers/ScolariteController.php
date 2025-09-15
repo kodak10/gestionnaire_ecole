@@ -20,11 +20,14 @@ class ScolariteController extends Controller
 {
    public function index()
     {
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
+        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+
 
         $classes = Classe::with('niveau')
             ->where('ecole_id', $ecoleId)
-            ->orderBy('nom')
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('id')
             ->get();
 
         $typesFrais = TypeFrais::orderBy('nom')->get();

@@ -22,7 +22,16 @@ class RelanceController extends Controller
 {
     public function index()
     {
-        $classes = Classe::with('niveau')->orderBy('nom')->get();
+        $ecoleId = auth()->user()->ecole_id;
+        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+
+
+        $classes = Classe::with('niveau')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('id')
+            ->get();
+
         $userId = Auth::id();
         $ecoleId = Auth::user()->ecole_id;
 

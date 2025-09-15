@@ -38,7 +38,7 @@ class ReglementController extends Controller
             ->get()
             ->map(fn($i) => [
                 'id' => $i->id,
-                'nom_complet' => $i->eleve->prenom . ' ' . $i->eleve->nom,
+                'nom_complet' => $i->eleve->nom . ' ' . $i->eleve->prenom,
                 'matricule' => $i->eleve->matricule
             ]);
 
@@ -122,7 +122,7 @@ public function eleveData(Request $request)
         return response()->json([
             'success' => true,
             'eleve' => [
-                'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                 'matricule' => $inscription->eleve->matricule,
                 'classe' => $inscription->classe->nom
             ],

@@ -1,10 +1,9 @@
 FAIRE LE POINT DE CE QUI NE VA PAS
 
-AJOUT DES MATIERES
-SAISI DES NOTES
+SAISI DES NOTES => Edit passe pas
 AJOUTER LA SCOLARITE ET INSCRIPTION POUR TOUT LES ELEVES
 PROBLEME SUR LA CREATION DES CLASSES
-
+retirer les année au niveau des depenses
 
 _Generer la fiche d'inscription de lelves
 _ Parametrage Ecole => Les données ne s'affiche pas

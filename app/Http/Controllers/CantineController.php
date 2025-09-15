@@ -24,7 +24,16 @@ class CantineController extends Controller
 {
     public function index()
 {
-    $classes = Classe::with('niveau')->orderBy('nom')->get();
+    $ecoleId = auth()->user()->ecole_id;
+        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+
+
+        $classes = Classe::with('niveau')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('id')
+            ->get();
+
     $anneesScolaires = AnneeScolaire::orderBy('est_active', 'desc')->orderBy('annee', 'desc')->get();
     $moisScolaires = MoisScolaire::orderBy('id')->get(); // ajouter la liste des mois
 
@@ -177,7 +186,7 @@ public function getEleveCantine(Request $request)
         return response()->json([
             'success' => true,
             'eleve' => [
-                'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                 'matricule' => $inscription->eleve->matricule,
                 'classe' => $inscription->classe->nom
             ],
