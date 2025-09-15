@@ -322,7 +322,7 @@ public function imprimerRelance(Request $request)
             if ($resteMois > 0) {
                 $recus[] = [
                     'parent' => $eleve->parent_nom ?? '-',
-                    'eleve' => $eleve->prenom . ' ' . $eleve->nom,
+                    'eleve' => $eleve->nom . ' ' . $eleve->prenom,
                     'classe' => $classe,
                     'niveau' => $niveau,
                     'mois' => $moisReference->nom,
