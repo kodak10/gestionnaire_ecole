@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Reçu de Relance - {{ $mois ?? '' }}</title>
+    <title>Relance - {{ $mois ?? '' }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 12px; }
         h2 { text-align: center; }
@@ -13,11 +13,10 @@
 </head>
 <body>
 
-<h2>Reçu de Relance - {{ $type_frais }} - {{ $mois }}</h2>
 
 @foreach($recus as $recusEleve)
     <div class="eleve">
-        <p style="text-align: center;"><strong>Relance de {{ $type_frais }}</strong></p>
+        <p style="text-align: center;"><strong>Relance de {{ $type_frais }} - {{ $mois }}</strong></p>
         <p>Bonjour cher parent <span class="bold">{{ $recusEleve['parent'] }}</span>,</p>
 
         <p>
