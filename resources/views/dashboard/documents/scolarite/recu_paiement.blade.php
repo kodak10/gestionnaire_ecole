@@ -107,7 +107,7 @@
   <div class="receipt">
     <div class="header">
       <!-- Logo à gauche -->
-      <img src="{{ public_path('assets/img/logo_ecxelle.png') }}" alt="Logo école" style="height:40px; vertical-align:middle; margin-right:10px;">
+      <img src="{{ public_path('assets/img/logo_excelle.jpg') }}" alt="Logo école" style="height:60px; vertical-align:middle; margin-right:10px;">
 
       <!-- Nom et téléphone -->
       <h1 style="display:inline-block; margin:0; font-size:18px; vertical-align:middle;">

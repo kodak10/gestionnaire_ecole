@@ -4,7 +4,7 @@ SAISI DES NOTES => Edit passe pas
 AJOUTER LA SCOLARITE ET INSCRIPTION POUR TOUT LES ELEVES
 PROBLEME SUR LA CREATION DES CLASSES
 retirer les année au niveau des depenses
-
+Bien verfier les relances restauer mes données avec la base en ligne
 _Generer la fiche d'inscription de lelves
 _ Parametrage Ecole => Les données ne s'affiche pas
 _ Page d'accueil en fonction du role Auth
