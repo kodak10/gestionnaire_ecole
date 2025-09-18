@@ -4,22 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\Ecole;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class EcoleController extends Controller
 {
     public function index()
     {
-        $ecoleId = auth()->user()->ecole_id;
-        $ecole = Ecole::find($ecoleId);
+        $user = auth()->user();
+        Log::info('Utilisateur connecté : ', ['user_id' => $user->id, 'ecole_id' => $user->ecole_id]);
 
-        dd( $ecole->nom_ecole);
+        if (!$user->ecole_id) {
+            Log::warning('Utilisateur sans ecole_id', ['user_id' => $user->id]);
+            return redirect()->route('dashboard')->with('error', 'Aucune école assignée à votre compte.');
+        }
+
+        $ecole = Ecole::find($user->ecole_id);
+
+        if (!$ecole) {
+            Log::error('École introuvable', ['ecole_id' => $user->ecole_id]);
+            return redirect()->route('dashboard')->with('error', 'École non trouvée.');
+        }
+        
+
+        Log::info('École trouvée', ['ecole' => $ecole->toArray()]);
+
         return view('dashboard.pages.parametrage.ecole', compact('ecole'));
     }
 
-
     public function update(Request $request)
     {
+        Log::info('Update demandé', ['request' => $request->all()]);
+
         $request->validate([
             'nom_ecole' => 'required|string|max:255',
             'sigle_ecole' => 'required|string|max:10',
@@ -28,28 +43,42 @@ class EcoleController extends Controller
             'telephone' => 'required|string|max:20',
             'email' => 'required|email',
             'directeur' => 'required|string|max:255',
-            'footer_bulletin' => 'nullable|string'
+            'footer_bulletin' => 'nullable|string',
+            'fax' => 'nullable|string|max:20',
         ]);
 
-        $ecole = Ecole::firstOrNew();
+        $ecole = Ecole::find(auth()->user()->ecole_id);
+        Log::info('École avant update', ['ecole' => $ecole ? $ecole->toArray() : null]);
 
+        if (!$ecole) {
+            Log::error('École introuvable pour update', ['user_id' => auth()->user()->id]);
+            return redirect()->back()->with('error', 'École non trouvée.');
+        }
+
+        // Gestion du logo
         if ($request->hasFile('logo')) {
             if ($ecole->logo && file_exists(public_path($ecole->logo))) {
                 unlink(public_path($ecole->logo));
+                Log::info('Ancien logo supprimé');
             }
 
             $path = $request->file('logo')->store('ecole/logo', 'public');
             $ecole->logo = 'storage/' . $path;
+            Log::info('Nouveau logo stocké', ['logo' => $ecole->logo]);
         }
 
-
+        // Mise à jour des champs
         $ecole->nom_ecole = $request->nom_ecole;
+        $ecole->sigle_ecole = $request->sigle_ecole;
         $ecole->adresse = $request->adresse;
         $ecole->telephone = $request->telephone;
         $ecole->email = $request->email;
         $ecole->directeur = $request->directeur;
         $ecole->footer_bulletin = $request->footer_bulletin;
+        $ecole->fax = $request->fax;
+
         $ecole->save();
+        Log::info('École mise à jour avec succès', ['ecole' => $ecole->toArray()]);
 
         return redirect()->route('ecoles.index')->with('success', 'Paramètres mis à jour avec succès');
     }

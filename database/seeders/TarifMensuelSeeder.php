@@ -58,53 +58,50 @@ class TarifMensuelSeeder extends Seeder
 
         switch ($type) {
             case "Frais d'inscription":
-                return ($moisNumero === 9) ? 20000 : 0; // septembre
+                return ($moisNumero === 9) ? 20000 : 0; // septembre uniquement
 
             case "Cantine":
-                if (in_array($niveau, ['PS', 'MS', 'GS'])) {
-                    return in_array($moisNumero, [10,11,12,1,2,3,4,5,6]) ? 8000 : 0; // oct → juin
-                }
-                return in_array($moisNumero, [9,10,11,12,1,2,3,4,5,6]) ? 8000 : 0; // sept → juin
+                return in_array($moisNumero, [9,10,11,12,1,2,3,4,5]) ? 8000 : 0;
 
             case "Transport":
-                if (in_array($niveau, ['PS', 'MS', 'GS'])) {
-                    return in_array($moisNumero, [10,11,12,1,2,3,4,5,6]) ? 10000 : 0; // oct → juin
-                }
-                return in_array($moisNumero, [9,10,11,12,1,2,3,4,5,6]) ? 10000 : 0; // sept → juin
+                return in_array($moisNumero, [9,10,11,12,1,2,3,4,5]) ? 10000 : 0;
+
 
             case "Scolarité":
                 switch ($niveau) {
                     case 'PS':
                     case 'MS':
-                    case 'GS':
+                    case 'GS': // Maternelle
                         switch ($moisNumero) {
-                            case 10: return 25000;
-                            case 11: return 20000;
-                            case 12: return 15000;
-                            case 1:
-                            case 2: return 10000;
+                            case 11: return 25000; // Novembre
+                            case 12: return 20000; // Décembre
+                            case 1:  return 15000; // Janvier
+                            case 2:  return 10000; // Février
+                            case 3:  return 10000; // Mars
                             default: return 0;
                         }
+
                     case 'CP1':
                     case 'CP2':
                     case 'CE1':
                     case 'CE2':
                         switch ($moisNumero) {
-                            case 9:
-                            case 10:
-                            case 11: return 25000;
-                            case 12:
-                            case 1: return 10000;
+                            case 11: return 25000; // Novembre
+                            case 12: return 25000; // Décembre
+                            case 1:  return 25000; // Janvier
+                            case 2:  return 10000; // Février
+                            case 3:  return 10000; // Mars
                             default: return 0;
                         }
+
                     case 'CM1':
                     case 'CM2':
                         switch ($moisNumero) {
-                            case 9:
-                            case 10:
-                            case 11: return 25000;
-                            case 12: return 15000;
-                            case 1: return 10000;
+                            case 11: return 25000; // Novembre
+                            case 12: return 25000; // Décembre
+                            case 1:  return 25000; // Janvier
+                            case 2:  return 15000; // Février
+                            case 3:  return 10000; // Mars
                             default: return 0;
                         }
                 }

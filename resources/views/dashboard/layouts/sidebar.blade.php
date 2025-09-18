@@ -29,7 +29,6 @@
 										<li><a href="{{ route('dashboard') }}" class="active">Tableau de Bord Admin</a></li>
 										<li><a href="#">Tableau de Bord Directeur</a></li>
 										<li><a href="#">Tableau de Bord Caissière</a></li>
-										<li><a href="#">Tableau de Bord Enseignant</a></li>
 									</ul>
 								</li>
 								
@@ -91,7 +90,7 @@
 							<h6 class="submenu-hdr"><span>Paramètrages</span></h6>
 							<ul>
                                 <li><a href="{{ route('ecoles.index') }}"><i class="ti ti-brand-nuxt"></i><span>Etablissement</span></a></li>
-                                <li><a href="#"><i class="ti ti-brand-nuxt"></i><span>Messageries</span></a></li>
+                                {{-- <li><a href="#"><i class="ti ti-brand-nuxt"></i><span>Messageries</span></a></li> --}}
 								<li class="submenu">
 									<a href="javascript:void(0);">
 										<i class="ti ti-shield-cog"></i><span>Scolaires</span><span class="menu-arrow"></span>

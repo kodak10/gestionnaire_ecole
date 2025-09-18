@@ -13,6 +13,8 @@ use App\Models\Paiement;
 use App\Models\Tarif;
 use App\Models\TypeFrais;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
@@ -599,11 +601,57 @@ private function genererMatriculeEleve(int $ecoleId): string
 
 
 
-    public function destroy(Eleve $eleve)
-    {
+public function destroy($id)
+{
+    try {
+        DB::beginTransaction();
+
+        $eleve = Eleve::findOrFail($id);
+        
+        // Supprimer d'abord les relations enfants
+        foreach ($eleve->inscriptions as $inscription) {
+            // Supprimer les paiements_details liés aux inscriptions
+            foreach ($inscription->paiements as $paiement) {
+                // Supprimer les détails de paiement
+                $paiement->details()->delete();
+                // Supprimer le paiement
+                $paiement->delete();
+            }
+            
+            // Supprimer les réductions liées
+            $inscription->reductions()->delete();
+            
+            // Supprimer les notes liées
+            $inscription->notes()->delete();
+            
+            // Supprimer l'inscription
+            $inscription->delete();
+        }
+        
+        // Supprimer les réinscriptions
+        $eleve->reinscriptions()->delete();
+        
+        // Supprimer les réductions directes
+        $eleve->reductions()->delete();
+        
+        // Finalement supprimer l'élève
         $eleve->delete();
+
+        DB::commit();
+
+        Log::info('Élève supprimé', ['eleve_id' => $eleve->id, 'matricule' => $eleve->matricule]);
         return redirect()->route('eleves.index')->with('success', 'Élève supprimé avec succès');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur suppression élève: ' . $e->getMessage());
+        
+        return redirect()->route('eleves.index')
+            ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
     }
+}
+
+
 
 
     

@@ -13,19 +13,15 @@
         <div class="sidebar-themesettings offcanvas offcanvas-end" id="theme-setting">
         <div class="offcanvas-header d-flex align-items-center justify-content-between bg-light-500">
             <div>
-                <h4 class="mb-1">Theme Customizer</h4>
-                <p>Choose your themes & layouts etc.</p>
+                <h4 class="mb-1">Personnalisez votre affichage</h4>
+                <p>Choisissez vos thèmes et mises en page, etc.</p>
             </div>
             <a href="#" class="custom-btn-close d-flex align-items-center justify-content-center text-white"  data-bs-dismiss="offcanvas"><i class="ti ti-x"></i></a>
         </div>
         <div class="themesettings-inner offcanvas-body">
             <div class="accordion accordion-customicon1 accordions-items-seperate" id="settingtheme">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#layoutsetting" aria-expanded="true" aria-controls="collapsecustomicon1One">
-                            Select Layouts
-                        </button>
-                    </h2>
+                <div class="accordion-item d-none">
+                    
                     <div id="layoutsetting" class="accordion-collapse collapse show"  >
                         <div class="accordion-body">
                             <div class="row gx-3">
@@ -77,7 +73,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#colorsetting" aria-expanded="true">
-                            Top Bar Color
+                            Couleur de la barre supérieure
                         </button>
                     </h2>
                     <div id="colorsetting" class="accordion-collapse collapse show"	>
@@ -106,7 +102,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#modesetting" aria-expanded="true">
-                            Color Mode
+                            Mode Couleur d'affichage
                         </button>
                     </h2>
                     <div id="modesetting" class="accordion-collapse collapse show">
@@ -116,7 +112,7 @@
                                     <div class="theme-mode">
                                         <input type="radio" name="theme" id="lightTheme" value="light" checked>
                                         <label for="lightTheme" class="p-2 rounded fw-medium w-100">                            
-                                            <span class="avatar avatar-md d-inline-flex rounded me-2"><i class="ti ti-sun-filled"></i></span>Light Mode
+                                            <span class="avatar avatar-md d-inline-flex rounded me-2"><i class="ti ti-sun-filled"></i></span>Mode Clair
                                         </label>
                                     </div>
                                 </div>
@@ -124,7 +120,7 @@
                                     <div class="theme-mode">
                                         <input type="radio" name="theme" id="darkTheme" value="dark" >
                                         <label for="darkTheme" class="p-2 rounded fw-medium w-100">                         
-                                            <span class="avatar avatar-md d-inline-flex rounded me-2"><i class="ti ti-moon-filled"></i></span>Dark Mode
+                                            <span class="avatar avatar-md d-inline-flex rounded me-2"><i class="ti ti-moon-filled"></i></span>Mode Sombre
                                         </label>
                                     </div>
                                 </div>
@@ -135,7 +131,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarsetting" aria-expanded="true">
-                            Sidebar Color
+                            Couleur de la barre latérale
                         </button>
                     </h2>
                     <div id="sidebarsetting" class="accordion-collapse collapse show"	 >
@@ -173,7 +169,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarbgsetting" aria-expanded="true">
-                            Sidebar Background
+                            Arrière-plan de la barre latérale
                         </button>
                     </h2>
                     <div id="sidebarbgsetting" class="accordion-collapse collapse show"	 >
@@ -222,7 +218,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarcolor" aria-expanded="true">
-                            Theme Colors
+                            Couleur Principale
                         </button>
                     </h2>
                     <div id="sidebarcolor" class="accordion-collapse collapse show"	 >
@@ -260,12 +256,10 @@
         </div>
         <div class="bg-light-500 p-3">
             <div class="row gx-3">
-                <div class="col-6">
-                    <a href="#" id="resetbutton" class="btn btn-light close-theme w-100">Reset</a>
+                <div class="col-12">
+                    <a href="#" id="resetbutton" class="btn btn-light close-theme w-100">Réinitialiser</a>
                 </div>
-                <div class="col-6">
-                    <a href="https://1.envato.market/52Ndo"  target="_blank" class="btn btn-primary w-100" >Buy Now</a>
-                </div>
+                
             </div>
         </div>
         </div>

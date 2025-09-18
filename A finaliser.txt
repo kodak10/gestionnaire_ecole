@@ -1,21 +1,22 @@
-FAIRE LE POINT DE CE QUI NE VA PAS
+TEST A FAIRE : RELANCE (ceux beneficant de reduction), Saisi des matieres et des notes, CREATION DES CLASSES
 
-SAISI DES NOTES => Edit passe pas
-AJOUTER LA SCOLARITE ET INSCRIPTION POUR TOUT LES ELEVES
-PROBLEME SUR LA CREATION DES CLASSES
+
+_Dans parametrage de frais ne doit pas depasser le montant total
+MODIFICATION DES INFOS DE LECOLE, AJOUTER MESSAGE LORS DES PAIEMENTS,
+SPATIE POUR LA CREATION DES UTILISATEURS ET ACTIVE ET DESACTIVE PROFIL,
+MODIFICATION DES INFOS DU PROFIL
+CLASSEMENT ET BULLETIN
 retirer les année au niveau des depenses
-Bien verfier les relances restauer mes données avec la base en ligne
 _Generer la fiche d'inscription de lelves
-_ Parametrage Ecole => Les données ne s'affiche pas
 _ Page d'accueil en fonction du role Auth
 Les restrictions en fonction du role de l'user Auth
 Fonctuonalité de tracabilité
-Saisi des matieres et des notes et generation des bulletin avec classement
+et generation des bulletin avec classement
 _ Relance via SMS
 _Mettre un select 2 pour faire les niveau et les mois dans le parametrage de frais mensuel
 _ Navbar et sidebar
-_Installer laravel spatie pour gerer les roles surout pour la caisse
-_retirer le 1 par defaut ecole_id ?? 1 ou annee_scolaire_id ?? 1 niveau_id ?? 1
-_Dans parametrage de frais ne doit pas depasser le montant total 
-dans le bulletin mettre la photo de leleve
-TOUT RETESTER
+_Selection toute les caissiere ou une caissiere specifique
+_Refifier si le 1 par defaut ecole_id ?? 1 ou annee_scolaire_id ?? 1 niveau_id ?? 1
+MESSAGE SIMPLE AUX PARENTS
+
+AJOUTER UNE ECOLE DE TEST

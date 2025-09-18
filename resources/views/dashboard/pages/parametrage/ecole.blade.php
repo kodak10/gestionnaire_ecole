@@ -1,6 +1,11 @@
 @extends('dashboard.layouts.master')
 
 @section('content')
+@php
+    dd($ecole);
+@endphp
+
+
 <div class="d-md-flex d-block align-items-center justify-content-between border-bottom pb-3">
     <div class="my-auto mb-2">
         <h3 class="page-title mb-1">Paramètres Académiques</h3>
@@ -102,7 +107,6 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            {{ dd($ecole) }}
 
                                             <input type="text" class="form-control" name="nom_ecole" value="{{ $ecole->nom_ecole ?? '' }}" placeholder="Entrez le nom de l'école">
                                         </div>

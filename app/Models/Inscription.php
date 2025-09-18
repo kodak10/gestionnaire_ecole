@@ -38,6 +38,10 @@ class Inscription extends Model
     {
         return $this->hasMany(Paiement::class);
     }
+    public function paiementDetails()
+    {
+        return $this->hasMany(PaiementDetail::class);
+    }
 
     public function ecole()
     {
