@@ -73,6 +73,7 @@
                 <thead class="thead-light">
                     <tr>
                         <th>#</th>
+                        <th>Niveau</th>
                         <th>Nom</th>
                         <th>Ordre</th>
                         <th>Actions</th>
@@ -82,6 +83,10 @@
                     @foreach($matieres as $matiere)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
+                        <td>
+    {{ $matiere->niveaux->pluck('nom')->join(', ') }}
+</td>
+
                         <td>{{ $matiere->nom }}</td>
                         <td>{{ $matiere->ordre }}</td>
                         <td>
