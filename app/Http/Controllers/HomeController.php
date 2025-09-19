@@ -29,23 +29,24 @@ class HomeController extends Controller
      */
     public function index()
     {
+        //dd(session()->all());
         $user = Auth::user();
 
         // Total élèves de l'école
-        $totalEleves = Eleve::where('ecole_id', $user->ecole_id)->count();
+        $totalEleves = Eleve::where('ecole_id', session('current_ecole_id'))->count();
 
         // Récupérer l'année scolaire depuis la session
-        $anneeScolaireId = session('annee_scolaire_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
         // Total inscriptions de l'année en cours
         $totalInscriptions = $anneeScolaireId
             ? Inscription::where('annee_scolaire_id', $anneeScolaireId)
-                         ->where('ecole_id', $user->ecole_id)
-                         ->count()
+                        ->where('ecole_id', session('current_ecole_id'))
+                        ->count()
             : 0;
 
         // Calcul des frais attendus et perçus
-        $fraisStats = $this->getFraisStatistics($user->ecole_id, $anneeScolaireId);
+        $fraisStats = $this->getFraisStatistics(session('current_ecole_id'), $anneeScolaireId);
 
         return view('dashboard.pages.home', compact(
             'user', 
@@ -54,6 +55,7 @@ class HomeController extends Controller
             'fraisStats'
         ));
     }
+
 
     /**
      * Calculer les statistiques des frais

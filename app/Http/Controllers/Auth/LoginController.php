@@ -3,188 +3,267 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
-use App\Models\Ecole;
-use App\Models\User;
-use App\Models\UserAnneeScolaire;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Models\AnneeScolaire;
+use App\Models\Ecole;
+    use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
     use AuthenticatesUsers;
 
+    /**
+     * Where to redirect users after login.
+     *
+     * @var string
+     */
     protected $redirectTo = '/dashboard';
 
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
     }
 
-    // Utiliser le pseudo au lieu de l'email
+    /**
+     * Show the application's login form.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showLoginForm()
+    {
+        // Récupérer toutes les années scolaires actives avec les écoles associées
+        $anneesScolaires = AnneeScolaire::with('ecole')
+            ->get();
+
+        return view('home.auth.login', compact('anneesScolaires'));
+    }
+
+    /**
+     * Get the login username to be used by the controller.
+     *
+     * @return string
+     */
     public function username()
     {
         return 'pseudo';
     }
 
-    // Affiche le formulaire de login avec écoles et années scolaires
-    public function showLoginForm()
+    /**
+     * Validate the user login request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
+     */
+    protected function validateLogin(Request $request)
     {
-        $anneesScolaires = AnneeScolaire::with('ecole')->get();
-
-        $ecoles = Ecole::get();
-        
-        return view('home.auth.login', compact('anneesScolaires', 'ecoles'));
+        $request->validate([
+            'user_ecole_annee' => 'required|string',
+            $this->username() => 'required|string',
+            'password' => 'required|string',
+        ]);
     }
 
+    /**
+     * Attempt to log the user into the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return bool
+     */
+   
+
+protected function attemptLogin(Request $request)
+{
+    Log::info('--- Tentative de connexion ---', [
+        'pseudo' => $request->pseudo,
+        'user_ecole_annee' => $request->input('user_ecole_annee'),
+    ]);
+
+    // Valider et extraire les informations d'école et année scolaire
+    $userEcoleAnnee = $request->input('user_ecole_annee');
+    if (!str_contains($userEcoleAnnee, '_')) {
+        Log::warning('Format user_ecole_annee invalide', [
+            'value' => $userEcoleAnnee,
+        ]);
+        return false;
+    }
+
+    list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
+
+    // Vérifier que l'école et l'année scolaire existent
+    $ecole = Ecole::find($ecoleId);
+    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
+    if (!$ecole || !$anneeScolaire) {
+        Log::warning('Ecole ou année scolaire introuvable', [
+            'ecole_id' => $ecoleId,
+            'annee_scolaire_id' => $anneeScolaireId,
+        ]);
+        return false;
+    }
+
+    // Vérifier si l'utilisateur existe
+    $user = User::where('pseudo', $request->pseudo)
+                ->where('ecole_id', $ecoleId)
+                ->where('is_active', 1)
+                ->first();
+
+    if (!$user) {
+        Log::warning('Utilisateur non trouvé ou inactif', [
+            'pseudo' => $request->pseudo,
+            'ecole_id' => $ecoleId,
+        ]);
+        return false;
+    }
+
+    Log::info('Utilisateur trouvé, tentative Auth::attempt', [
+        'pseudo' => $request->pseudo,
+        'ecole_id' => $ecoleId,
+    ]);
+
+    // Tenter la connexion
+    $credentials = $this->credentials($request);
+    $remember = $request->filled('remember');
+
+    if (Auth::attempt($credentials, $remember)) {
+        // Stocker les informations en session
+        session([
+            'current_ecole_id' => $ecoleId,
+            'current_annee_scolaire_id' => $anneeScolaireId,
+            'current_ecole_nom' => $ecole->nom_ecole,
+            'current_annee_scolaire' => $anneeScolaire->annee
+        ]);
+
+        return true;
+    }
+
+    return false;
+}
+
+
+    /**
+     * Get the needed authorization credentials from the request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
     protected function credentials(Request $request)
     {
-        return $request->only('pseudo', 'password');
+        // Utiliser seulement pseudo et password pour l'authentification
+        return $request->only($this->username(), 'password');
     }
 
-    // Validation du login
-    // protected function validateLogin(Request $request)
-    // {
-    //     $request->validate([
-    //         'pseudo' => 'required|string',
-    //         'password' => 'required|string',
-    //         'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-    //         // 'ecole_id' => 'required|exists:ecoles,id',
-    //     ]);
-    // }
+    /**
+     * Get the failed login response instance.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        $userEcoleAnnee = $request->input('user_ecole_annee');
+        
+        // Vérifier le format user_ecole_annee
+        if (!str_contains($userEcoleAnnee, '_')) {
+            return redirect()->back()
+                ->withInput($request->only('pseudo', 'remember'))
+                ->withErrors([
+                    'user_ecole_annee' => 'Sélection invalide d\'école et année scolaire.',
+                ]);
+        }
 
-    // // Tentative de login
-    // public function login(Request $request)
-    // {
-    //     $this->validateLogin($request);
+        list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
 
-    //     Log::info('Tentative de login', $request->only('pseudo', 'ecole_id', 'annee_scolaire_id'));
+        // Vérifier l'école et l'année scolaire
+        $ecole = Ecole::find($ecoleId);
+        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
-    //     // Récupérer l'utilisateur
-    //     $user = User::where('pseudo', $request->pseudo)
-    //         ->where('ecole_id', $request->ecole_id)
-    //         ->first();
+        if (!$ecole) {
+            return redirect()->back()
+                ->withInput($request->only('pseudo', 'remember'))
+                ->withErrors([
+                    'user_ecole_annee' => 'École non trouvée.',
+                ]);
+        }
 
-    //     if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-    //         Log::warning('Utilisateur introuvable ou mot de passe incorrect', $request->only('pseudo', 'ecole_id', 'annee_scolaire_id'));
-    //         return $this->sendFailedLoginResponse($request);
-    //     }
+        if (!$anneeScolaire) {
+            return redirect()->back()
+                ->withInput($request->only('pseudo', 'remember'))
+                ->withErrors([
+                    'user_ecole_annee' => 'Année scolaire non trouvée.',
+                ]);
+        }
 
-    //     // Connexion réussie
-    //     if ($this->attemptLogin($request)) {
-    //         Log::info('Connexion réussie', ['user_id' => $user->id]);
+        // Vérifier l'utilisateur
+        $user = User::where('pseudo', $request->pseudo)
+                    ->where('ecole_id', $ecoleId)
+                    ->first();
 
-    //         // Créer ou mettre à jour user_annees_scolaires
-    //         UserAnneeScolaire::updateOrCreate(
-    //             [
-    //                 'user_id' => $user->id,
-    //                 'ecole_id' => $request->ecole_id,
-    //             ],
-    //             [
-    //                 'annee_scolaire_id' => $request->annee_scolaire_id
-    //             ]
-    //         );
+        if (!$user) {
+            return redirect()->back()
+                ->withInput($request->only('pseudo', 'remember'))
+                ->withErrors([
+                    'pseudo' => 'Aucun utilisateur trouvé avec ce pseudo pour cette école.',
+                ]);
+        }
 
-    //         return $this->sendLoginResponse($request);
-    //     }
+        if ($user->is_active == 0) {
+            return redirect()->back()
+                ->withInput($request->only('pseudo', 'remember'))
+                ->withErrors([
+                    'pseudo' => 'Votre compte est désactivé.',
+                ]);
+        }
 
-    //     return $this->sendFailedLoginResponse($request);
-    // }
-
-    // protected function authenticated(Request $request, $user)
-    // {
-    //     // Stocker les infos dans la session
-    //     session([
-    //         'ecole_id' => $user->ecole_id,
-    //         'annee_scolaire_id' => $user->annee_scolaire_id,
-    //         'annee_scolaire' => AnneeScolaire::find($user->annee_scolaire_id),
-    //     ]);
-
-    //     return redirect()->route('dashboard')->with('success', 'Connexion réussie! Bienvenue ' . $user->name);
-    // }
-
-    protected function validateLogin(Request $request)
-{
-    $request->validate([
-        'pseudo' => 'required|string',
-        'password' => 'required|string',
-        'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-    ]);
-}
-
-public function login(Request $request)
-{
-    $this->validateLogin($request);
-
-    // Récupération de l'année scolaire choisie
-    $annee = AnneeScolaire::with('ecole')->findOrFail($request->annee_scolaire_id);
-    $ecoleId = $annee->ecole_id;
-
-    // Récupérer l'utilisateur correspondant
-    $user = User::where('pseudo', $request->pseudo)
-        ->where('ecole_id', $ecoleId)
-        ->first();
-
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-        Log::warning('Utilisateur introuvable ou mot de passe incorrect', [
-            'pseudo' => $request->pseudo,
-            'annee_scolaire_id' => $request->annee_scolaire_id,
-            'ecole_id' => $ecoleId
-        ]);
-        return $this->sendFailedLoginResponse($request);
+        // Si tout est bon mais que le mot de passe est incorrect
+        return redirect()->back()
+            ->withInput($request->only('pseudo', 'remember'))
+            ->withErrors([
+                'password' => 'Mot de passe incorrect.',
+            ]);
     }
 
-    // Connexion réussie
-    if ($this->attemptLogin($request)) {
-        Log::info('Connexion réussie', ['user_id' => $user->id]);
-
-        // Créer ou mettre à jour user_annees_scolaires
-        UserAnneeScolaire::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'ecole_id' => $ecoleId,
-            ],
-            [
-                'annee_scolaire_id' => $request->annee_scolaire_id
-            ]
-        );
-
-        return $this->sendLoginResponse($request);
+    /**
+     * The user has been authenticated.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  mixed  $user
+     * @return mixed
+     */
+    protected function authenticated(Request $request, $user)
+    {
+        return redirect()->intended($this->redirectPath());
     }
 
-    return $this->sendFailedLoginResponse($request);
-}
-
-protected function authenticated(Request $request, $user)
-{
-    $annee = AnneeScolaire::with('ecole')->find($user->annee_scolaire_id);
-
-    // Stocker les infos dans la session
-    session([
-        'ecole_id' => $annee->ecole_id,
-        'annee_scolaire_id' => $user->annee_scolaire_id,
-        'annee_scolaire' => $annee,
-    ]);
-
-    return redirect()->route('dashboard')->with('success', 'Connexion réussie! Bienvenue ' . $user->name);
-}
-
-
+    /**
+     * Log the user out of the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     */
     public function logout(Request $request)
     {
-        // Supprimer toutes les entrées de user_annees_scolaires pour cet utilisateur
-        UserAnneeScolaire::truncate();
+        // Nettoyer les informations spécifiques avant la déconnexion
+        session()->forget([
+            'current_ecole_id',
+            'current_annee_scolaire_id',
+            'current_ecole_nom',
+            'current_annee_scolaire'
+        ]);
 
-        // Déconnexion Laravel
         $this->guard()->logout();
 
-        // Invalider la session
         $request->session()->invalidate();
+
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('success', 'Vous avez été déconnecté avec succès.');
+        return $this->loggedOut($request) ?: redirect('/');
     }
-
 }

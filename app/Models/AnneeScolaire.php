@@ -26,4 +26,15 @@ class AnneeScolaire extends Model
         return $this->belongsTo(Ecole::class, 'ecole_id');
     }
 
+    public function users()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'user_annees_scolaires',
+            'annee_scolaire_id',
+            'user_id'
+        )->withPivot('ecole_id')->withTimestamps();
+    }
+
+
 }

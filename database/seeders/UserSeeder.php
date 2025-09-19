@@ -33,14 +33,12 @@ class UserSeeder extends Seeder
                 'pseudo' => 'admin',
                 'password' => 'password',
                 'ecole_id' => $ecoles[0]->id,
-                'annee_scolaire_id' => $anneeActive->id,
             ],
             [
                 'name' => 'Directeur Collège Excellence',
                 'pseudo' => 'admin2',
                 'password' => 'password',
                 'ecole_id' => $ecoles[1]->id,
-                'annee_scolaire_id' => $anneeActive->id,
             ],
         ];
 
@@ -51,7 +49,6 @@ class UserSeeder extends Seeder
                     'name' => $userData['name'],
                     'password' => Hash::make($userData['password']),
                     'ecole_id' => $userData['ecole_id'],
-                    'annee_scolaire_id' => $userData['annee_scolaire_id'],
                     'is_active' => true,
                 ]
             );

@@ -25,8 +25,10 @@ use App\Http\Controllers\ScolariteController;
 use App\Http\Controllers\TarifMensuelController;
 use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
+use App\Http\Controllers\UserController;
 use App\Models\Eleve;
 use Illuminate\Support\Facades\Route;
+
 
 
 
@@ -46,7 +48,6 @@ use Illuminate\Support\Facades\Route;
     Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
     Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-    // Auth::routes();
 
     // Route par défaut
     Route::get('/', function () {
@@ -261,6 +262,18 @@ Route::get('/notes/generate-bulletin', [NoteController::class, 'generateBulletin
             Route::get('/export', [RelanceController::class, 'export'])->name('relance.export');
 
         });
+
+
+        // Routes pour le profil utilisateur
+Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
+
+// Routes pour la gestion des utilisateurs
+Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+Route::resource('users', UserController::class);
+
+
 
 
     });

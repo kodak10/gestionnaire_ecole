@@ -18,17 +18,19 @@ class EcoleController extends Controller
             return redirect()->route('dashboard')->with('error', 'Aucune école assignée à votre compte.');
         }
 
-        $ecole = Ecole::find($user->ecole_id);
+        $ecoleInfos = Ecole::find($user->ecole_id);
 
-        if (!$ecole) {
+        if (!$ecoleInfos) {
             Log::error('École introuvable', ['ecole_id' => $user->ecole_id]);
             return redirect()->route('dashboard')->with('error', 'École non trouvée.');
         }
         
 
-        Log::info('École trouvée', ['ecole' => $ecole->toArray()]);
+        Log::info('École trouvée', ['ecole' => $ecoleInfos->toArray()]);
 
-        return view('dashboard.pages.parametrage.ecole', compact('ecole'));
+        // dd($ecole);
+
+        return view('dashboard.pages.parametrage.ecole', compact('ecoleInfos'));
     }
 
     public function update(Request $request)
@@ -45,6 +47,7 @@ class EcoleController extends Controller
             'directeur' => 'required|string|max:255',
             'footer_bulletin' => 'nullable|string',
             'fax' => 'nullable|string|max:20',
+            'sms_notification' => 'nullable|boolean',
         ]);
 
         $ecole = Ecole::find(auth()->user()->ecole_id);
@@ -76,6 +79,7 @@ class EcoleController extends Controller
         $ecole->directeur = $request->directeur;
         $ecole->footer_bulletin = $request->footer_bulletin;
         $ecole->fax = $request->fax;
+        $ecole->sms_notification = $request->has('sms_notification') ? $request->sms_notification : false;
 
         $ecole->save();
         Log::info('École mise à jour avec succès', ['ecole' => $ecole->toArray()]);

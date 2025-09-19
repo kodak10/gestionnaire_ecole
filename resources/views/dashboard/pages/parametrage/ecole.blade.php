@@ -1,9 +1,9 @@
 @extends('dashboard.layouts.master')
 
 @section('content')
-@php
-    dd($ecole);
-@endphp
+{{-- @php
+    dd($ecoleInfos);
+@endphp --}}
 
 
 <div class="d-md-flex d-block align-items-center justify-content-between border-bottom pb-3">
@@ -87,8 +87,8 @@
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
                                             <input type="file" class="form-control" name="logo">
-                                            @if($ecole && $ecole->logo)
-                                                <img src="{{ asset($ecole->logo) }}" alt="Logo" class="mt-2 img-thumbnail" style="max-height: 100px;">
+                                            @if($ecoleInfos && $ecoleInfos->logo)
+                                                <img src="{{ asset($ecoleInfos->logo) }}" alt="Logo" class="mt-2 img-thumbnail" style="max-height: 100px;">
                                             @endif
 
                                         </div>
@@ -108,7 +108,7 @@
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
 
-                                            <input type="text" class="form-control" name="nom_ecole" value="{{ $ecole->nom_ecole ?? '' }}" placeholder="Entrez le nom de l'école">
+                                            <input type="text" class="form-control" name="nom_ecole" value="{{ $ecoleInfos->nom_ecole ?? '' }}" placeholder="Entrez le nom de l'école">
                                         </div>
                                     </div>
                                 </div>
@@ -124,7 +124,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <input type="text" class="form-control" name="sigle_ecole" value="{{ $ecole->sigle_ecole ?? '' }}" placeholder="Entrez le sigle de l'école">
+                                            <input type="text" class="form-control" name="sigle_ecole" value="{{ $ecoleInfos->sigle_ecole ?? '' }}" placeholder="Entrez le sigle de l'école">
                                         </div>
                                     </div>
                                 </div>
@@ -141,7 +141,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <input type="text" class="form-control" name="telephone" value="{{ $ecole->telephone ?? '' }}" placeholder="Entrez le numéro de téléphone">
+                                            <input type="text" class="form-control" name="telephone" value="{{ $ecoleInfos->telephone ?? '' }}" placeholder="Entrez le numéro de téléphone">
                                         </div>
                                     </div>
                                 </div>
@@ -158,7 +158,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <input type="email" class="form-control" name="email" value="{{ $ecole->email ?? '' }}" placeholder="Entrez l'email">
+                                            <input type="email" class="form-control" name="email" value="{{ $ecoleInfos->email ?? '' }}" placeholder="Entrez l'email">
                                         </div>
                                     </div>
                                 </div>
@@ -175,7 +175,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <input type="text" class="form-control" name="fax" value="{{ $ecole->fax ?? '' }}" placeholder="Entrez le numéro de fax">
+                                            <input type="text" class="form-control" name="fax" value="{{ $ecoleInfos->fax ?? '' }}" placeholder="Entrez le numéro de fax">
                                         </div>
                                     </div>
                                 </div>
@@ -192,7 +192,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <textarea rows="4" class="form-control" name="adresse" placeholder="Entrez l'adresse">{{ $ecole->adresse ?? '' }}</textarea>
+                                            <textarea rows="4" class="form-control" name="adresse" placeholder="Entrez l'adresse">{{ $ecoleInfos->adresse ?? '' }}</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -209,7 +209,7 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <input type="text" class="form-control" name="directeur" value="{{ $ecole->directeur ?? '' }}" placeholder="Entrez le nom du directeur">
+                                            <input type="text" class="form-control" name="directeur" value="{{ $ecoleInfos->directeur ?? '' }}" placeholder="Entrez le nom du directeur">
                                         </div>
                                     </div>
                                 </div>
@@ -226,11 +226,29 @@
                                     </div>
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <textarea rows="4" class="form-control" name="footer_bulletin" placeholder="Entrez le texte du pied de page">{{ $ecole->footer_bulletin ?? '' }}</textarea>
+                                            <textarea rows="4" class="form-control" name="footer_bulletin" placeholder="Entrez le texte du pied de page">{{ $ecoleInfos->footer_bulletin ?? '' }}</textarea>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            <!-- Notification SMS -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                                <div class="row align-items-center flex-fill">
+                                    <div class="col-xxl-8 col-lg-6">
+                                        <div class="mb-3">
+                                            <h6>Envoyer les messages de paiement par SMS</h6>
+                                            <p>Activer ou désactiver l'envoi de SMS pour les paiements</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-lg-6">
+                                        <div class="form-check form-switch mt-3">
+                                            <input class="form-check-input" type="checkbox" name="sms_notification" id="sms_notification" value="1" {{ ($ecoleInfos->sms_notification ?? false) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="sms_notification">Activer</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>

@@ -47,14 +47,13 @@
 
 					<div class="d-flex align-items-center">
 						<div class="dropdown me-2">
-							@php
-								$anneeScolaire = session('annee_scolaire');
-							@endphp
+							
 
 							<a href="#" class="btn btn-outline-light fw-normal bg-white d-flex align-items-center p-2">
 								<i class="ti ti-calendar-due me-1"></i>
-								Année Académique: {{ $anneeScolaire->annee ?? 'Non définie' }}
+								Année Académique: {{ session('current_annee_scolaire', 'Non définie') }}
 							</a>
+
 
 		
 
@@ -116,23 +115,29 @@
 						
 						<div class="dropdown ms-1">
 							<a href="javascript:void(0);" class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
-								<span class="avatar avatar-md rounded">
-									<img src="assets/img/profiles/avatar-27.jpg" alt="Img" class="img-fluid">
+								<span class="avatar avatar-md me-2 online avatar-rounded">
+											<img src="{{ Auth::user()->photo ? asset('storage/' . Auth::user()->photo) : asset('assets/img/profiles/avatar-27.jpg') }}" 
+												alt="{{ Auth::user()->name }}">
 								</span>
 							</a>
 							<div class="dropdown-menu">
 								<div class="d-block">
 									<div class="d-flex align-items-center p-2">
 										<span class="avatar avatar-md me-2 online avatar-rounded">
-											<img src="assets/img/profiles/avatar-27.jpg" alt="img">
+											<img src="{{ Auth::user()->photo ? asset('storage/' . Auth::user()->photo) : asset('assets/img/profiles/avatar-27.jpg') }}" 
+												alt="{{ Auth::user()->name }}">
 										</span>
+
 										<div>
 											<h6 class="">{{ $user->name }}</h6>
-											<p class="text-primary mb-0">Administrateur</p>
+											<p class="text-primary mb-0">
+												{{ $user->getRoleNames()->first() ?? 'Aucun rôle' }}
+											</p>
 										</div>
+
 									</div>
 									<hr class="m-0">
-									<a class="dropdown-item d-inline-flex align-items-center p-2" href="#">
+									<a class="dropdown-item d-inline-flex align-items-center p-2" href="{{ route('profile') }}">
 										<i class="ti ti-user-circle me-2"></i>Mon Profil</a>
 									<hr class="m-0">
 									<a class="dropdown-item d-inline-flex align-items-center p-2" href="{{ route('logout') }}"

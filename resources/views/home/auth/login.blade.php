@@ -51,6 +51,11 @@
                                             <p class="mb-0">Veuillez entrer vos identifiants</p>
                                         </div>
 
+                                        @if(session('error'))
+                                            <div class="alert alert-danger">{{ session('error') }}</div>
+                                        @endif
+
+
                                         @if($errors->any())
                                             <div class="alert alert-danger">
                                                 <ul class="mb-0">
@@ -62,52 +67,38 @@
                                         @endif
 
                                         <div class="mb-3">
-                                            <label class="form-label">Année Scolaire / Ecole</label>
+                                            <label class="form-label">Ecole / Année Scolaire </label>
                                             <div class="input-icon mb-3 position-relative">
                                                 <span class="input-icon-addon">
                                                     <i class="ti ti-calendar"></i>
                                                 </span>
-                                                <select name="annee_scolaire_id" class="form-control @error('annee_scolaire_id') is-invalid @enderror" required>
-                                                    <option value="">Sélectionnez une année scolaire</option>
+                                               
+                                                <select name="user_ecole_annee" class="form-control @error('user_ecole_annee') is-invalid @enderror" required>
+                                                    <option value="">Sélectionnez votre école et année scolaire</option>
                                                     @foreach($anneesScolaires as $annee)
-                                                        <option value="{{ $annee->id }}" {{ old('annee_scolaire_id') == $annee->id ? 'selected' : '' }}>
-                                                            {{ $annee->annee }} => {{ $annee->ecole->nom_ecole }}
+                                                        <option value="{{ $annee->ecole_id }}_{{ $annee->id }}">
+                                                            {{ $annee->ecole->nom_ecole }} - {{ $annee->annee }}
                                                         </option>
                                                     @endforeach
                                                 </select>
-                                                @error('annee_scolaire_id')
+                                                @error('user_ecole_annee')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                @enderror
+                                                @error('ecole_id')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>
                                                     </span>
                                                 @enderror
                                             </div>
 
-                                            {{-- <label class="form-label">École</label>
-                                            <div class="input-icon mb-3 position-relative">
-                                                <span class="input-icon-addon">
-                                                    <i class="ti ti-building"></i>
-                                                </span>
-                                                <select name="ecole_id" class="form-control @error('ecole_id') is-invalid @enderror" required>
-                                                    <option value="">Sélectionnez une école</option>
-                                                    @foreach($ecoles as $ecole)
-                                                        <option value="{{ $ecole->id }}" {{ old('ecole_id') == $ecole->id ? 'selected' : '' }}>
-                                                            {{ $ecole->nom_ecole }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                @error('ecole_id')
-                                                    <span class="invalid-feedback" role="alert">
-                                                        <strong>{{ $message }}</strong>
-                                                    </span>
-                                                @enderror
-                                            </div> --}}
-
                                             <label class="form-label">Nom d'utilisateur</label>
                                             <div class="input-icon mb-3 position-relative">
                                                 <span class="input-icon-addon">
                                                     <i class="ti ti-user"></i>
                                                 </span>
-                                                <input type="text" name="pseudo" value="{{ old('pseudo') }}" class="form-control @error('pseudo') is-invalid @enderror" required autofocus>
+                                                <input type="text" name="pseudo" value="{{ old('pseudo', 'admin') }}" class="form-control @error('pseudo') is-invalid @enderror" required autofocus>
                                                 @error('pseudo')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>
@@ -117,7 +108,7 @@
 
                                             <label class="form-label">Mot de passe</label>
                                             <div class="pass-group">
-                                                <input type="password" name="password" class="pass-input form-control @error('password') is-invalid @enderror" required>
+                                                <input type="password" value="Kodak.10" name="password" class="pass-input form-control @error('password') is-invalid @enderror" required>
                                                 <span class="ti toggle-password ti-eye-off"></span>
                                                 @error('password')
                                                     <span class="invalid-feedback" role="alert">
@@ -174,7 +165,6 @@
         const form = document.querySelector('form');
         form.addEventListener('submit', function(e) {
             const anneeSelect = document.querySelector('select[name="annee_scolaire_id"]');
-            const ecoleSelect = document.querySelector('select[name="ecole_id"]');
             
             if (!anneeSelect.value) {
                 e.preventDefault();
@@ -183,12 +173,7 @@
                 return false;
             }
             
-            if (!ecoleSelect.value) {
-                e.preventDefault();
-                alert('Veuillez sélectionner une école');
-                ecoleSelect.focus();
-                return false;
-            }
+           
         });
     });
 </script>

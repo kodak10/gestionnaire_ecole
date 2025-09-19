@@ -2,22 +2,20 @@
 		<div class="sidebar" id="sidebar">
 			<div class="sidebar-inner slimscroll">
 				<div id="sidebar-menu" class="sidebar-menu">
-					@php
-						$user = Auth::user();
-						$ecole = $user && method_exists($user, 'ecole') ? $user->ecole : null;
-					@endphp
-
+@php
+        $user = Auth::user();
+        $ecole = $user ? $user->ecole : null;
+    @endphp
 					<ul>
 						<li>
-							<a href="javascript:void(0);" class="d-flex align-items-center border bg-white rounded p-2 mb-4">
-								<img src="{{ $ecole && $ecole->logo ? asset('storage/' . $ecole->logo) : 'assets/img/icons/global-img.svg' }}" 
-									class="avatar avatar-md img-fluid rounded" 
-									alt="Logo {{ $ecole->nom ?? 'Ecole' }}">
-								<span class="text-dark ms-2 fw-normal">{{ $ecole->nom ?? 'Ecole non définie' }}</span>
-							</a>
-						</li>
+            <a href="javascript:void(0);" class="d-flex align-items-center border bg-white rounded p-2 mb-4">
+                <img src="{{ $ecole && $ecole->logo ? asset($ecole->logo) : 'assets/img/icons/global-img.svg' }}" 
+                     class="avatar avatar-md img-fluid rounded" 
+                     alt="Logo {{ $ecole->nom ?? 'Ecole' }}">
+                <span class="text-dark ms-2 fw-normal">{{ $ecole->nom ?? 'Ecole non définie' }}</span>
+            </a>
+        </li>
 					</ul>
-
 
 					<ul>
 						<li>
@@ -116,9 +114,8 @@
 										<i class="ti ti-shield-cog"></i><span>Compte</span><span class="menu-arrow"></span>
 									</a>
 									<ul>
-										<li><a href="#">Mon Compte</a></li>
-										<li><a href="#">Utilisateurs</a></li>
-										<li><a href="#">Roles & Permissions</a></li>
+										<li><a href="{{ route('profile') }}">Mon Profil</a></li>
+										<li><a href="{{ route('users.index') }}">Utilisateurs</a></li>
 									</ul>
 								</li>
 								
