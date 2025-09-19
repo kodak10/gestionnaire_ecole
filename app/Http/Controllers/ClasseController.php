@@ -68,8 +68,8 @@ class ClasseController extends Controller
     $nomComplet = $niveau->nom . '_' . $request->nom;
 
     // Récupérer l'école et l'année depuis la session
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? AnneeScolaire::active()->id ?? 1;
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
     // Vérifier si la classe existe déjà
     $exists = Classe::where('ecole_id', $ecoleId)
@@ -104,7 +104,7 @@ public function update(Request $request, $id)
     $niveau = Niveau::findOrFail($request->niveau_id);
     $nomComplet = $niveau->nom . '_' . $request->nom;
 
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
     $anneeScolaireId = $classe->annee_scolaire_id; // on garde l'année existante pour la mise à jour
 
     $exists = Classe::where('ecole_id', $ecoleId)

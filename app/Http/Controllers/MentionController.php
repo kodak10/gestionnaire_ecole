@@ -11,7 +11,7 @@ class MentionController extends Controller
     public function index()
 {
     // Récupérer l'école depuis la session ou fallback sur l'utilisateur connecté
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
 
     $mentions = Mention::where('ecole_id', $ecoleId)
         ->orderBy('min_note')
@@ -47,7 +47,7 @@ public function store(Request $request)
 
 public function update(Request $request, Mention $mention)
 {
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
 
     $validated = $request->validate([
         'nom' => [

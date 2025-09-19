@@ -67,7 +67,7 @@ class ReinscriptionController extends Controller
                 'classe_id' => $validated['classe_id'],
                 'annee_scolaire' => $validated['annee_scolaire'],
                 'statut' => 'validée',
-                'user_id' => auth()->id() ?? 1,
+                'user_id' => auth()->id(),
                 'date_reinscription' => now()
             ]);
 
@@ -77,7 +77,6 @@ class ReinscriptionController extends Controller
                 'classe_id' => $validated['classe_id'],
                 'annee_scolaire_id' => $anneeScolaireModel->id,
                 'date_inscription' => now(),
-                //'user_id' => auth()->id() ?? 1
             ]);
         }
 

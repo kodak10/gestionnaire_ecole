@@ -86,8 +86,8 @@ class TarifMensuelController extends Controller
     ]);
 
     // Récupérer l'école et l'année scolaire
-    $ecoleId = auth()->user()->ecole_id ?? 1;
-    $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
+    $ecoleId = auth()->user()->ecole_id;
+    $anneeScolaireId = session('annee_scolaire_id');
 
     $validated['ecole_id'] = $ecoleId;
     $validated['annee_scolaire_id'] = $anneeScolaireId; // <-- ajouter ici
@@ -130,7 +130,7 @@ class TarifMensuelController extends Controller
         ]);
 
         // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
 
         // Vérification des doublons (exclure l'enregistrement actuel)
         $existingTarif = TarifMensuel::where('ecole_id', $ecoleId)
@@ -168,7 +168,7 @@ class TarifMensuelController extends Controller
         $exclude_id = $request->input('exclude_id');
 
         // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
 
         $query = TarifMensuel::where('ecole_id', $ecoleId)
             ->where('type_frais_id', $type_frais_id)
@@ -193,7 +193,7 @@ class TarifMensuelController extends Controller
         $niveau_id = $request->input('niveau_id');
 
         // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
 
         $tarifs = TarifMensuel::with('mois')
             ->where('ecole_id', $ecoleId)
@@ -219,7 +219,7 @@ class TarifMensuelController extends Controller
         $type_frais_id = $request->input('type_frais_id');
         
         // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+        $ecoleId = auth()->user()->ecole_id;
 
         // Récupérer les niveaux qui ont déjà des tarifs pour ce type de frais
         $niveaux = Niveau::whereHas('tarifs', function($query) use ($type_frais_id, $ecoleId) {
