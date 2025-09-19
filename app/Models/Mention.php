@@ -11,8 +11,8 @@ class Mention extends Model
 
     protected $fillable = [
         'ecole_id',
+        'annee_scolaire_id',
         'nom',
-        'description',
         'min_note',
         'max_note',
     ];

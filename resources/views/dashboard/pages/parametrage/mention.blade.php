@@ -53,7 +53,6 @@
                     <tr>
                         <th>#</th>
                         <th>Nom</th>
-                        <th>Description</th>
                         <th>Plage de notes</th>
                         <th>Actions</th>
                     </tr>
@@ -63,7 +62,6 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $mention->nom }}</td>
-                        <td>{{ $mention->description ?? '---' }}</td>
                         <td>
                             @if($mention->min_note !== null && $mention->max_note !== null)
                                 {{ $mention->min_note }} - {{ $mention->max_note }}
@@ -103,11 +101,6 @@
                                             @error('nom')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
-                                        </div>
-
-                                        <div class="mb-3">
-                                            <label class="form-label">Description</label>
-                                            <textarea name="description" class="form-control" rows="3">{{ old('description', $mention->description) }}</textarea>
                                         </div>
 
                                         <div class="row">
@@ -160,10 +153,6 @@
                         @error('nom')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3">{{ old('description') }}</textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
