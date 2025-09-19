@@ -137,7 +137,9 @@ use Illuminate\Support\Facades\Route;
         Route::get('/notes/inscriptions-by-classe', [NoteController::class, 'getInscriptionsByClasse'])->name('notes.inscriptions_by_classe');
         Route::get('/notes/matieres-by-classe', [NoteController::class, 'getMatieresByClasse'])->name('notes.matieres_by_classe');
         Route::get('/notes/by-classe', [NoteController::class, 'getNotesByClasse'])->name('notes.byClasse');
-Route::get('/notes/generate-bulletin', [NoteController::class, 'generateBulletin'])->name('notes.generateBulletin');
+        Route::get('/notes/generate-bulletin', [NoteController::class, 'generateBulletin'])->name('notes.generateBulletin');
+        Route::get('/notes/filter-by-classe', [NoteController::class, 'filterByClasse'])->name('notes.filterByClasse');
+
         Route::resource('notes', NoteController::class);
 
 

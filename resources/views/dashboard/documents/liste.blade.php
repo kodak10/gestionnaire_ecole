@@ -84,7 +84,6 @@
     <div class="filters">
         <h3>Filtres appliqués:</h3>
         <div class="filter-item"><span class="filter-label">Classe:</span> {{ $filters['classe'] }}</div>
-        <div class="filter-item"><span class="filter-label">Nom:</span> {{ $filters['nom'] }}</div>
         <div class="filter-item"><span class="filter-label">Sexe:</span> {{ $filters['sexe'] }}</div>
         @isset($filters['cantine'])
             <div class="filter-item"><span class="filter-label">Cantine:</span> {{ $filters['cantine'] }}</div>

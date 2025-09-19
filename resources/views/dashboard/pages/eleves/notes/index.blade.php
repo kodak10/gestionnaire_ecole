@@ -47,7 +47,6 @@
                         <th>Note</th>
                         <th>Coeff</th>
                         <th>Mois</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="notesTableBody">
@@ -63,18 +62,7 @@
                         </td>
                         <td>{{ $note->coefficient }}</td>
                         <td>{{ $note->mois->nom }}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm bg-primary-light edit-btn" data-id="{{ $note->id }}">
-                                <i class="ti ti-edit"></i>
-                            </button>
-                            <form action="{{ route('notes.destroy', $note->id) }}" method="POST" style="display: inline-block;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('Êtes-vous sûr ?')">
-                                    <i class="ti ti-trash"></i>
-                                </button>
-                            </form>
-                        </td>
+                       
                     </tr>
                     @endforeach
                 </tbody>
@@ -165,7 +153,7 @@ $(document).ready(function() {
     $('#filter_classe').change(function() {
         var classeId = $(this).val();
         $.ajax({
-            url: '{{ route("notes.byClasse") }}',
+            url: '{{ route("notes.filterByClasse") }}',
             type: 'GET',
             data: { classe_id: classeId },
             success: function(data) {
@@ -179,17 +167,16 @@ $(document).ready(function() {
                         tbody += '<td>'+note.valeur.toFixed(2)+'</td>';
                         tbody += '<td>'+note.coefficient+'</td>';
                         tbody += '<td>'+note.mois+'</td>';
-                        tbody += '<td class="text-end">';
-                        tbody += '<button class="btn btn-sm bg-primary-light edit-btn" data-id="'+note.id+'"><i class="ti ti-edit"></i></button>';
-                        tbody += '</td></tr>';
+                        tbody += '</tr>';
                     });
                 } else {
-                    tbody = '<tr><td colspan="7" class="text-center">Aucune note trouvée</td></tr>';
+                    tbody = '<tr><td colspan="6" class="text-center">Aucune note trouvée</td></tr>';
                 }
                 $('#notesTableBody').html(tbody);
             }
         });
     });
+
 
     // Ouvrir le modal pour éditer une note
     // Ouvrir le modal pour éditer une note
@@ -221,5 +208,7 @@ $(document).ready(function() {
 
 });
 </script>
+
+
 @endpush
 @endsection

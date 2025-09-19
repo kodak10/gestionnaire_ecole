@@ -322,54 +322,6 @@
                             </div>
                         </div>
 
-                        <!-- Onglet Paiement -->
-                        {{-- <div class="tab-pane fade" id="paiement-tab">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Scolarité <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" name="montant_scolarite" value="{{ old('montant_scolarite', 0) }}" min="0" step="0.01">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Transport <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" name="montant_transport" value="{{ old('montant_transport', 0) }}" min="0" step="0.01">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Cantine <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" name="montant_cantine" value="{{ old('montant_cantine', 0) }}" min="0" step="0.01">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Date de Paiement <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control" name="date_paiement" value="{{ old('date_paiement', date('Y-m-d')) }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Mode de Paiement <span class="text-danger">*</span></label>
-                                        <select class="form-select" name="mode_paiement">
-                                            <option value="">Sélectionner</option>
-                                            <option value="especes" {{ old('mode_paiement') == 'especes' ? 'selected' : '' }}>Espèces</option>
-                                            <option value="cheque" {{ old('mode_paiement') == 'cheque' ? 'selected' : '' }}>Chèque</option>
-                                            <option value="virement" {{ old('mode_paiement') == 'virement' ? 'selected' : '' }}>Virement</option>
-                                            <option value="mobile_money" {{ old('mode_paiement') == 'mobile_money' ? 'selected' : '' }}>Mobile Money</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> --}}
-
                     </div>
             </div>
         </div>

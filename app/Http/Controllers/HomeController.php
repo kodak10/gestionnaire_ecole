@@ -130,29 +130,5 @@ class HomeController extends Controller
     /**
      * API pour les données du tableau de bord (utilisé pour AJAX)
      */
-    public function dashboardData()
-    {
-        $user = Auth::user();
-        $anneeScolaireId = session('annee_scolaire_id');
-
-        $totalEleves = Eleve::where('ecole_id', $user->ecole_id)->count();
-        
-        $totalInscriptions = $anneeScolaireId
-            ? Inscription::where('annee_scolaire_id', $anneeScolaireId)
-                         ->where('ecole_id', $user->ecole_id)
-                         ->count()
-            : 0;
-
-        $fraisStats = $this->getFraisStatistics($user->ecole_id, $anneeScolaireId);
-
-        return response()->json([
-            'success' => true,
-            'total_eleves' => $totalEleves,
-            'total_inscriptions' => $totalInscriptions,
-            'frais_attendus' => $fraisStats['frais_attendus'],
-            'frais_percus' => $fraisStats['frais_percus'],
-            'pourcentage_perception' => $fraisStats['pourcentage_perception'],
-            'evolution_frais' => $fraisStats['evolution_frais']
-        ]);
-    }
+    
 }

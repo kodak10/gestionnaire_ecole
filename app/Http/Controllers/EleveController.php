@@ -23,248 +23,179 @@ class EleveController extends Controller
 {
    
     public function index(Request $request)
-{
-    $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+    {
+        $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
 
-    // Filtre par classe
-    $query->when($request->filled('classe_id'), function($q) use ($request) {
-        return $q->where('classe_id', $request->classe_id);
-    });
-
-    // Filtre par nom ou prénom
-    $query->when($request->filled('nom'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            $q->where('nom', 'like', '%'.$request->nom.'%')
-            ->orWhere('prenom', 'like', '%'.$request->nom.'%');
+        // Filtre par classe
+        $query->when($request->filled('classe_id'), function($q) use ($request) {
+            return $q->where('classe_id', $request->classe_id);
         });
-    });
 
-    // Filtre par sexe
-    $query->when($request->filled('sexe'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            $q->where('sexe', $request->sexe);
+        // Filtre par nom ou prénom
+        $query->when($request->filled('nom'), function($q) use ($request) {
+            return $q->whereHas('eleve', function($q) use ($request) {
+                $q->where('nom', 'like', '%'.$request->nom.'%')
+                ->orWhere('prenom', 'like', '%'.$request->nom.'%');
+            });
         });
-    });
 
-    // Filtre par cantine (CORRIGÉ - sur la table inscriptions)
-    $query->when($request->filled('cantine'), function($q) use ($request) {
-        if ($request->cantine == '1') {
-            return $q->where('cantine_active', true);
-        } else {
-            return $q->where('cantine_active', false);
-        }
-    });
+        // Filtre par sexe
+        $query->when($request->filled('sexe'), function($q) use ($request) {
+            return $q->whereHas('eleve', function($q) use ($request) {
+                $q->where('sexe', $request->sexe);
+            });
+        });
 
-    // Filtre par transport (CORRIGÉ - sur la table inscriptions)
-    $query->when($request->filled('transport'), function($q) use ($request) {
-        if ($request->transport == '1') {
-            return $q->where('transport_active', true);
-        } else {
-            return $q->where('transport_active', false);
-        }
-    });
+        // Filtre par cantine (CORRIGÉ - sur la table inscriptions)
+        $query->when($request->filled('cantine'), function($q) use ($request) {
+            if ($request->cantine == '1') {
+                return $q->where('cantine_active', true);
+            } else {
+                return $q->where('cantine_active', false);
+            }
+        });
 
-    // Appliquer le tri
-    $sort = $request->get('sort', 'asc');
-    $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
-        if (in_array($request->sort_by, ['nom', 'prenom', 'sexe'])) {
+        // Filtre par transport (CORRIGÉ - sur la table inscriptions)
+        $query->when($request->filled('transport'), function($q) use ($request) {
+            if ($request->transport == '1') {
+                return $q->where('transport_active', true);
+            } else {
+                return $q->where('transport_active', false);
+            }
+        });
+
+        // Appliquer le tri
+        $sort = $request->get('sort', 'asc');
+        $query->when($request->filled('sort_by'), function($q) use ($request, $sort) {
+            if (in_array($request->sort_by, ['nom', 'prenom', 'sexe'])) {
+                return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+                        ->orderBy('eleves.'.$request->sort_by, $sort)
+                        ->select('inscriptions.*');
+            } elseif (in_array($request->sort_by, ['cantine_active', 'transport_active'])) {
+                return $q->orderBy($request->sort_by, $sort);
+            } else {
+                return $q->orderBy($request->sort_by, $sort);
+            }
+        }, function($q) {
+            // Tri par défaut : nom puis prénom
             return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-                    ->orderBy('eleves.'.$request->sort_by, $sort)
+                    ->orderBy('eleves.nom', 'asc')
+                    ->orderBy('eleves.prenom', 'asc')
                     ->select('inscriptions.*');
-        } elseif (in_array($request->sort_by, ['cantine_active', 'transport_active'])) {
-            return $q->orderBy($request->sort_by, $sort);
-        } else {
-            return $q->orderBy($request->sort_by, $sort);
-        }
-    }, function($q) {
-        // Tri par défaut : nom puis prénom
-        return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-                ->orderBy('eleves.nom', 'asc')
-                ->orderBy('eleves.prenom', 'asc')
-                ->select('inscriptions.*');
-    });
+        });
 
-    $inscriptions = $query->paginate(12);
-    $classes = Classe::all();
-    $fraiss = TypeFrais::all();
-    $viewMode = $request->get('view_mode', 'grid');
+        $inscriptions = $query->paginate(12);
+        $classes = Classe::all();
+        $fraiss = TypeFrais::all();
+        $viewMode = $request->get('view_mode', 'grid');
 
-    return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
-}
+        return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
+    }
  
-
     public function refresh()
     {
         return redirect()->route('eleves.index')->with('success', 'Liste actualisée');
     }
 
-
-// public function export(Request $request)
-// {
-//     $format = $request->format;
-    
-//     // Récupérer les élèves avec les mêmes filtres que l'index
-//     $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
-
-//     // Appliquer les mêmes filtres que dans la méthode index
-//     $query->when($request->filled('classe_id'), function($q) use ($request) {
-//         return $q->where('classe_id', $request->classe_id);
-//     });
-
-//     $query->when($request->filled('nom'), function($q) use ($request) {
-//         return $q->whereHas('eleve', function($q) use ($request) {
-//             $q->where('nom', 'like', '%'.$request->nom.'%')
-//               ->orWhere('prenom', 'like', '%'.$request->nom.'%');
-//         });
-//     });
-
-//     $query->when($request->filled('sexe'), function($q) use ($request) {
-//         return $q->whereHas('eleve', function($q) use ($request) {
-//             $q->where('sexe', $request->sexe);
-//         });
-//     });
-
-//     $query->when($request->filled('cantine'), function($q) use ($request) {
-//         return $q->where('cantine_active', $request->cantine == '1');
-//     });
-
-//     $query->when($request->filled('transport'), function($q) use ($request) {
-//         return $q->where('transport_active', $request->transport == '1');
-//     });
-
-//     // 🔹 Tri toujours par nom puis prénom
-//     $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-//           ->orderBy('eleves.nom', 'asc')
-//           ->orderBy('eleves.prenom', 'asc')
-//           ->select('inscriptions.*');
-
-//     $eleves = $query->get();
-
-//     if ($format === 'excel') {
-//         $filters = [
-//             'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
-//             'nom' => $request->nom ?: 'Tous',
-//             'sexe' => $request->sexe ?: 'Tous',
-//             'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
-//             'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
-//         ];
-        
-//         return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
-//     }
-
-//     if ($format === 'pdf') {
-//         $data = [
-//             'eleves' => $eleves,
-//             'title' => 'Liste des Élèves',
-//             'date' => now()->locale('fr')->translatedFormat('d F Y'),
-//             'filters' => [
-//                 'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
-//                 'nom' => $request->nom ?: 'Tous',
-//                 'sexe' => $request->sexe ?: 'Tous',
-//                 'cantine' => $request->cantine ? ($request->cantine == '1' ? 'Oui' : 'Non') : 'Tous',
-//                 'transport' => $request->transport ? ($request->transport == '1' ? 'Oui' : 'Non') : 'Tous'
-//             ]
-//         ];
-        
-//         $pdf = PDF::loadView('dashboard.documents.liste', $data)
-//                   ->setPaper('a4', 'landscape');
-
-//         return $pdf->download('liste_eleves_' . date('Y-m-d') . '.pdf');
-//     }
-
-//     return redirect()->back()->with('error', 'Format non supporté');
-// }
-
-public function export(Request $request)
-{
-    $format = $request->format;
-    
-    // Récupérer les élèves avec les mêmes filtres que l'index
-    $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
-
-    // Appliquer les filtres
-    $query->when($request->filled('classe_id'), function($q) use ($request) {
-        return $q->where('classe_id', $request->classe_id);
-    });
-
-    $query->when($request->filled('nom'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            $q->where('nom', 'like', '%'.$request->nom.'%')
-              ->orWhere('prenom', 'like', '%'.$request->nom.'%');
-        });
-    });
-
-    $query->when($request->filled('sexe'), function($q) use ($request) {
-        return $q->whereHas('eleve', function($q) use ($request) {
-            $q->where('sexe', $request->sexe);
-        });
-    });
-
-    $query->when($request->filled('cantine'), function($q) use ($request) {
-        return $q->where('cantine_active', $request->cantine == '1');
-    });
-
-    $query->when($request->filled('transport'), function($q) use ($request) {
-        return $q->where('transport_active', $request->transport == '1');
-    });
-
-    // 🔹 Tri toujours par nom puis prénom
-    $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-          ->orderBy('eleves.nom', 'asc')
-          ->orderBy('eleves.prenom', 'asc')
-          ->select('inscriptions.*');
-
-    $eleves = $query->get();
-
-    // 🔹 Construire les filtres dynamiquement
-    $filters = [
-        'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
-        'nom'    => $request->nom ?: 'Tous',
-        'sexe'   => $request->sexe ?: 'Tous',
-    ];
-
-    if ($request->filled('cantine')) {
-        $filters['cantine'] = $request->cantine == '1' ? 'Oui' : 'Non';
-    }
-
-    if ($request->filled('transport')) {
-        $filters['transport'] = $request->transport == '1' ? 'Oui' : 'Non';
-    }
-
-    // 🔹 Export Excel
-    if ($format === 'excel') {
-        return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
-    }
-
-    // 🔹 Export PDF
-    if ($format === 'pdf') {
-        $data = [
-            'eleves'  => $eleves,
-            'title'   => 'Liste des Élèves',
-            'date'    => now()->locale('fr')->translatedFormat('d F Y'),
-            'filters' => $filters
-        ];
-        
-        $pdf = PDF::loadView('dashboard.documents.liste', $data)
-                  ->setPaper('a4', 'landscape');
-
-        return $pdf->download('liste_eleves_' . date('Y-m-d') . '.pdf');
-    }
-
-    return redirect()->back()->with('error', 'Format non supporté');
-}
-
-
-    public function create()
+    public function export(Request $request)
     {
-        $anneeActive = AnneeScolaire::where('est_active', true)->first();
-        $classes = Classe::where('annee_scolaire_id', $anneeActive->id)->get();
+        $format = $request->format;
         
+        // Récupérer les élèves avec les mêmes filtres que l'index
+        $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+
+        // Appliquer les filtres
+        $query->when($request->filled('classe_id'), function($q) use ($request) {
+            return $q->where('classe_id', $request->classe_id);
+        });
+
+        $query->when($request->filled('nom'), function($q) use ($request) {
+            return $q->whereHas('eleve', function($q) use ($request) {
+                $q->where('nom', 'like', '%'.$request->nom.'%')
+                ->orWhere('prenom', 'like', '%'.$request->nom.'%');
+            });
+        });
+
+        $query->when($request->filled('sexe'), function($q) use ($request) {
+            return $q->whereHas('eleve', function($q) use ($request) {
+                $q->where('sexe', $request->sexe);
+            });
+        });
+
+        $query->when($request->filled('cantine'), function($q) use ($request) {
+            return $q->where('cantine_active', $request->cantine == '1');
+        });
+
+        $query->when($request->filled('transport'), function($q) use ($request) {
+            return $q->where('transport_active', $request->transport == '1');
+        });
+
+        // 🔹 Tri toujours par nom puis prénom
+        $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+            ->orderBy('eleves.nom', 'asc')
+            ->orderBy('eleves.prenom', 'asc')
+            ->select('inscriptions.*');
+
+        $eleves = $query->get();
+
+        // 🔹 Construire les filtres dynamiquement
+        $filters = [
+            'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
+            'nom'    => $request->nom ?: 'Tous',
+            'sexe'   => $request->sexe ?: 'Tous',
+        ];
+
+        if ($request->filled('cantine')) {
+            $filters['cantine'] = $request->cantine == '1' ? 'Oui' : 'Non';
+        }
+
+        if ($request->filled('transport')) {
+            $filters['transport'] = $request->transport == '1' ? 'Oui' : 'Non';
+        }
+
+        // 🔹 Export Excel
+        if ($format === 'excel') {
+            return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
+        }
+
+        // 🔹 Export PDF
+        if ($format === 'pdf') {
+            $data = [
+                'eleves'  => $eleves,
+                'title'   => 'Liste des Élèves',
+                'date'    => now()->locale('fr')->translatedFormat('d F Y'),
+                'filters' => $filters
+            ];
+            
+            $pdf = PDF::loadView('dashboard.documents.liste', $data)
+                    ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('liste_eleves_' . date('Y-m-d') . '.pdf');
+
+        }
+
+        return redirect()->back()->with('error', 'Format non supporté');
+    }
+
+   public function create(Request $request)
+    {
+        // Récupérer les IDs depuis la session ou l'utilisateur connecté
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        
+
+        // Filtrer et trier les classes
+        $classes = Classe::where('ecole_id', $ecoleId)
+                        ->where('annee_scolaire_id', $anneeScolaireId)
+                        ->orderBy('nom', 'desc')      // tri par nom
+                        ->get();
+
+        // Récupérer les types de frais
         $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
-        $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
-        $transports = TypeFrais::where('nom', 'Transport')->first();
-        $cantines = TypeFrais::where('nom', 'Cantine')->first();
-        $tarifs = Tarif::all();
+        $scolarite        = TypeFrais::where('nom', 'Scolarité')->first();
+        $transports       = TypeFrais::where('nom', 'Transport')->first();
+        $cantines         = TypeFrais::where('nom', 'Cantine')->first();
+        $tarifs           = Tarif::all();
 
         return view('dashboard.pages.eleves.create', compact(
             'classes',
@@ -276,225 +207,96 @@ public function export(Request $request)
         ));
     }
 
-    private function creerPaiementsPourEleve(Eleve $eleve, ?string $modePaiement = null, ?int $userId = null): void
-{
-    // Récupérer le niveau de l'élève depuis la classe
-    $niveauId = $eleve->classe->niveau_id;
-
-    // Récupérer tous les tarifs mensuels pour ce niveau
-    $tarifs = TarifMensuel::where('niveau_id', $niveauId)->get();
-
-    foreach ($tarifs as $tarif) {
-        // Vérifier s'il n'existe pas déjà un paiement identique (éviter doublons)
-        $paiementExiste = $eleve->paiements()
-            ->where('type_frais_id', $tarif->type_frais_id)
-            ->where('mois_id', $tarif->mois_id)
-            ->exists();
-
-        if ($paiementExiste) continue; // passer au suivant
-
-        // Créer un paiement avec le montant du tarif et infos basiques
-        $eleve->paiements()->create([
-            'type_frais_id' => $tarif->type_frais_id,
-            'mois_id' => $tarif->mois_id,
-            'montant' => $tarif->montant,
-            'mode_paiement' => $modePaiement ?? 'Non spécifié',
-            'reference' => null,
-            'user_id' => 1, // à récupérer  selon contexte (auth()->id() par exemple)
-        ]);
-    }
-}
-
-// private function genererMatriculeEleve(int $ecoleId): string
-// {
-//     // Récupérer l'alias de l'école
-//     $ecole = Ecole::findOrFail($ecoleId);
-//     $alias = strtoupper($ecole->sigle_ecole);
-
-//    // Trouver le dernier matricule pour cette école en cherchant par pattern '%ALIAS-%'
-//     $dernierEleve = Eleve::where('ecole_id', $ecoleId)
-//     ->where('matricule', 'like', $alias . '-%')
-//     ->orderByDesc('created_at')
-//     ->first();
 
 
-//     $dernierNumero = 0;
-
-//     if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
-//         $dernierNumero = intval($matches[1]);
-//     }
-
-//     $nouveauNumero = $dernierNumero + 1;
-
-//     // Formatage sur 5 chiffres, ex: 00001
-//     $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
-
-//     return $alias . '-' . $numeroFormate;
-// }
-
-private function genererMatriculeEleve(int $ecoleId): string
-{
-    $ecole = Ecole::findOrFail($ecoleId);
-    $alias = strtoupper($ecole->sigle_ecole);
-
-    do {
-        // Récupérer le dernier numéro
-        $dernierEleve = Eleve::where('ecole_id', $ecoleId)
-            ->where('matricule', 'like', $alias . '-%')
-            ->orderByDesc('id') // id est plus fiable que created_at
-            ->first();
-
-        $dernierNumero = 0;
-        if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
-            $dernierNumero = intval($matches[1]);
-        }
-
-        $nouveauNumero = $dernierNumero + 1;
-        $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
-        $matricule = $alias . '-' . $numeroFormate;
-
-        // On boucle tant que le matricule existe déjà
-    } while (Eleve::where('matricule', $matricule)->exists());
-
-    return $matricule;
-}
 
    
     public function store(Request $request)
-{
-    $request->validate([
-        'prenom' => 'required|string|max:255',
-        'nom' => 'required|string|max:255',
-        'num_extrait' => 'nullable|string|max:255',
-        'naissance' => 'required|date',
-        'sexe' => 'required|in:Masculin,Féminin',
-        'classe_id' => 'required|exists:classes,id',
-        'parent_nom' => 'required|string|max:255',
-        'parent_telephone' => 'required|string|max:20',
-        'mode_paiement' => 'nullable|string',
-        'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    {
+        $request->validate([
+            'prenom' => 'required|string|max:255',
+            'nom' => 'required|string|max:255',
+            'num_extrait' => 'nullable|string|max:255',
+            'naissance' => 'required|date',
+            'sexe' => 'required|in:Masculin,Féminin',
+            'classe_id' => 'required|exists:classes,id',
+            'parent_nom' => 'required|string|max:255',
+            'parent_telephone' => 'required|string|max:20',
+            'mode_paiement' => 'nullable|string',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'code_national' => 'nullable|string|max:10',
+        ]);
 
-        'montant_scolarite' => 'nullable|numeric|min:0',
-        'montant_transport' => 'nullable|numeric|min:0',
-        'montant_cantine' => 'nullable|numeric|min:0',
-        'code_national' => 'nullable|string|max:10',
-        // 'documents_fournis.*' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120'
-    ]);
+        $classe = Classe::with('ecole')->findOrFail($request->classe_id);
 
-    $classe = Classe::with('ecole')->findOrFail($request->classe_id);
-    $ecoleId = $classe->ecole->id;
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    // Génération du matricule
-    $matricule = $this->genererMatriculeEleve($ecoleId);
+        // Génération du matricule
+        $matricule = $this->genererMatriculeEleve($ecoleId);
 
-    $photoPath = null;
-    if ($request->hasFile('photo')) {
-        $photoPath = $request->file('photo')->store('eleves/photos', 'public');
-    }
-
-    $documentsPaths = [];
-    if ($request->hasFile('documents_fournis')) {
-        foreach ($request->file('documents_fournis') as $file) {
-            $documentsPaths[] = $file->store('eleves/documents', 'public');
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('eleves/photos', 'public');
         }
-    }
 
-    $ecoleId = auth()->user()->ecole_id;
-   
-    $anneeScolaireId = auth()->user()->annee_scolaire_id ;
-
-    $eleve = Eleve::create([
-        'matricule' => $matricule,
-        'nom' => $request->nom,
-        'prenom' => $request->prenom,
-        'num_extrait' => $request->num_extrait,
-        'sexe' => $request->sexe,
-        'naissance' => $request->naissance,
-        'lieu_naissance' => $request->lieu_naissance,
-        'photo_path' => $photoPath,
-        'infos_medicales' => $request->infos_medicales,
-        'parent_nom' => $request->parent_nom,
-        'parent_telephone' => $request->parent_telephone,
-        'parent_telephone02' => $request->parent_telephone02,
-        'code_national' => $request->code_national,
-        'ecole_id' => $ecoleId,
-        'annee_scolaire_id' => $anneeScolaireId,
-        // 'documents_fournis' => !empty($documentsPaths) ? json_encode($documentsPaths) : null,
-    ]);
-
-    // CRÉATION DE L'INSCRIPTION
-    // Récupérer l'année scolaire active
-    $anneeActive = AnneeScolaire::where('est_active', true)->first();
-    
-    if (!$anneeActive) {
-        return redirect()->back()->with('error', 'Aucune année scolaire active trouvée');
-    }
-
-    // Créer l'inscription
-    $inscription = Inscription::create([
-        'annee_scolaire_id' => $anneeScolaireId,
-        'ecole_id' => $ecoleId,
-        'eleve_id' => $eleve->id,
-        'classe_id' => $request->classe_id,
-        'cantine_active' => $request->has('cantine_active'),
-        'transport_active' => $request->has('transport_active'),
-        //'statut' => 'confirmée', // ou autre statut approprié
-        //'date_inscription' => now(),
-    ]);
-
-    // Recupérer tous les mois scolaires liés à cette année
-    $moisScolaires = MoisScolaire::get();
-
-    // Pour simplicité ici, on enregistre un paiement pour chaque type sur le premier mois de l'année scolaire
-    $premierMois = $moisScolaires->sortBy('numero')->first();
-
-    // Créer un paiement Scolarité s'il y a un montant > 0
-    if ($request->montant_scolarite > 0) {
-        $eleve->paiements()->create([
-            'type_frais_id' => TypeFrais::where('nom', 'Scolarité')->first()->id ?? null,
-            'mois_id' => $premierMois->id,
-            'montant' => $request->montant_scolarite,
-            'mode_paiement' => $request->mode_paiement,
-            'reference' => null,
-            'user_id' => auth()->id(),
+        $eleve = Eleve::create([
+            'matricule' => $matricule,
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'num_extrait' => $request->num_extrait,
+            'sexe' => $request->sexe,
+            'naissance' => $request->naissance,
+            'lieu_naissance' => $request->lieu_naissance,
+            'photo_path' => $photoPath,
+            'infos_medicales' => $request->infos_medicales,
+            'parent_nom' => $request->parent_nom,
+            'parent_telephone' => $request->parent_telephone,
+            'parent_telephone02' => $request->parent_telephone02,
+            'code_national' => $request->code_national,
             'ecole_id' => $ecoleId,
-            'created_at' => $request->date_paiement ?? now(),
-            'updated_at' => $request->date_paiement ?? now(),
+            'annee_scolaire_id' => $anneeScolaireId,
         ]);
-    }
 
-    // Même principe pour Transport
-    if ($request->montant_transport > 0) {
-        $eleve->paiements()->create([
-            'type_frais_id' => TypeFrais::where('nom', 'Transport')->first()->id ?? null,
-            'mois_id' => $premierMois->id,
-            'montant' => $request->montant_transport,
-            'mode_paiement' => $request->mode_paiement,
-            'reference' => null,
-            'user_id' => auth()->id(),
+        // Créer l'inscription
+        $inscription = Inscription::create([
+            'annee_scolaire_id' => $anneeScolaireId,
             'ecole_id' => $ecoleId,
-            'created_at' => $request->date_paiement ?? now(),
-            'updated_at' => $request->date_paiement ?? now(),
+            'eleve_id' => $eleve->id,
+            'classe_id' => $request->classe_id,
+            'cantine_active' => $request->has('cantine_active'),
+            'transport_active' => $request->has('transport_active'),
         ]);
+
+        return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
     }
 
-    // Même principe pour Cantine
-    if ($request->montant_cantine > 0) {
-        $eleve->paiements()->create([
-            'type_frais_id' => TypeFrais::where('nom', 'Cantine')->first()->id ?? null,
-            'mois_id' => $premierMois->id,
-            'montant' => $request->montant_cantine,
-            'mode_paiement' => $request->mode_paiement,
-            'reference' => null,
-            'user_id' => auth()->id(),
-            'ecole_id' => $ecoleId,
-            'created_at' => $request->date_paiement ?? now(),
-            'updated_at' => $request->date_paiement ?? now(),
-        ]);
-    }
+    private function genererMatriculeEleve(int $ecoleId): string
+    {
+        $ecole = Ecole::findOrFail($ecoleId);
+        $alias = strtoupper($ecole->sigle_ecole);
 
-    return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
-}
+        do {
+            // Récupérer le dernier numéro
+            $dernierEleve = Eleve::where('ecole_id', $ecoleId)
+                ->where('matricule', 'like', $alias . '-%')
+                ->orderByDesc('id') // id est plus fiable que created_at
+                ->first();
+
+            $dernierNumero = 0;
+            if ($dernierEleve && preg_match('/-(\d+)$/', $dernierEleve->matricule, $matches)) {
+                $dernierNumero = intval($matches[1]);
+            }
+
+            $nouveauNumero = $dernierNumero + 1;
+            $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
+            $matricule = $alias . '-' . $numeroFormate;
+
+            // On boucle tant que le matricule existe déjà
+        } while (Eleve::where('matricule', $matricule)->exists());
+
+        return $matricule;
+    }
 
     public function show($id)
     {
@@ -516,143 +318,93 @@ private function genererMatriculeEleve(int $ecoleId): string
         return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }
 
-    // public function update(Request $request, $id)
-    // {
-    //     //dd($request->all());
-    //     $validatedData = $request->validate([
-    //         'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096', // max 4MB
-    //         'nom' => 'required|string|max:255',
-    //         'prenom' => 'required|string|max:255',
-    //         'naissance' => 'required|date',
-    //         'lieu_naissance' => 'nullable|string|max:255',
-    //         'sexe' => 'required|in:Masculin,Féminin',
-    //         'nationalite' => 'nullable|string|max:255',
-    //         'num_extrait' => 'nullable|string|max:255',
-    //         'parent_nom' => 'required|string|max:255',
-    //         'parent_telephone' => 'required|string|max:20',
-    //         'parent_email' => 'nullable|email|max:255',
-    //         'parent_adresse' => 'nullable|string|max:1000',
-    //         'parent_profession' => 'nullable|string|max:255',
-    //         'parent_lien' => 'nullable|string|max:255',
-    //         'classe_id' => 'required|exists:classes,id',
-    //         'reduction' => 'nullable|numeric|min:0',
-    //     ]);
-
-    //     $eleve = Eleve::findOrFail($id);
-
-    //     $validated['transport_active'] = $request->has('transport_active');
-    //     $validated['cantine_active']   = $request->has('cantine_active');
-
-
-
-    //     // Gérer l'upload photo si présent
-    //     if ($request->hasFile('photo_path')) {
-    //         $path = $request->file('photo_path')->store('eleves_photos', 'public');
-    //         $validatedData['photo_path'] = $path;
-
-    //         // Optionnel: supprimer l'ancienne photo ici si nécessaire
-    //     }
-
-    //     // Pour checkbox, s'assurer que la valeur est booléenne (parfois absent si non cochée)
-    //     $validatedData['transport_active'] = $request->has('transport_active');
-    //     $validatedData['cantine_active'] = $request->has('cantine_active');
-
-    //     $eleve->update($validatedData);
-
-    //     return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
-    // }
 
     public function update(Request $request, $id)
-{
-    $validatedData = $request->validate([
-        'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
-        'nom' => 'required|string|max:255',
-        'prenom' => 'required|string|max:255',
-        'naissance' => 'required|date',
-        'lieu_naissance' => 'nullable|string|max:255',
-        'sexe' => 'required|in:Masculin,Féminin',
-        'classe_id' => 'required|exists:classes,id',
-        'parent_nom' => 'required|string|max:255',
-        'parent_telephone' => 'required|string|max:11',
-        'parent_telephone02' => 'nullable|string|max:11',
-        'reduction' => 'nullable|numeric|min:0',
-    ]);
+    {
+        $validatedData = $request->validate([
+            'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'naissance' => 'required|date',
+            'lieu_naissance' => 'nullable|string|max:255',
+            'sexe' => 'required|in:Masculin,Féminin',
+            'classe_id' => 'required|exists:classes,id',
+            'parent_nom' => 'required|string|max:255',
+            'parent_telephone' => 'required|string|max:11',
+            'parent_telephone02' => 'nullable|string|max:11',
+        ]);
 
-    $inscription = Inscription::with('eleve')->findOrFail($id);
-    $eleve = $inscription->eleve;
+        $inscription = Inscription::with('eleve')->findOrFail($id);
+        $eleve = $inscription->eleve;
 
-    // Upload photo si nécessaire
-    if ($request->hasFile('photo_path')) {
-        $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
+        // Upload photo si nécessaire
+        if ($request->hasFile('photo_path')) {
+            $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
+        }
+
+        // Mettre à jour l'élève
+        $eleve->update($validatedData);
+
+        // Mettre à jour l'inscription : classe, transport et cantine
+        $inscription->update([
+            'classe_id' => $request->classe_id,
+            'cantine_active' => $request->has('cantine_active'),
+            'transport_active' => $request->has('transport_active'),
+        ]);
+
+        return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
     }
 
-    // Mettre à jour l'élève
-    $eleve->update($validatedData);
-
-    // Mettre à jour l'inscription : classe, transport et cantine
-    $inscription->update([
-        'classe_id' => $request->classe_id,
-        'cantine_active' => $request->has('cantine_active'),
-        'transport_active' => $request->has('transport_active'),
-    ]);
-
-    return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
-}
 
 
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
 
-public function destroy($id)
-{
-    try {
-        DB::beginTransaction();
-
-        $eleve = Eleve::findOrFail($id);
-        
-        // Supprimer d'abord les relations enfants
-        foreach ($eleve->inscriptions as $inscription) {
-            // Supprimer les paiements_details liés aux inscriptions
-            foreach ($inscription->paiements as $paiement) {
-                // Supprimer les détails de paiement
-                $paiement->details()->delete();
-                // Supprimer le paiement
-                $paiement->delete();
+            $eleve = Eleve::findOrFail($id);
+            
+            // Supprimer d'abord les relations enfants
+            foreach ($eleve->inscriptions as $inscription) {
+                // Supprimer les paiements_details liés aux inscriptions
+                foreach ($inscription->paiements as $paiement) {
+                    // Supprimer les détails de paiement
+                    $paiement->details()->delete();
+                    // Supprimer le paiement
+                    $paiement->delete();
+                }
+                
+                // Supprimer les réductions liées
+                $inscription->reductions()->delete();
+                
+                // Supprimer les notes liées
+                $inscription->notes()->delete();
+                
+                // Supprimer l'inscription
+                $inscription->delete();
             }
             
-            // Supprimer les réductions liées
-            $inscription->reductions()->delete();
+            // Supprimer les réinscriptions
+            $eleve->reinscriptions()->delete();
             
-            // Supprimer les notes liées
-            $inscription->notes()->delete();
+            // Supprimer les réductions directes
+            $eleve->reductions()->delete();
             
-            // Supprimer l'inscription
-            $inscription->delete();
+            // Finalement supprimer l'élève
+            $eleve->delete();
+
+            DB::commit();
+
+            Log::info('Élève supprimé', ['eleve_id' => $eleve->id, 'matricule' => $eleve->matricule]);
+            return redirect()->route('eleves.index')->with('success', 'Élève supprimé avec succès');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur suppression élève: ' . $e->getMessage());
+            
+            return redirect()->route('eleves.index')
+                ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
-        
-        // Supprimer les réinscriptions
-        $eleve->reinscriptions()->delete();
-        
-        // Supprimer les réductions directes
-        $eleve->reductions()->delete();
-        
-        // Finalement supprimer l'élève
-        $eleve->delete();
-
-        DB::commit();
-
-        Log::info('Élève supprimé', ['eleve_id' => $eleve->id, 'matricule' => $eleve->matricule]);
-        return redirect()->route('eleves.index')->with('success', 'Élève supprimé avec succès');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erreur suppression élève: ' . $e->getMessage());
-        
-        return redirect()->route('eleves.index')
-            ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
     }
-}
-
-
-
-
-    
+   
 }

@@ -24,9 +24,12 @@
                 <i class="ti ti-file-export me-2"></i>Exporter
             </a>
             <ul class="dropdown-menu dropdown-menu-end p-3">
-                <li>
-                    <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
+               <li>
+                    <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" 
+                    class="dropdown-item rounded-1" 
+                    target="_blank"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
                 </li>
+
                 <li>
                     <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'excel'])) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-xls me-2"></i>Excel</a>
                 </li>
@@ -294,4 +297,37 @@
     {{ $inscriptions->appends(request()->query())->links() }}
 </div>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "5000",
+    };
+
+    @if(session('success'))
+        toastr.success("{{ session('success') }}");
+    @endif
+
+    @if(session('error'))
+        toastr.error("{{ session('error') }}");
+    @endif
+
+    @if(session('warning'))
+        toastr.warning("{{ session('warning') }}");
+    @endif
+
+    @if(session('info'))
+        toastr.info("{{ session('info') }}");
+    @endif
+
+    @if($errors->any())
+        @foreach ($errors->all() as $error)
+            toastr.error("{{ $error }}");
+        @endforeach
+    @endif
+});
+</script>
 @endsection

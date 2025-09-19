@@ -33,6 +33,34 @@ class NoteController extends Controller
         return view('dashboard.pages.eleves.notes.index', compact('notes', 'eleves', 'matieres', 'classes', 'moisScolaire'));
     }
 
+    // NoteController.php
+public function filterByClasse(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'nullable|exists:classes,id',
+    ]);
+
+    $notes = Note::with(['inscription.eleve', 'matiere', 'classe', 'mois'])
+        ->when($request->classe_id, function($q) use ($request) {
+            $q->where('classe_id', $request->classe_id);
+        })
+        ->get()
+        ->map(function($note) {
+            return [
+                'id' => $note->id,
+                'eleve' => $note->inscription->eleve->prenom . ' ' . $note->inscription->eleve->nom,
+                'matiere' => $note->matiere->nom,
+                'classe' => $note->classe->nom,
+                'valeur' => $note->valeur,
+                'coefficient' => $note->coefficient,
+                'mois' => $note->mois->nom,
+            ];
+        });
+
+    return response()->json($notes);
+}
+
+
     public function show(Note $note)
     {
         return view('notes.show', compact('note'));
@@ -40,18 +68,10 @@ class NoteController extends Controller
 
     public function create()
     {
-        // On charge les classes avec leur niveau
         $classes = Classe::with('niveau')->orderBy('nom')->get();
-
-        // On ne charge pas toutes les matières ici, elles seront chargées via AJAX selon la classe sélectionnée
         $moisScolaire = MoisScolaire::all();
 
-        // Définition de l'année scolaire
-        $currentYear = Carbon::now()->format('Y');
-        $nextYear = Carbon::now()->addYear()->format('Y');
-        $anneeScolaire = $currentYear . '-' . $nextYear;
-
-        return view('dashboard.pages.eleves.notes.create', compact('moisScolaire', 'classes', 'anneeScolaire'));
+        return view('dashboard.pages.eleves.notes.create', compact('moisScolaire', 'classes'));
     }
 
 
@@ -67,11 +87,8 @@ class NoteController extends Controller
             'notes.*.valeur' => 'required|numeric|min:0|max:20'
         ]);
 
-        
-
-        $ecoleId = auth()->user()->ecole_id;
-    
-        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
 
         foreach ($validated['notes'] as $noteData) {
@@ -100,7 +117,7 @@ class NoteController extends Controller
         }
 
         return redirect()->route('notes.index')
-            ->with('success', 'Notes enregistrées en masse avec succès');
+            ->with('success', 'Notes enregistrées avec succès');
     }
 
     public function edit(Note $note)
@@ -121,34 +138,6 @@ class NoteController extends Controller
     ));
 }
 
-    public function update(Request $request, Note $note)
-    {
-        $validated = $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id', // Changé de eleve_id à inscription_id
-            'matiere_id' => 'required|exists:matieres,id',
-            'classe_id' => 'required|exists:classes,id',
-            'valeur' => 'required|numeric|min:0|max:20',
-            'coefficient' => 'required|integer|min:1',
-            'appreciation' => 'nullable|string'
-        ]);
-
-        // Récupérer l'inscription pour obtenir l'élève_id
-        $inscription = Inscription::findOrFail($validated['inscription_id']);
-        $validated['eleve_id'] = $inscription->eleve_id;
-
-        $note->update($validated);
-
-        return redirect()->route('notes.index')
-            ->with('success', 'Note mise à jour avec succès');
-    }
-
-    public function destroy(Note $note)
-    {
-        $note->delete();
-
-        return redirect()->route('notes.index')
-            ->with('success', 'Note supprimée avec succès');
-    }
 
     // Méthode pour récupérer les inscriptions d'une classe (pour AJAX)
     public function getInscriptionsByClasse(Request $request)
@@ -201,23 +190,25 @@ class NoteController extends Controller
 
     public function getNotesByClasse(Request $request)
     {
-        $query = Note::with(['eleve', 'matiere', 'classe', 'mois']);
+        $request->validate([
+            'classe_id' => 'required|exists:classes,id',
+            'matiere_id' => 'required|exists:matieres,id',
+            'mois_id' => 'required|exists:mois_scolaires,id',
+        ]);
 
-        if($request->classe_id){
-            $query->where('classe_id', $request->classe_id);
-        }
-
-        $notes = $query->get()->map(function($note){
-            return [
-                'id' => $note->id,
-                'eleve' => $note->eleve->prenom . ' ' . $note->eleve->nom,
-                'matiere' => $note->matiere->nom,
-                'classe' => $note->classe->nom,
-                'valeur' => $note->valeur,
-                'coefficient' => $note->coefficient,
-                'mois' => $note->mois->nom
-            ];
-        });
+        $notes = Note::with(['inscription.eleve'])
+            ->where('classe_id', $request->classe_id)
+            ->where('matiere_id', $request->matiere_id)
+            ->where('mois_id', $request->mois_id)
+            ->get()
+            ->map(function($note){
+                return [
+                    'id' => $note->id,
+                    'inscription_id' => $note->inscription_id,
+                    'eleve' => $note->inscription->eleve->prenom . ' ' . $note->inscription->eleve->nom,
+                    'valeur' => $note->valeur,
+                ];
+            });
 
         return response()->json($notes);
     }
@@ -229,10 +220,9 @@ public function generateBulletin(Request $request)
         'mois_id' => 'required|exists:mois_scolaires,id'
     ]);
 
-    $classe = Classe::with('niveau')->findOrFail($request->classe_id);
+    $classe = Classe::with('niveau.matieres')->findOrFail($request->classe_id);
     $mois = MoisScolaire::findOrFail($request->mois_id);
 
-    // Récupérer toutes les inscriptions actives
     $inscriptions = Inscription::with(['eleve', 'notes' => function($q) use ($request) {
         $q->where('mois_id', $request->mois_id)->with('matiere');
     }])
@@ -250,10 +240,12 @@ public function generateBulletin(Request $request)
         $notes = $inscription->notes ?? collect();
         $totalNotes = 0;
         $totalCoeffs = 0;
+        $execo = false;
 
         foreach ($notes as $note) {
             $totalNotes += $note->valeur * $note->coefficient;
             $totalCoeffs += $note->coefficient;
+            if($note->valeur == 20) $execo = true; // Execo général
         }
 
         $moyenne = $totalCoeffs > 0 ? $totalNotes / $totalCoeffs : 0;
@@ -266,30 +258,45 @@ public function generateBulletin(Request $request)
             'inscription' => $inscription,
             'notes' => $notes,
             'moyenne' => round($moyenne, 2),
-            'mention' => $mention ? $mention->nom : 'Non classé'
+            'mention' => $mention ? $mention->nom : 'Non classé',
+            'execo' => $execo,
         ];
     }
 
-    // Trier par moyenne décroissante
+    // Classement général
     usort($elevesAvecMoyennes, function($a, $b) {
+        if($b['moyenne'] == $a['moyenne']){
+            if($a['execo'] && !$b['execo']) return 1;
+            if(!$a['execo'] && $b['execo']) return -1;
+            return strcmp(
+                $a['inscription']->eleve->prenom . $a['inscription']->eleve->nom,
+                $b['inscription']->eleve->prenom . $b['inscription']->eleve->nom
+            );
+        }
         return $b['moyenne'] <=> $a['moyenne'];
     });
 
-    // Ajouter le rang
-    foreach ($elevesAvecMoyennes as $index => &$eleve) {
-        $eleve['rang'] = $index + 1;
+    $rang = 1;
+    $prevMoyenne = null;
+    foreach($elevesAvecMoyennes as $i => &$eleve){
+        if($prevMoyenne !== null && $eleve['moyenne'] == $prevMoyenne){
+            $eleve['rang'] = $rang;
+        } else {
+            $rang = $i + 1;
+            $eleve['rang'] = $rang;
+        }
+        $prevMoyenne = $eleve['moyenne'];
     }
 
-    // Générer le PDF
     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
         'classe' => $classe,
         'mois' => $mois,
         'elevesAvecMoyennes' => $elevesAvecMoyennes
     ]);
 
-    // Afficher directement le PDF dans un nouvel onglet
     return $pdf->stream('bulletins-' . $classe->nom . '.pdf');
 }
+
 
 
 

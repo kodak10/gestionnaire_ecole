@@ -28,7 +28,7 @@
 
     <div class="eleve-info">
         <strong>Élève:</strong> {{ $eleveData['inscription']->eleve->prenom }} {{ $eleveData['inscription']->eleve->nom }}<br>
-        <strong>Rang:</strong> {{ $eleveData['rang'] }}<br>
+        <strong>Rang:</strong> {{ $eleveData['rang'] }}@if($eleveData['execo']) Execo @endif<br>
         <strong>Moyenne:</strong> {{ number_format($eleveData['moyenne'], 2) }}/20<br>
         <strong>Mention:</strong> {{ $eleveData['mention'] }}
     </div>
@@ -43,11 +43,14 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($eleveData['notes'] as $note)
+            @foreach($classe->niveau->matieres as $matiere)
+            @php
+                $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+            @endphp
             <tr>
-                <td>{{ $note->matiere->nom }}</td>
-                <td>{{ number_format($note->valeur, 2) }}</td>
-                <td>{{ $note->coefficient }}</td>
+                <td>{{ $matiere->nom }}</td>
+                <td>{{ $note ? number_format($note->valeur, 2) : 'N/A' }}</td>
+                <td>{{ $note ? $note->coefficient : '-' }}</td>
                 <td>{{ $note->appreciation ?? '-' }}</td>
             </tr>
             @endforeach
