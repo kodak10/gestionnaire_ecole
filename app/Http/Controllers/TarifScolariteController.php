@@ -11,121 +11,132 @@ use App\Models\Tarif;
 
 class TarifScolariteController extends Controller
 {
-    public function index()
-    {
-        $ecoleId = auth()->user()->ecole_id ?? 1;
+   public function index()
+{
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
+    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
 
-        $niveaux = Niveau::orderBy('nom')->get();
+    $niveaux = Niveau::where('ecole_id', $ecoleId)
+        ->orderBy('ordre')
+        ->get();
 
-        $tarifs = Tarif::with('typeFrais')
-            ->where('ecole_id', $ecoleId) // filtrer par école
-            ->get();
+    $tarifs = Tarif::with('typeFrais')
+        ->where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->get();
 
-        $typeFrais = TypeFrais::orderBy('nom')->get();
-        $moisScolaires = MoisScolaire::orderBy('numero')->get();
+    $typeFrais = TypeFrais::orderBy('nom')->get();
+    $moisScolaires = MoisScolaire::orderBy('numero')->get();
 
-        return view('dashboard.pages.parametrage.scolarite.tarif', compact('niveaux', 'tarifs','typeFrais', 'moisScolaires'));
-    }
+    return view('dashboard.pages.parametrage.scolarite.tarif', compact('niveaux', 'tarifs','typeFrais', 'moisScolaires'));
+}
 
+public function store(Request $request)
+{
+    $request->validate([
+        'type_frais_id' => 'required|exists:type_frais,id',
+        'obligatoire' => 'nullable|boolean',
+        'montant' => 'required|numeric|min:0',
+        'niveau_ids' => 'nullable|array',
+        'niveau_ids.*' => 'exists:niveaux,id',
+        'apply_to_all' => 'nullable|boolean',
+    ]);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'type_frais_id' => 'required|exists:type_frais,id',
-            'obligatoire' => 'nullable|boolean',
-            'montant' => 'required|numeric|min:0',
-            'niveau_ids' => 'nullable|array',
-            'niveau_ids.*' => 'exists:niveaux,id',
-            'apply_to_all' => 'nullable|boolean',
-        ]);
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
+    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
 
-        $ecoleId = auth()->user()->ecole_id ?? 1;
-        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1;
+    $niveauIds = $request->boolean('apply_to_all')
+        ? Niveau::where('ecole_id', $ecoleId)->pluck('id')->toArray()
+        : ($request->niveau_ids ?? []);
 
-
-
-        // Si "Appliquer à tous les niveaux" est coché, on récupère tous les niveaux
-        if ($request->boolean('apply_to_all')) {
-            $niveauIds = Niveau::pluck('id')->toArray();
-        } else {
-            $niveauIds = $request->niveau_ids ?? [];
-        }
-
-        // Si aucun niveau sélectionné et pas appliqué à tous, on crée un tarif sans niveau (niveau_id null)
-        if (empty($niveauIds)) {
+    if (empty($niveauIds)) {
+        // Créer un tarif sans niveau
+        Tarif::updateOrCreate(
+            [
+                'type_frais_id' => $request->type_frais_id,
+                'obligatoire' => $request->boolean('obligatoire'),
+                'niveau_id' => null,
+                'ecole_id' => $ecoleId,
+                'annee_scolaire_id' => $anneeScolaireId,
+            ],
+            ['montant' => $request->montant]
+        );
+    } else {
+        foreach ($niveauIds as $niveauId) {
             Tarif::updateOrCreate(
                 [
                     'type_frais_id' => $request->type_frais_id,
                     'obligatoire' => $request->boolean('obligatoire'),
-                    'niveau_id' => null,
-                    'ecole_id' => $ecoleId, 
+                    'niveau_id' => $niveauId,
+                    'ecole_id' => $ecoleId,
+                    'annee_scolaire_id' => $anneeScolaireId,
+                ],
+                ['montant' => $request->montant]
+            );
+        }
+    }
+
+    return redirect()->route('tarifs.index')->with('success', 'Tarif(s) ajouté(s) avec succès.');
+}
+
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'type_frais_id' => 'required|exists:type_frais,id',
+        'obligatoire' => 'nullable|boolean',
+        'montant' => 'required|numeric|min:0',
+        'niveau_ids' => 'nullable|array',
+        'niveau_ids.*' => 'exists:niveaux,id',
+    ]);
+
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
+    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
+
+    $niveauIds = $request->niveau_ids ?? [];
+
+    // Supprimer les anciens tarifs pour ce type de frais et cette année scolaire
+    Tarif::where('type_frais_id', $request->type_frais_id)
+        ->where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->whereNotIn('niveau_id', $niveauIds) // ne pas supprimer ceux qu'on veut garder
+        ->delete();
+
+    // Mettre à jour ou créer un tarif pour chaque niveau sélectionné
+    if (empty($niveauIds)) {
+        // Aucun niveau sélectionné => créer un tarif sans niveau
+        Tarif::updateOrCreate(
+            [
+                'type_frais_id' => $request->type_frais_id,
+                'niveau_id' => null,
+                'ecole_id' => $ecoleId,
+                'annee_scolaire_id' => $anneeScolaireId,
+            ],
+            [
+                'montant' => $request->montant,
+                'obligatoire' => $request->boolean('obligatoire'),
+            ]
+        );
+    } else {
+        foreach ($niveauIds as $niveauId) {
+            Tarif::updateOrCreate(
+                [
+                    'type_frais_id' => $request->type_frais_id,
+                    'niveau_id' => $niveauId,
+                    'ecole_id' => $ecoleId,
                     'annee_scolaire_id' => $anneeScolaireId,
                 ],
                 [
                     'montant' => $request->montant,
+                    'obligatoire' => $request->boolean('obligatoire'),
                 ]
             );
-        } else {
-            // On crée un tarif par niveau sélectionné
-            foreach ($niveauIds as $niveauId) {
-                Tarif::updateOrCreate(
-                    [
-                        'type_frais_id' => $request->type_frais_id,
-                        'obligatoire' => $request->boolean('obligatoire'),
-                        'niveau_id' => $niveauId,
-                        'ecole_id' => $ecoleId, 
-                        'annee_scolaire_id' => $anneeScolaireId,
-                    ],
-                    [
-                        'montant' => $request->montant,
-                    ]
-                );
-            }
         }
-
-        return redirect()->route('tarifs.index')->with('success', 'Tarif(s) ajouté(s) avec succès.');
     }
 
+    return redirect()->route('tarifs.index')->with('success', 'Tarif(s) mis à jour avec succès.');
+}
 
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'type_frais_id' => 'required|exists:type_frais,id',
-            'obligatoire' => 'nullable|boolean',
-            'montant' => 'required|numeric|min:0',
-            'niveau_ids' => 'nullable|array',
-            'niveau_ids.*' => 'exists:niveaux,id',
-        ]);
 
-        $tarif = Tarif::findOrFail($id);
-        $ecoleId = auth()->user()->ecole_id ?? 1;
-
-        // On prend le premier niveau ou null
-        $niveauIds = $request->niveau_ids ?? [];
-        $niveauId = count($niveauIds) > 0 ? $niveauIds[0] : null;
-
-        // Vérifier si un autre tarif avec la même combinaison existe pour éviter les doublons
-        $exists = Tarif::where('type_frais_id', $request->type_frais_id)
-            ->where('obligatoire', $request->boolean('obligatoire'))
-            ->where('niveau_id', $niveauId)
-            ->where('ecole_id', $ecoleId)
-            ->where('id', '!=', $tarif->id)
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors(['type_frais_id' => 'Un tarif identique existe déjà pour cette école.'])->withInput();
-        }
-
-        $tarif->update([
-            'type_frais_id' => $request->type_frais_id,
-            'obligatoire' => $request->boolean('obligatoire'),
-            'niveau_id' => $niveauId,
-            'montant' => $request->montant,
-            'ecole_id' => $ecoleId, 
-        ]);
-
-        return redirect()->route('tarifs.index')->with('success', 'Tarif mis à jour avec succès.');
-    }
 
 
     public function destroy($id)
