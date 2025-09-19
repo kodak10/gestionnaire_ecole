@@ -98,7 +98,7 @@
                                                 <span class="input-icon-addon">
                                                     <i class="ti ti-user"></i>
                                                 </span>
-                                                <input type="text" name="pseudo" value="{{ old('pseudo', 'admin') }}" class="form-control @error('pseudo') is-invalid @enderror" required autofocus>
+                                                <input type="text" name="pseudo" value="{{ old('pseudo') }}" class="form-control @error('pseudo') is-invalid @enderror" required autofocus>
                                                 @error('pseudo')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>
@@ -108,7 +108,7 @@
 
                                             <label class="form-label">Mot de passe</label>
                                             <div class="pass-group">
-                                                <input type="password" value="Kodak.10" name="password" class="pass-input form-control @error('password') is-invalid @enderror" required>
+                                                <input type="password" name="password" class="pass-input form-control @error('password') is-invalid @enderror" required>
                                                 <span class="ti toggle-password ti-eye-off"></span>
                                                 @error('password')
                                                     <span class="invalid-feedback" role="alert">
