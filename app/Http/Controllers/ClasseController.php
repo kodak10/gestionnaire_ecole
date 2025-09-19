@@ -14,103 +14,118 @@ use Maatwebsite\Excel\Facades\Excel;
 class ClasseController extends Controller
 {
     public function index(Request $request)
-    {
-        $user = auth()->user();
-        $ecoleId = $user->ecole_id;
+{
+    $user = auth()->user();
 
-        // Récupérer l'année scolaire assignée à l'utilisateur pour cette école
-        $userAnnee = DB::table('user_annees_scolaires')
-                        ->where('user_id', $user->id)
-                        ->where('ecole_id', $ecoleId)
-                        ->latest('created_at')
-                        ->first();
+    // Récupérer l'école et l'année depuis la session
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        if (!$userAnnee) {
-            return redirect()->back()->with('error', 'Aucune année scolaire assignée à cet utilisateur.');
-        }
-
-        $anneeScolaireId = $userAnnee->annee_scolaire_id;
-
-        $query = Classe::with(['niveau', 'inscriptions'])
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->where('ecole_id', $ecoleId);
-
-        $classes = $query->get();
-        $niveaux = Niveau::orderBy('nom')->get();
-
-        return view('dashboard.pages.parametrage.classe', [
-            'classes' => $classes,
-            'niveaux' => $niveaux,
-            'annee_active' => $userAnnee // on garde la variable pour la vue
-        ]);
+    if (!$ecoleId || !$anneeScolaireId) {
+        return redirect()->back()->with('error', 'Veuillez sélectionner une école et une année scolaire valides.');
     }
 
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'niveau_id' => 'required|exists:niveaux,id',
-            'nom' => 'required|string|max:50',
-            'capacite' => 'required|integer|min:1',
-        ]);
-
-        $niveau = Niveau::findOrFail($request->niveau_id);
-        $nomComplet = $niveau->nom . '_' . $request->nom;
-
-        // Vérifier si ce nomComplet existe déjà dans la même école et année scolaire
-        $exists = Classe::where('ecole_id', auth()->user()->ecole_id ?? 1)
-            ->where('annee_scolaire_id', AnneeScolaire::active()->id)
-            ->where('nom', $nomComplet)
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
-        }
-
-        $anneeScolaireId = session('annee_scolaire_id') ?? auth()->user()->annee_scolaire_id ?? 1; // faux
+    // Récupérer les classes avec relations
+   $classes = Classe::with(['niveau', 'inscriptions'])
+    ->join('niveaux', 'classes.niveau_id', '=', 'niveaux.id')
+    ->where('classes.ecole_id', $ecoleId)           // <-- préciser la table
+    ->where('classes.annee_scolaire_id', $anneeScolaireId) // <-- préciser la table
+    ->orderBy('niveaux.ordre')
+    ->orderBy('classes.nom')
+    ->select('classes.*')
+    ->get();
 
 
-        Classe::create([
-            'annee_scolaire_id' => $anneeScolaireId,
-            'ecole_id' => auth()->user()->ecole_id ?? 1,
-            'niveau_id' => $request->niveau_id,
-            'nom' => $nomComplet,
-            'capacite' => $request->capacite,
-        ]);
 
-        return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
+    $niveaux = Niveau::orderBy('ordre')->orderBy('nom')->get();
+
+    // On peut passer les infos de l'année active depuis la session
+    $anneeActive = [
+        'ecole_id' => $ecoleId,
+        'annee_scolaire_id' => $anneeScolaireId,
+        'ecole_nom' => session('current_ecole_nom'),
+        'annee_scolaire' => session('current_annee_scolaire'),
+    ];
+
+    return view('dashboard.pages.parametrage.classe', [
+        'classes' => $classes,
+        'niveaux' => $niveaux,
+        'annee_active' => $anneeActive,
+    ]);
+}
+
+
+
+   public function store(Request $request)
+{
+    $request->validate([
+        'niveau_id' => 'required|exists:niveaux,id',
+        'nom' => 'required|string|max:50',
+        'capacite' => 'required|integer|min:1',
+    ]);
+
+    $niveau = Niveau::findOrFail($request->niveau_id);
+    $nomComplet = $niveau->nom . '_' . $request->nom;
+
+    // Récupérer l'école et l'année depuis la session
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
+    $anneeScolaireId = session('current_annee_scolaire_id') ?? AnneeScolaire::active()->id ?? 1;
+
+    // Vérifier si la classe existe déjà
+    $exists = Classe::where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->where('nom', $nomComplet)
+        ->exists();
+
+    if ($exists) {
+        return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
     }
 
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'niveau_id' => 'required|exists:niveaux,id',
-            'nom' => 'required|string|max:50',
-            'capacite' => 'required|integer|min:1',
-        ]);
+    Classe::create([
+        'annee_scolaire_id' => $anneeScolaireId,
+        'ecole_id' => $ecoleId,
+        'niveau_id' => $request->niveau_id,
+        'nom' => $nomComplet,
+        'capacite' => $request->capacite,
+    ]);
 
-        $classe = Classe::findOrFail($id);
-        $niveau = Niveau::findOrFail($request->niveau_id);
-        $nomComplet = $niveau->nom . '_' . $request->nom;
+    return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
+}
 
-        $exists = Classe::where('ecole_id', auth()->user()->ecole_id ?? 1)
-            ->where('annee_scolaire_id', $classe->annee_scolaire_id)
-            ->where('nom', $nomComplet)
-            ->where('id', '!=', $classe->id)
-            ->exists();
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'niveau_id' => 'required|exists:niveaux,id',
+        'nom' => 'required|string|max:50',
+        'capacite' => 'required|integer|min:1',
+    ]);
 
-        if ($exists) {
-            return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
-        }
+    $classe = Classe::findOrFail($id);
+    $niveau = Niveau::findOrFail($request->niveau_id);
+    $nomComplet = $niveau->nom . '_' . $request->nom;
 
-        $classe->update([
-            'niveau_id' => $request->niveau_id,
-            'nom' => $nomComplet,
-            'capacite' => $request->capacite,
-        ]);
+    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id ?? 1;
+    $anneeScolaireId = $classe->annee_scolaire_id; // on garde l'année existante pour la mise à jour
 
-        return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');
+    $exists = Classe::where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->where('nom', $nomComplet)
+        ->where('id', '!=', $classe->id)
+        ->exists();
+
+    if ($exists) {
+        return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
     }
+
+    $classe->update([
+        'niveau_id' => $request->niveau_id,
+        'nom' => $nomComplet,
+        'capacite' => $request->capacite,
+    ]);
+
+    return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');
+}
+
 
 
     public function destroy(Request $request, $id)
