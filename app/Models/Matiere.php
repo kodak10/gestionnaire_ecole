@@ -9,7 +9,7 @@ class Matiere extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['annee_scolaire_id', 'ecole_id', 'nom', 'coefficient'];
+    protected $fillable = ['annee_scolaire_id', 'ecole_id', 'nom','ordre'];
     
    
 

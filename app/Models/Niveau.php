@@ -23,12 +23,14 @@ class Niveau extends Model
         return $this->hasMany(Tarif::class);
     }
 
+    
+
     public function matieres()
-    {
-        return $this->belongsToMany(Matiere::class, 'niveau_matiere')
-                    ->withPivot('coefficient')
-                    ->withTimestamps();
-    }
+{
+    return $this->belongsToMany(Matiere::class, 'niveau_matiere')
+                ->withPivot('coefficient', 'ecole_id', 'annee_scolaire_id')
+                ->withTimestamps();
+}
 
     
     

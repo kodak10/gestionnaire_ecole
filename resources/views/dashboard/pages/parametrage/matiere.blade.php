@@ -74,7 +74,7 @@
                     <tr>
                         <th>#</th>
                         <th>Nom</th>
-                        <th>Coefficient</th>
+                        <th>Ordre</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -83,7 +83,7 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $matiere->nom }}</td>
-                        <td>{{ $matiere->coefficient }}</td>
+                        <td>{{ $matiere->ordre }}</td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="dropdown">
@@ -140,15 +140,20 @@
                                 @enderror
                             </div>
                         </div>
+
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Coefficient <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control @error('coefficient') is-invalid @enderror" name="coefficient" value="{{ old('coefficient', 1) }}" min="1" max="10" required>
-                                @error('coefficient')
+                                <label class="form-label">Ordre <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('ordre') is-invalid @enderror" name="ordre" value="{{ old('ordre') }}" required>
+                                @error('ordre')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
+                        
+                        
+                        
+                        
                     </div>
                     
                 </div>
@@ -184,15 +189,19 @@
                                 @enderror
                             </div>
                         </div>
+                       
+
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Coefficient <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control @error('coefficient') is-invalid @enderror" name="coefficient" value="{{ old('coefficient', $matiere->coefficient) }}" min="1" max="10" required>
-                                @error('coefficient')
+                                <label class="form-label">Ordre <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('ordre') is-invalid @enderror" 
+                                    name="ordre" value="{{ old('ordre', $matiere->ordre) }}" min="0" required>
+                                @error('ordre')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
+
                     </div>
                     
                 </div>
