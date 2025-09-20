@@ -27,7 +27,7 @@ class DepenseController extends Controller
             'date_fin' => 'nullable|date'
         ]);
 
-        $anneeScolaireId = session('annee_scolaire_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
         try {
             $query = Depense::with(['anneeScolaire', 'category'])
@@ -86,13 +86,13 @@ class DepenseController extends Controller
         'justificatif' => 'nullable|string',
     ]);
 
-    $anneeScolaireId = session('annee_scolaire_id');
-    $user = Auth::user(); // utilisateur connecté
+    $anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id');
 
     try {
         $data = $request->all();
         $data['annee_scolaire_id'] = $anneeScolaireId;
-        $data['ecole_id'] = $user->ecole_id; // ajouter l'ecole_id depuis l'utilisateur
+        $data['ecole_id'] = $ecoleId; // ajouter l'ecole_id depuis l'utilisateur
 
         $depense = Depense::create($data);
         

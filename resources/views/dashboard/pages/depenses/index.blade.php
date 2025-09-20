@@ -49,16 +49,6 @@
                 <h4 class="text-dark">Filtres</h4>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Année Scolaire <span class="text-danger">*</span></label>
-                    <select class="form-select" id="annee_scolaire_id" name="annee_scolaire_id" required>
-                        @foreach($anneesScolaires as $annee)
-                            <option value="{{ $annee->id }}" {{ $annee->est_active ? 'selected' : '' }}>
-                                {{ $annee->annee }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
 
                 <div class="mb-3">
                     <label class="form-label">Catégorie</label>
@@ -303,24 +293,14 @@ $(document).ready(function() {
 
     // Charger les dépenses selon les filtres
     function loadDepenses() {
-        const anneeId = $('#annee_scolaire_id').val();
         const categorieId = $('#depense_category_id').val();
         const dateDebut = $('#date_debut').val();
         const dateFin = $('#date_fin').val();
-        
-        if (!anneeId) {
-            toastr.error('Veuillez sélectionner une année scolaire');
-            return;
-        }
-        
-        // Mettre à jour l'ID de l'année scolaire dans le formulaire
-        $('#form_annee_id').val(anneeId);
-        
+                
         $.ajax({
             url: '{{ route("depenses.data") }}',
             type: 'GET',
             data: { 
-                annee_scolaire_id: anneeId,
                 depense_category_id: categorieId,
                 date_debut: dateDebut,
                 date_fin: dateFin
