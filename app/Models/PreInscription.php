@@ -25,7 +25,9 @@ class PreInscription extends Model
         'statut',
         'date_preinscription',
         'user_id',
-        'notes'
+        'notes',
+        'annee_scolaire_id',
+        'ecole_id'
     ];
 
     protected $casts = [

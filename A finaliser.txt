@@ -1,6 +1,5 @@
 _Dans parametrage de frais ne doit pas depasser le montant total
 _CLASSEMENT ET BULLETIN
-_retirer les année au niveau des depenses
 _Generer la fiche d'inscription de lelves
 _ Page d'accueil en fonction du role Auth
 _Les restrictions en fonction du role de l'user Auth

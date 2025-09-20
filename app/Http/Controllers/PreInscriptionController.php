@@ -18,12 +18,23 @@ class PreInscriptionController extends Controller
 
     public function create()
     {
-        $classes = Classe::orderBy('nom')->get();
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $classes = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('nom')->get();
+
         return view('dashboard.pages.eleves.preinscriptions.create', compact('classes'));
     }
 
     public function store(Request $request)
     {
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $userId = auth()->id();
+
+
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
@@ -43,7 +54,9 @@ class PreInscriptionController extends Controller
         ]);
 
         $validated['date_preinscription'] = now();
-        $validated['user_id'] = 1;
+        $validated['user_id'] = $userId;
+        $validated['ecole_id'] = $ecoleId;
+        $validated['annee_scolaire_id'] = $anneeScolaireId;
 
         Preinscription::create($validated);
 
@@ -81,6 +94,8 @@ class PreInscriptionController extends Controller
             'statut' => 'required|in:en_attente,validée,refusée',
             'notes' => 'nullable|string'
         ]);
+        $userId = auth()->id();
+        $validated['user_id'] = $userId;
 
         $preinscription->update($validated);
 

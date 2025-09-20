@@ -56,12 +56,6 @@
                         </td>
                         <td class="text-end">
                             <div class="actions">
-                                <a href="{{ route('preinscriptions.show', $preinscription->id) }}" class="btn btn-sm bg-info-light me-2">
-                                    <i class="ti ti-eye"></i>
-                                </a>
-                                <a href="{{ route('preinscriptions.edit', $preinscription->id) }}" class="btn btn-sm bg-primary-light me-2">
-                                    <i class="ti ti-edit"></i>
-                                </a>
                                 @if($preinscription->statut == 'en_attente')
                                     <form action="{{ route('preinscriptions.valider', $preinscription->id) }}" method="POST" style="display: inline-block;">
                                         @csrf
