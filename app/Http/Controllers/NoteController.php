@@ -16,22 +16,47 @@ use Illuminate\Support\Facades\Auth;
 
 class NoteController extends Controller
 {
-    public function index(Request $request)
-    {
-        $notes = Note::with(['inscription.eleve', 'matiere', 'classe', 'mois'])
-            ->filter($request)
-            ->join('mois_scolaires', 'notes.mois_id', '=', 'mois_scolaires.id')
-            ->orderBy('mois_scolaires.nom', 'asc')
-            ->select('notes.*')
-            ->paginate(20);
-
-        $eleves = Eleve::orderBy('nom')->get();
-        $matieres = Matiere::orderBy('nom')->get();
-        $classes = Classe::orderBy('nom')->get();
-        $moisScolaire = MoisScolaire::all();
-
-        return view('dashboard.pages.eleves.notes.index', compact('notes', 'eleves', 'matieres', 'classes', 'moisScolaire'));
+public function index(Request $request)
+{
+    $query = Note::with(['inscription.eleve', 'matiere', 'classe', 'mois']);
+    
+    // Filtre par classe
+    if ($request->has('classe_id') && $request->classe_id != '') {
+        $query->where('classe_id', $request->classe_id);
     }
+    
+    // Filtre par matière
+    if ($request->has('matiere_id') && $request->matiere_id != '') {
+        $query->where('matiere_id', $request->matiere_id);
+    }
+    
+    // Filtre par mois
+    if ($request->has('mois_id') && $request->mois_id != '') {
+        $query->where('mois_id', $request->mois_id);
+    }
+    
+    // Recherche par nom d'élève
+    if ($request->has('nom') && $request->nom != '') {
+        $query->whereHas('inscription.eleve', function($q) use ($request) {
+            $q->where('nom', 'like', '%' . $request->nom . '%')
+              ->orWhere('prenom', 'like', '%' . $request->nom . '%');
+        });
+    }
+    
+    // Tri des résultats
+    $sortBy = $request->get('sort_by', 'created_at');
+    $sort = $request->get('sort', 'desc');
+    $query->orderBy($sortBy, $sort);
+    
+    $notes = $query->paginate(20);
+    
+    $eleves = Eleve::orderBy('nom')->get();
+    $matieres = Matiere::orderBy('nom')->get();
+    $classes = Classe::orderBy('nom')->get();
+    $moisScolaire = MoisScolaire::all();
+
+    return view('dashboard.pages.eleves.notes.index', compact('notes', 'eleves', 'matieres', 'classes', 'moisScolaire'));
+}
 
     // NoteController.php
 public function filterByClasse(Request $request)
@@ -213,6 +238,8 @@ public function filterByClasse(Request $request)
         return response()->json($notes);
     }
 
+
+
 public function generateBulletin(Request $request)
 {
     $request->validate([
@@ -234,68 +261,125 @@ public function generateBulletin(Request $request)
         ->orderBy('min_note')
         ->get();
 
+    // Calcul des moyennes et préparation des données
     $elevesAvecMoyennes = [];
-
     foreach ($inscriptions as $inscription) {
         $notes = $inscription->notes ?? collect();
         $totalNotes = 0;
         $totalCoeffs = 0;
-        $execo = false;
 
         foreach ($notes as $note) {
-            $totalNotes += $note->valeur * $note->coefficient;
-            $totalCoeffs += $note->coefficient;
-            if($note->valeur == 20) $execo = true; // Execo général
+            $totalNotes += ($note->valeur * ($note->coefficient ?? 1));
+            $totalCoeffs += ($note->coefficient ?? 1);
+            $note->execo = ($note->valeur == 20);
         }
 
-        $moyenne = $totalCoeffs > 0 ? $totalNotes / $totalCoeffs : 0;
+        $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
+        $moyenneArrondie = round($moyenne, 2);
 
-        $mention = $mentions->first(function($m) use ($moyenne) {
-            return $moyenne >= $m->min_note && $moyenne <= $m->max_note;
+        $mention = $mentions->first(function($m) use ($moyenneArrondie) {
+            return $moyenneArrondie >= $m->min_note && $moyenneArrondie <= $m->max_note;
         });
 
         $elevesAvecMoyennes[] = [
             'inscription' => $inscription,
             'notes' => $notes,
-            'moyenne' => round($moyenne, 2),
+            'moyenne' => $moyenneArrondie,
             'mention' => $mention ? $mention->nom : 'Non classé',
-            'execo' => $execo,
+            'execo_count' => $notes->where('valeur', 20)->count(),
         ];
     }
 
-    // Classement général
-    usort($elevesAvecMoyennes, function($a, $b) {
-        if($b['moyenne'] == $a['moyenne']){
-            if($a['execo'] && !$b['execo']) return 1;
-            if(!$a['execo'] && $b['execo']) return -1;
-            return strcmp(
-                $a['inscription']->eleve->prenom . $a['inscription']->eleve->nom,
-                $b['inscription']->eleve->prenom . $b['inscription']->eleve->nom
-            );
+    // ✅ CLASSEMENT PAR MATIÈRE
+    $matieres = $classe->niveau->matieres;
+    foreach ($matieres as $matiere) {
+        // récupérer toutes les notes de la matière
+        $notesMatiere = [];
+        foreach ($elevesAvecMoyennes as &$eleve) {
+            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+            if ($note) {
+                $notesMatiere[] = $note;
+            }
         }
-        return $b['moyenne'] <=> $a['moyenne'];
-    });
 
-    $rang = 1;
-    $prevMoyenne = null;
-    foreach($elevesAvecMoyennes as $i => &$eleve){
-        if($prevMoyenne !== null && $eleve['moyenne'] == $prevMoyenne){
-            $eleve['rang'] = $rang;
-        } else {
-            $rang = $i + 1;
-            $eleve['rang'] = $rang;
+        // trier par valeur décroissante
+        usort($notesMatiere, function($a, $b) {
+            return $b->valeur <=> $a->valeur;
+        });
+
+        // attribuer les rangs avec gestion des ex-aequo
+        foreach ($notesMatiere as $index => $note) {
+            if ($index === 0) {
+                $note->rang_matiere = 1;
+            } else {
+                $prev = $notesMatiere[$index - 1];
+                if ($note->valeur == $prev->valeur) {
+                    $note->rang_matiere = $prev->rang_matiere;
+                } else {
+                    $note->rang_matiere = $index + 1;
+                }
+            }
         }
-        $prevMoyenne = $eleve['moyenne'];
     }
 
+    // 🔽 Ici reste ton code inchangé : tri des élèves + rang général
+    usort($elevesAvecMoyennes, function($a, $b) {
+        if ($a['moyenne'] != $b['moyenne']) {
+            return $b['moyenne'] <=> $a['moyenne'];
+        }
+        $notesA = collect($a['notes'])->pluck('valeur')->sortDesc()->values()->toArray();
+        $notesB = collect($b['notes'])->pluck('valeur')->sortDesc()->values()->toArray();
+        $len = min(count($notesA), count($notesB));
+        for ($i = 0; $i < $len; $i++) {
+            if ($notesA[$i] != $notesB[$i]) {
+                return $notesB[$i] <=> $notesA[$i];
+            }
+        }
+        $sumA = array_sum($notesA);
+        $sumB = array_sum($notesB);
+        if ($sumA != $sumB) {
+            return $sumB <=> $sumA;
+        }
+        $nameA = $a['inscription']->eleve->prenom . ' ' . $a['inscription']->eleve->nom;
+        $nameB = $b['inscription']->eleve->prenom . ' ' . $b['inscription']->eleve->nom;
+        return strcmp($nameA, $nameB);
+    });
+
+    $moyKeys = array_map(function($e) {
+        return sprintf('%.2f', $e['moyenne']);
+    }, $elevesAvecMoyennes);
+    $moyCounts = array_count_values($moyKeys);
+
+    foreach ($elevesAvecMoyennes as $index => &$eleve) {
+        $key = sprintf('%.2f', $eleve['moyenne']);
+        $eleve['exaequo'] = ($moyCounts[$key] > 1);
+
+        if ($index === 0) {
+            $eleve['rang_general'] = 1;
+        } else {
+            $prev = $elevesAvecMoyennes[$index - 1];
+            if (sprintf('%.2f', $eleve['moyenne']) == sprintf('%.2f', $prev['moyenne'])) {
+                $eleve['rang_general'] = $prev['rang_general'];
+            } else {
+                $eleve['rang_general'] = $index + 1;
+            }
+        }
+    }
+    unset($eleve);
+
+    // PDF
     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
         'classe' => $classe,
         'mois' => $mois,
         'elevesAvecMoyennes' => $elevesAvecMoyennes
     ]);
 
-    return $pdf->stream('bulletins-' . $classe->nom . '.pdf');
+    return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
 }
+
+
+
+
 
 
 

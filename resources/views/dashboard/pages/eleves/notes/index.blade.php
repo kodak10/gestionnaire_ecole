@@ -13,15 +13,6 @@
     </div>
     <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
         <div class="pe-1 mb-2">
-            <select id="filter_classe" class="form-select">
-                <option value="">Toutes les classes</option>
-                @foreach($classes as $classe)
-                    <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="pe-1 mb-2">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulletinModal">
                 <i class="ti ti-file-spreadsheet me-2"></i>Générer Bulletin
             </button>
@@ -34,6 +25,95 @@
         </div>
     </div>
 </div>
+
+<!-- Filter -->
+<div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
+    <h4 class="mb-3">Liste des Notes</h4>
+    <div class="d-flex align-items-center flex-wrap">		
+        <form method="GET" action="{{ route('notes.index') }}" class="d-flex flex-wrap">
+            <div class="input-group mb-3 me-2" style="width: 200px;">
+                <input type="text" name="nom" class="form-control" placeholder="Nom élève..." value="{{ request('nom') }}">
+                <button class="btn btn-primary" type="submit"><i class="ti ti-search"></i></button>
+            </div>
+            
+            <div class="dropdown mb-3 me-2">
+                <a href="javascript:void(0);" class="btn btn-outline-light bg-white dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                    <i class="ti ti-filter me-2"></i>Filtrer
+                </a>
+                <div class="dropdown-menu drop-width p-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Classe</label>
+                                <select class="form-select" name="classe_id">
+                                    <option value="">Toutes</option>
+                                    @foreach($classes as $classe)
+                                        <option value="{{ $classe->id }}" {{ request('classe_id') == $classe->id ? 'selected' : '' }}>{{ $classe->nom }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Matière</label>
+                                <select name="matiere_id" class="form-select">
+                                    <option value="">Toutes</option>
+                                    @foreach($matieres as $matiere)
+                                        <option value="{{ $matiere->id }}" {{ request('matiere_id') == $matiere->id ? 'selected' : '' }}>{{ $matiere->nom }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Mois</label>
+                                <select name="mois_id" class="form-select">
+                                    <option value="">Tous</option>
+                                    @foreach($moisScolaire as $mois)
+                                        <option value="{{ $mois->id }}" {{ request('mois_id') == $mois->id ? 'selected' : '' }}>{{ $mois->nom }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ route('notes.index') }}" class="btn btn-light me-3">Réinitialiser</a>
+                        <button type="submit" class="btn btn-primary">Appliquer</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        
+        <div class="dropdown mb-3">
+            <a href="javascript:void(0);" class="btn btn-outline-light bg-white dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="ti ti-sort-ascending-2 me-2"></i>Trier par 
+            </a>
+            <ul class="dropdown-menu p-3">
+                <li>
+                    <a href="{{ route('notes.index', array_merge(request()->query(), ['sort_by' => 'valeur', 'sort' => 'desc'])) }}" 
+                       class="dropdown-item rounded-1 {{ request('sort_by') == 'valeur' && request('sort') == 'desc' ? 'active' : '' }}">
+                       Note (plus haute)
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('notes.index', array_merge(request()->query(), ['sort_by' => 'valeur', 'sort' => 'asc'])) }}" 
+                       class="dropdown-item rounded-1 {{ request('sort_by') == 'valeur' && request('sort') == 'asc' ? 'active' : '' }}">
+                       Note (plus basse)
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('notes.index', array_merge(request()->query(), ['sort_by' => 'created_at', 'sort' => 'desc'])) }}" 
+                       class="dropdown-item rounded-1 {{ request('sort_by') == 'created_at' && request('sort') == 'desc' ? 'active' : '' }}">
+                       Récemment ajoutés
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>	
+</div>
+<!-- /Filter -->
 
 <div class="card">
     <div class="card-body">
@@ -49,10 +129,10 @@
                         <th>Mois</th>
                     </tr>
                 </thead>
-                <tbody id="notesTableBody">
-                    @foreach($notes as $note)
+                <tbody>
+                    @forelse($notes as $note)
                     <tr>
-                        <td>{{ $note->inscription->eleve->prenom }} {{ $note->inscription->eleve->nom }}</td>
+                        <td>{{ $note->inscription->eleve->nom }} {{ $note->inscription->eleve->prenom }}</td>
                         <td>{{ $note->matiere->nom }}</td>
                         <td>{{ $note->classe->nom }}</td>
                         <td>
@@ -62,9 +142,13 @@
                         </td>
                         <td>{{ $note->coefficient }}</td>
                         <td>{{ $note->mois->nom }}</td>
-                       
+                        
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="7" class="text-center">Aucune note trouvée</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -72,40 +156,10 @@
 </div>
 
 <div class="col-md-12 text-center mt-4">
-    {{ $notes->links() }}
+    {{ $notes->appends(request()->query())->links() }}
 </div>
 
-<!-- Modal pour éditer une note -->
-<div class="modal fade" id="editNoteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="editNoteForm">
-        @csrf
-        @method('PUT')
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Modifier la note</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" name="note_id" id="note_id">
-                <div class="mb-3">
-                    <label>Valeur</label>
-                    <input type="number" name="valeur" id="valeur" class="form-control" min="0" max="20" step="0.01" required>
-                </div>
-                <div class="mb-3">
-                    <label>Coefficient</label>
-                    <input type="number" name="coefficient" id="coefficient" class="form-control" min="1" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Enregistrer</button>
-            </div>
-        </div>
-    </form>
-  </div>
-</div>
-
-<!-- Ajoutez ce modal à la fin du fichier -->
+<!-- Modal pour générer bulletin -->
 <div class="modal fade" id="bulletinModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form action="{{ route('notes.generateBulletin') }}" method="GET" target="_blank">
@@ -143,72 +197,8 @@
     </div>
 </div>
 
+@endsection
+
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-$(document).ready(function() {
-
-    // Filtrer les notes par classe
-    $('#filter_classe').change(function() {
-        var classeId = $(this).val();
-        $.ajax({
-            url: '{{ route("notes.filterByClasse") }}',
-            type: 'GET',
-            data: { classe_id: classeId },
-            success: function(data) {
-                var tbody = '';
-                if(data.length > 0){
-                    $.each(data, function(i, note){
-                        tbody += '<tr>';
-                        tbody += '<td>'+note.eleve+'</td>';
-                        tbody += '<td>'+note.matiere+'</td>';
-                        tbody += '<td>'+note.classe+'</td>';
-                        tbody += '<td>'+note.valeur.toFixed(2)+'</td>';
-                        tbody += '<td>'+note.coefficient+'</td>';
-                        tbody += '<td>'+note.mois+'</td>';
-                        tbody += '</tr>';
-                    });
-                } else {
-                    tbody = '<tr><td colspan="6" class="text-center">Aucune note trouvée</td></tr>';
-                }
-                $('#notesTableBody').html(tbody);
-            }
-        });
-    });
-
-
-    // Ouvrir le modal pour éditer une note
-    // Ouvrir le modal pour éditer une note
-    $(document).on('click', '.edit-btn', function() {
-        var noteId = $(this).data('id');
-        window.location.href = '/notes/' + noteId + '/edit';
-    });
-
-
-    // Soumettre le formulaire d'édition via AJAX
-    $('#editNoteForm').submit(function(e) {
-        e.preventDefault();
-        var noteId = $('#note_id').val();
-        var data = $(this).serialize();
-        $.ajax({
-            url: '/notes/' + noteId,
-            type: 'PUT',
-            data: data,
-            success: function() {
-                $('#editNoteModal').modal('hide');
-                alert('Note mise à jour avec succès');
-                $('#filter_classe').trigger('change'); // recharge la table
-            },
-            error: function(xhr) {
-                alert('Erreur lors de la mise à jour');
-            }
-        });
-    });
-
-});
-</script>
-
-
 @endpush
-@endsection
