@@ -1,4 +1,9 @@
 _Dans parametrage de frais ne doit pas depasser le montant total
+_ PARAMETRAGE DE FRAIS
+_REINSCRIPTION
+DESIGN DE BULLETIN
+_PAIEMENT SCOLARITE (ARRIERE l'AN PASSEE)
+SI YA UNE NOUVELLE ANNEE EMPECHER DE PASSER DES ECRITURE DE PAIEMENT DANS LA PRECENDENTE
 _CLASSEMENT ET BULLETIN
 _Generer la fiche d'inscription de lelves
 _ Page d'accueil en fonction du role Auth

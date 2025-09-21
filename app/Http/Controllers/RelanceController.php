@@ -23,8 +23,9 @@ class RelanceController extends Controller
 {
     public function index()
     {
-        $ecoleId = auth()->user()->ecole_id;
-        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
 
 
         $classes = Classe::with('niveau')
