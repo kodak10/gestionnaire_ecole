@@ -26,8 +26,6 @@ class RelanceController extends Controller
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-
-
         $classes = Classe::with('niveau')
             ->where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
@@ -35,18 +33,13 @@ class RelanceController extends Controller
             ->get();
 
         $userId = Auth::id();
-        $ecoleId = Auth::user()->ecole_id;
 
-        $userAnnee = UserAnneeScolaire::where('user_id', $userId)
-            ->where('ecole_id', $ecoleId)
-            ->latest('id')
-            ->first();
+        
 
-        $moisScolaires = [];
-        if ($userAnnee) {
+        
             $moisScolaires = MoisScolaire::orderBy('numero')
                 ->get();
-        }
+        
 
         $typeFrais = TypeFrais::get();
 
