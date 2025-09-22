@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Inscription;
@@ -24,61 +23,20 @@ class CantineController extends Controller
 {
     public function index()
 {
-    $ecoleId = auth()->user()->ecole_id;
-        $anneeScolaireId = auth()->user()->annee_scolaire_id ;
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
 
-        $classes = Classe::with('niveau')
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('id')
-            ->get();
+    $classes = Classe::with('niveau')
+        ->where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->orderBy('id')
+        ->get();
 
-    $anneesScolaires = AnneeScolaire::orderBy('est_active', 'desc')->orderBy('annee', 'desc')->get();
     $moisScolaires = MoisScolaire::orderBy('id')->get(); // ajouter la liste des mois
 
-    return view('dashboard.pages.cantines.index', compact('classes', 'anneesScolaires', 'moisScolaires'));
+    return view('dashboard.pages.cantines.index', compact('classes', 'moisScolaires'));
 }
-
-//   public function elevesByClasseCantine(Request $request)
-// {
-//     $request->validate([
-//         'classe_id' => 'required|exists:classes,id'
-//     ]);
-
-//     try {
-//         // Récupérer l'année scolaire active de l'utilisateur
-//         $anneeUser = DB::table('user_annees_scolaires')
-//             ->where('user_id', auth()->id())
-//             ->latest('id')
-//             ->first();
-
-//         if (!$anneeUser) {
-//             return response()->json([], 422); // ou message d'erreur spécifique
-//         }
-
-//         $anneeId = $anneeUser->annee_scolaire_id;
-
-//         $eleves = Inscription::with('eleve')
-//             ->where('classe_id', $request->classe_id)
-//             ->where('cantine_active', true) // Filtrer uniquement les élèves avec cantine active
-//             ->where('annee_scolaire_id', $anneeId) // filtrer par année scolaire de l'utilisateur
-//             ->get()
-//             ->map(function($inscription) {
-//                 return [
-//                     'id' => $inscription->id,
-//                     'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-//                     'matricule' => $inscription->eleve->matricule,
-//                     'cantine_active' => $inscription->cantine_active
-//                 ];
-//             });
-
-//         return response()->json($eleves);
-
-//     } catch (\Exception $e) {
-//         return response()->json([], 500);
-//     }
-// }
 
 public function elevesByClasseCantine(Request $request)
 {
@@ -394,7 +352,13 @@ public function generateReceipt($paiementId)
     public function printScolarite($eleveId, $anneeId)
     {
         $eleve = Eleve::with('classe.niveau')->findOrFail($eleveId);
+
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+
         $anneeScolaire = AnneeScolaire::findOrFail($anneeId);
+
         
         // Récupérer les données de scolarité
         $typeScolarite = TypeFrais::where('nom', 'like', '%cantine%')->first();

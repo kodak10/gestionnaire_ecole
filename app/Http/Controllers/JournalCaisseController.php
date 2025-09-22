@@ -22,78 +22,6 @@ class JournalCaisseController extends Controller
         return view('dashboard.pages.comptabilites.journal_caisse', compact('anneesScolaires', 'typesFrais'));
     }
 
-    // public function getData(Request $request)
-    // {
-    //     // Validation des filtres
-    //     $request->validate([
-    //         'type_frais_id' => 'nullable|exists:type_frais,id',
-    //         'date_debut' => 'nullable|date',
-    //         'date_fin' => 'nullable|date',
-    //     ]);
-
-    //     // 👇 Log pour vérifier ce que l'utilisateur a choisi
-    // Log::info('Type de frais sélectionné : ' . $request->type_frais_id);
-    
-    //     // Récupérer l'année scolaire de l'utilisateur
-    //     $userId = Auth::id();
-    //     $ecoleId = Auth::user()->ecole_id;
-
-    //     $userAnnee = \App\Models\UserAnneeScolaire::where('user_id', $userId)
-    //                     ->where('ecole_id', $ecoleId)
-    //                     ->latest('id')
-    //                     ->first();
-
-    //     if (!$userAnnee) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Aucune année scolaire définie pour cet utilisateur.'
-    //         ]);
-    //     }
-
-    //     $anneeScolaireId = $userAnnee->annee_scolaire_id;
-
-    //     try {
-    //         // Construire la requête
-    //         $query = Paiement::with(['typeFrais', 'inscription.eleve', 'user', 'anneeScolaire'])
-    //                     ->where('annee_scolaire_id', $anneeScolaireId);
-
-    //         // Appliquer les filtres
-    //         if ($request->type_frais_id) {
-    //             $query->where('type_frais_id', $request->type_frais_id);
-    //         }
-
-    //         if ($request->date_debut) {
-    //             $query->whereDate('created_at', '>=', $request->date_debut);
-    //         }
-
-    //         if ($request->date_fin) {
-    //             $query->whereDate('created_at', '<=', $request->date_fin);
-    //         }
-
-    //         // Récupérer les paiements
-    //         $paiements = $query->orderBy('created_at', 'desc')
-    //                            ->orderBy('created_at', 'desc')
-    //                            ->get();
-
-    //         // Calcul des totaux
-    //         $totalPaiements = $paiements->sum('montant');
-    //         $nombrePaiements = $paiements->count();
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'paiements' => $paiements,
-    //             'total_paiements' => $totalPaiements,
-    //             'nombre_paiements' => $nombrePaiements
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
-    //         ]);
-    //     }
-    // }
-
 
 public function getData(Request $request)
 {
@@ -103,26 +31,10 @@ public function getData(Request $request)
         'date_fin' => 'nullable|date',
     ]);
 
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
+
     Log::info('Requête getData reçue', $request->all());
-
-    $userId = Auth::id();
-    $ecoleId = Auth::user()->ecole_id;
-
-    $userAnnee = \App\Models\UserAnneeScolaire::where('user_id', $userId)
-        ->where('ecole_id', $ecoleId)
-        ->latest('id')
-        ->first();
-
-    if (!$userAnnee) {
-        Log::warning("Aucune année scolaire définie pour l'utilisateur $userId");
-        return response()->json([
-            'success' => false,
-            'message' => 'Aucune année scolaire définie pour cet utilisateur.'
-        ]);
-    }
-
-    $anneeScolaireId = $userAnnee->annee_scolaire_id;
-    Log::info("Année scolaire utilisée: $anneeScolaireId pour l'utilisateur $userId");
 
     try {
         $paiements = Paiement::with([

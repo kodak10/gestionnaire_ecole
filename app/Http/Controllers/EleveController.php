@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ElevesExport;
-use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Ecole;
 use App\Models\Eleve;

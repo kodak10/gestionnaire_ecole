@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ClassesExport;
-use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Niveau;
 use Barryvdh\DomPDF\Facade\Pdf;
