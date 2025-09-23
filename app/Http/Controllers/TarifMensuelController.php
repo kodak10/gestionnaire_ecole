@@ -14,6 +14,9 @@ class TarifMensuelController extends Controller
 {
     public function index(Request $request)
     {
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
         // Filtres
         $niveau_id = $request->input('niveau_id');
         $type_frais_id = $request->input('type_frais_id');
@@ -30,7 +33,9 @@ class TarifMensuelController extends Controller
         if ($type_frais_id) $query->where('type_frais_id', $type_frais_id);
         if ($mois_id) $query->where('mois_id', $mois_id);
 
-        $tarifs = $query->get();
+        $tarifs = $query->where('ecole_id', $ecoleId)
+                         ->where('annee_scolaire_id', $anneeScolaireId)
+                         ->get();
 
         // Préparer les événements pour FullCalendar
         $events = [];
@@ -76,42 +81,44 @@ class TarifMensuelController extends Controller
         return $classes[$typeFraisId] ?? 'fc-event-default';
     }
 
+   
+
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'type_frais_id' => 'required|exists:type_frais,id',
-        'niveau_id' => 'required|exists:niveaux,id',
-        'mois_id' => 'required|exists:mois_scolaires,id',
-        'montant' => 'required|numeric|min:0',
-    ]);
+    {
+        $validated = $request->validate([
+            'type_frais_id' => 'required|exists:type_frais,id',
+            'niveau_id' => 'required|exists:niveaux,id',
+            'mois_id' => 'required|exists:mois_scolaires,id',
+            'montant' => 'required|numeric|min:0',
+        ]);
 
-    // Récupérer l'école et l'année scolaire
-    $ecoleId = auth()->user()->ecole_id;
-    $anneeScolaireId = session('annee_scolaire_id');
+        // Récupérer l'école et l'année scolaire
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    $validated['ecole_id'] = $ecoleId;
-    $validated['annee_scolaire_id'] = $anneeScolaireId; // <-- ajouter ici
 
-    // Vérification des doublons pour cette école
-    $existingTarif = TarifMensuel::where('ecole_id', $ecoleId)
-        ->where('type_frais_id', $validated['type_frais_id'])
-        ->where('niveau_id', $validated['niveau_id'])
-        ->where('mois_id', $validated['mois_id'])
-        ->where('annee_scolaire_id', $anneeScolaireId) // <-- inclure l'année
-        ->first();
+        $validated['ecole_id'] = $ecoleId;
+        $validated['annee_scolaire_id'] = $anneeScolaireId;
 
-    if ($existingTarif) {
-        return redirect()->back()
-            ->withErrors(['duplicate' => 'Un tarif existe déjà pour cette combinaison type/niveau/mois dans votre école.'])
-            ->withInput();
+        // Vérification des doublons pour cette école
+        $existingTarif = TarifMensuel::where('ecole_id', $ecoleId)
+            ->where('type_frais_id', $validated['type_frais_id'])
+            ->where('niveau_id', $validated['niveau_id'])
+            ->where('mois_id', $validated['mois_id'])
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->first();
+
+        if ($existingTarif) {
+            return redirect()->back()
+                ->withErrors(['duplicate' => 'Un tarif existe déjà pour cette combinaison type/niveau/mois dans votre école.'])
+                ->withInput();
+        }
+
+        TarifMensuel::create($validated);
+
+        return redirect()->route('tarifs-mensuels.index')
+            ->with('success', 'Tarif mensuel ajouté.');
     }
-
-    TarifMensuel::create($validated); // <-- ici pas de 2e argument
-
-    return redirect()->route('tarifs-mensuels.index')
-        ->with('success', 'Tarif mensuel ajouté.');
-}
-
 
     public function edit($id)
     {
@@ -129,11 +136,12 @@ class TarifMensuelController extends Controller
             'montant' => 'required|numeric|min:0',
         ]);
 
-        // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id;
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
         // Vérification des doublons (exclure l'enregistrement actuel)
         $existingTarif = TarifMensuel::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
             ->where('type_frais_id', $validated['type_frais_id'])
             ->where('niveau_id', $validated['niveau_id'])
             ->where('mois_id', $validated['mois_id'])
@@ -157,96 +165,93 @@ class TarifMensuelController extends Controller
         return redirect()->route('tarifs-mensuels.index')->with('success', 'Tarif supprimé.');
     }
 
-    /**
-     * Vérifie si un tarif existe déjà pour la combinaison type/niveau/mois
-     */
-    public function checkExistingTarif(Request $request): JsonResponse
-    {
-        $type_frais_id = $request->input('type_frais_id');
-        $niveau_id = $request->input('niveau_id');
-        $mois_id = $request->input('mois_id');
-        $exclude_id = $request->input('exclude_id');
 
-        // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id;
-
-        $query = TarifMensuel::where('ecole_id', $ecoleId)
-            ->where('type_frais_id', $type_frais_id)
-            ->where('niveau_id', $niveau_id)
-            ->where('mois_id', $mois_id);
-
-        if ($exclude_id) {
-            $query->where('id', '!=', $exclude_id);
-        }
-
-        $exists = $query->exists();
-
-        return response()->json(['exists' => $exists]);
-    }
-
-    /**
-     * Récupère les tarifs existants pour un type de frais et un niveau
-     */
-    public function getTarifsByTypeAndNiveau(Request $request): JsonResponse
-    {
-        $type_frais_id = $request->input('type_frais_id');
-        $niveau_id = $request->input('niveau_id');
-
-        // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id;
-
-        $tarifs = TarifMensuel::with('mois')
-            ->where('ecole_id', $ecoleId)
-            ->where('type_frais_id', $type_frais_id)
-            ->where('niveau_id', $niveau_id)
-            ->get()
-            ->map(function($tarif) {
-                return [
-                    'mois_id' => $tarif->mois_id,
-                    'mois_nom' => $tarif->mois->nom,
-                    'montant' => $tarif->montant
-                ];
-            });
-
-        return response()->json(['tarifs' => $tarifs]);
-    }
-
-    /**
-     * Récupère les niveaux associés à un type de frais
-     */
     public function getNiveauxByTypeFrais(Request $request): JsonResponse
     {
         $type_frais_id = $request->input('type_frais_id');
         
         // Récupérer l'ecole_id de l'utilisateur authentifié
-        $ecoleId = auth()->user()->ecole_id;
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
         // Récupérer les niveaux qui ont déjà des tarifs pour ce type de frais
         $niveaux = Niveau::whereHas('tarifs', function($query) use ($type_frais_id, $ecoleId) {
                 $query->where('type_frais_id', $type_frais_id)
-                      ->where('ecole_id', $ecoleId);
+                        ->where('annee_scolaire_id', $anneeScolaireId)
+                        ->where('ecole_id', $ecoleId);
             })
             ->orderBy('nom')
             ->get();
         
         return response()->json(['niveaux' => $niveaux]);
     }
+   
 
-    /**
-     * Synchronise les filtres avec le formulaire d'ajout
-     */
-    public function syncFilters(Request $request): JsonResponse
-    {
-        $type_frais_id = $request->input('type_frais_id');
-        $niveau_id = $request->input('niveau_id');
-        $mois_id = $request->input('mois_id');
+    // public function checkExistingTarif(Request $request): JsonResponse
+    // {
+    //     $type_frais_id = $request->input('type_frais_id');
+    //     $niveau_id = $request->input('niveau_id');
+    //     $mois_id = $request->input('mois_id');
+    //     $exclude_id = $request->input('exclude_id');
 
-        return response()->json([
-            'type_frais_id' => $type_frais_id,
-            'niveau_id' => $niveau_id,
-            'mois_id' => $mois_id
-        ]);
-    }
+    //     // Récupérer l'ecole_id de l'utilisateur authentifié
+    //     $ecoleId = session('current_ecole_id'); 
+    //     $anneeScolaireId = session('current_annee_scolaire_id');
 
+    //     $query = TarifMensuel::where('ecole_id', $ecoleId)
+    //         ->where('annee_scolaire_id', $anneeScolaireId)
+    //         ->where('type_frais_id', $type_frais_id)
+    //         ->where('niveau_id', $niveau_id)
+    //         ->where('mois_id', $mois_id);
+
+    //     if ($exclude_id) {
+    //         $query->where('id', '!=', $exclude_id);
+    //     }
+
+    //     $exists = $query->exists();
+
+    //     return response()->json(['exists' => $exists]);
+    // }
+
+    // public function getTarifsByTypeAndNiveau(Request $request): JsonResponse
+    // {
+    //     $type_frais_id = $request->input('type_frais_id');
+    //     $niveau_id = $request->input('niveau_id');
+
+    //     // Récupérer l'ecole_id de l'utilisateur authentifié
+    //     $ecoleId = session('current_ecole_id'); 
+    //     $anneeScolaireId = session('current_annee_scolaire_id');
+
+    //     $tarifs = TarifMensuel::with('mois')
+    //         ->where('ecole_id', $ecoleId)
+    //         ->where('annee_scolaire_id', $anneeScolaireId)
+    //         ->where('type_frais_id', $type_frais_id)
+    //         ->where('niveau_id', $niveau_id)
+    //         ->get()
+    //         ->map(function($tarif) {
+    //             return [
+    //                 'mois_id' => $tarif->mois_id,
+    //                 'mois_nom' => $tarif->mois->nom,
+    //                 'montant' => $tarif->montant
+    //             ];
+    //         });
+
+    //     return response()->json(['tarifs' => $tarifs]);
+    // }
+
+    
+
+    // public function syncFilters(Request $request): JsonResponse
+    // {
+    //     $type_frais_id = $request->input('type_frais_id');
+    //     $niveau_id = $request->input('niveau_id');
+    //     $mois_id = $request->input('mois_id');
+
+    //     return response()->json([
+    //         'type_frais_id' => $type_frais_id,
+    //         'niveau_id' => $niveau_id,
+    //         'mois_id' => $mois_id
+    //     ]);
+    // }
     
 }

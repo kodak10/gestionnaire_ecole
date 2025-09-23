@@ -285,7 +285,7 @@ class TransportController extends Controller
         $tarifTransport = Tarif::where([
             'annee_scolaire_id' => $anneeScolaireId,
             'niveau_id' => $classe->niveau->id,
-            'ecole_id' => $ecole->id,
+            'ecole_id' => $ecoleId,
             'type_frais_id' => $typeTransport->id
         ])->first();
 
@@ -366,6 +366,5 @@ class TransportController extends Controller
         $pdf = PDF::loadView('scolarite.print', $data);
         return $pdf->stream('scolarite-' . $eleve->matricule . '.pdf');
     }
-
    
 }

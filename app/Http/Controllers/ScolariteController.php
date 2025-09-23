@@ -18,131 +18,126 @@ use PDF;
 
 class ScolariteController extends Controller
 {
-   public function index()
-{
-    // Récupérer l'école et l'année scolaire depuis la session ou depuis l'utilisateur connecté
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
+    public function index()
+    {
+        // Récupérer l'école et l'année scolaire depuis la session ou depuis l'utilisateur connecté
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    $classes = Classe::with('niveau')
-        ->where('ecole_id', $ecoleId)
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->orderBy('id')
-        ->get();
-
-    $typesFrais = TypeFrais::orderBy('nom')->get();
-
-    $moisScolaires = MoisScolaire::get();
-
-    $anneesScolaires = AnneeScolaire::where('ecole_id', $ecoleId)
-        ->orderBy('est_active', 'desc')
-        ->orderBy('annee', 'desc')
-        ->get();
-
-    return view('dashboard.pages.scolarites.index', compact(
-        'classes',
-        'typesFrais',
-        'moisScolaires',
-        'anneesScolaires'
-    ));
-}
-
-public function getElevesByClasse(Request $request)
-{
-    $request->validate([
-        'classe_id' => 'required|exists:classes,id'
-    ]);
-
-    try {
-        $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-        $anneeId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
-
-        $eleves = Inscription::with(['eleve', 'classe'])
-            ->where('classe_id', $request->classe_id)
+        $classes = Classe::with('niveau')
             ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeId)
-            ->get()
-            ->sortBy(fn($inscription) => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom)
-            ->values()
-            ->map(fn($inscription) => [
-                'inscription_id' => $inscription->id,
-                'eleve_id' => $inscription->eleve->id,
-                'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-                'matricule' => $inscription->eleve->matricule,
-                'classe_nom' => $inscription->classe->nom,
-            ]);
-
-        return response()->json($eleves);
-
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Erreur lors du chargement des élèves: ' . $e->getMessage()], 500);
-    }
-}
-
-public function getElevePaiements(Request $request)
-{
-    $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id'
-    ]);
-
-    try {
-        $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-        $anneeId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
-
-        $inscription = Inscription::with('classe.niveau', 'eleve')
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeId)
-            ->findOrFail($request->inscription_id);
-
-        $niveauId = $inscription->classe->niveau_id;
-
-        $paiements = Paiement::with(['typeFrais'])
-            ->where('inscription_id', $inscription->id)
-            ->where('annee_scolaire_id', $anneeId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('id')
             ->get();
 
-        $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
+        $typesFrais = TypeFrais::orderBy('nom')->get();
 
-        $montantScolarite = 0;
-        if ($typeScolarite) {
-            $tarifScolarite = Tarif::where('annee_scolaire_id', $anneeId)
-                ->where('ecole_id', $ecoleId)
-                ->where('niveau_id', $niveauId)
-                ->where('type_frais_id', $typeScolarite->id)
-                ->first();
+        $moisScolaires = MoisScolaire::get();
 
-            $montantScolarite = $tarifScolarite?->montant ?? 0;
-        }
+        return view('dashboard.pages.scolarites.index', compact(
+            'classes',
+            'typesFrais',
+            'moisScolaires',
+        ));
+    }
 
-        $totalPayeScolarite = $paiements
-            ->where('type_frais_id', $typeScolarite->id ?? 0)
-            ->sum('montant');
-
-        $reductionScolarite = Reduction::where('inscription_id', $inscription->id)
-            ->where('annee_scolaire_id', $anneeId)
-            ->where('type_frais_id', $typeScolarite->id ?? 0)
-            ->sum('montant');
-
-        $resteAPayer = max($montantScolarite - $reductionScolarite - $totalPayeScolarite, 0);
-
-        return response()->json([
-            'success' => true,
-            'summary' => [
-                'total_scolarite' => $montantScolarite,
-                'total_paye_scolarite' => $totalPayeScolarite,
-                'reste_payer_scolarite' => $resteAPayer,
-                'reduction_scolarite' => $reductionScolarite,
-            ],
-            'paiements' => $paiements
+    public function getElevesByClasse(Request $request)
+    {
+        $request->validate([
+            'classe_id' => 'required|exists:classes,id'
         ]);
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
-        ], 500);
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeId = session('current_annee_scolaire_id');
+
+            $eleves = Inscription::with(['eleve', 'classe'])
+                ->where('ecole_id', $ecoleId)
+                ->where('annee_scolaire_id', $anneeId)
+                ->where('classe_id', $request->classe_id)
+                ->get()
+                ->sortBy(fn($inscription) => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom)
+                ->values()
+                ->map(fn($inscription) => [
+                    'inscription_id' => $inscription->id,
+                    'eleve_id' => $inscription->eleve->id,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
+                    'matricule' => $inscription->eleve->matricule,
+                    'classe_nom' => $inscription->classe->nom,
+                ]);
+
+            return response()->json($eleves);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erreur lors du chargement des élèves: ' . $e->getMessage()], 500);
+        }
     }
-}
+
+    public function getElevePaiements(Request $request)
+    {
+        $request->validate([
+            'inscription_id' => 'required|exists:inscriptions,id'
+        ]);
+
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeId = session('current_annee_scolaire_id');
+
+            $inscription = Inscription::with('classe.niveau', 'eleve')
+                ->where('ecole_id', $ecoleId)
+                ->where('annee_scolaire_id', $anneeId)
+                ->findOrFail($request->inscription_id);
+
+            $niveauId = $inscription->classe->niveau_id;
+
+            $paiements = Paiement::with(['typeFrais'])
+                ->where('inscription_id', $inscription->id)
+                ->where('annee_scolaire_id', $anneeId)
+                ->get();
+
+            $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
+
+            $montantScolarite = 0;
+            if ($typeScolarite) {
+                $tarifScolarite = Tarif::where('annee_scolaire_id', $anneeId)
+                    ->where('ecole_id', $ecoleId)
+                    ->where('niveau_id', $niveauId)
+                    ->where('type_frais_id', $typeScolarite->id)
+                    ->first();
+
+                $montantScolarite = $tarifScolarite?->montant ?? 0;
+            }
+
+            $totalPayeScolarite = $paiements
+                ->where('type_frais_id', $typeScolarite->id ?? 0)
+                ->sum('montant');
+
+            $reductionScolarite = Reduction::where('inscription_id', $inscription->id)
+                ->where('annee_scolaire_id', $anneeId)
+                ->where('type_frais_id', $typeScolarite->id ?? 0)
+                ->sum('montant');
+
+            $resteAPayer = max($montantScolarite - $reductionScolarite - $totalPayeScolarite, 0);
+
+            return response()->json([
+                'success' => true,
+                'summary' => [
+                    'total_scolarite' => $montantScolarite,
+                    'total_paye_scolarite' => $totalPayeScolarite,
+                    'reste_payer_scolarite' => $resteAPayer,
+                    'reduction_scolarite' => $reductionScolarite,
+                ],
+                'paiements' => $paiements
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 public function applyReduction(Request $request)
 {
     $request->validate([

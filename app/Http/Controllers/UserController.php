@@ -196,57 +196,57 @@ class UserController extends Controller
      * Mettre à jour le profil de l'utilisateur connecté
      */
     public function updateProfile(Request $request)
-{
-    $user = User::find(auth()->id());
+    {
+        $user = User::find(auth()->id());
 
-    if ($request->input('update_type') === 'profile') {
-        // Validation du profil complet
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'pseudo' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('users')->ignore($user->id)->where(function ($query) use ($user) {
-                    $query->where('ecole_id', $user->ecole_id);
-                }),
-            ],
-            'password' => 'nullable|string|min:8|confirmed',
-        ]);
-    } elseif ($request->input('update_type') === 'photo') {
-        // Validation uniquement pour la photo
-        $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-    }
-
-    if ($validator->fails()) {
-        return redirect()->back()->withErrors($validator)->withInput();
-    }
-
-    // Mettre à jour les champs si présents
-    if ($request->filled('name')) {
-        $user->name = $request->name;
-    }
-    if ($request->filled('pseudo')) {
-        $user->pseudo = $request->pseudo;
-    }
-    if ($request->filled('password')) {
-        $user->password = Hash::make($request->password);
-    }
-
-    // Photo
-    if ($request->hasFile('photo')) {
-        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
-            Storage::disk('public')->delete($user->photo);
+        if ($request->input('update_type') === 'profile') {
+            // Validation du profil complet
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'pseudo' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('users')->ignore($user->id)->where(function ($query) use ($user) {
+                        $query->where('ecole_id', $user->ecole_id);
+                    }),
+                ],
+                'password' => 'nullable|string|min:8|confirmed',
+            ]);
+        } elseif ($request->input('update_type') === 'photo') {
+            // Validation uniquement pour la photo
+            $validator = Validator::make($request->all(), [
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
         }
-        $photoPath = $request->file('photo')->store('profiles', 'public');
-        $user->photo = $photoPath;
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        // Mettre à jour les champs si présents
+        if ($request->filled('name')) {
+            $user->name = $request->name;
+        }
+        if ($request->filled('pseudo')) {
+            $user->pseudo = $request->pseudo;
+        }
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        // Photo
+        if ($request->hasFile('photo')) {
+            if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+                Storage::disk('public')->delete($user->photo);
+            }
+            $photoPath = $request->file('photo')->store('profiles', 'public');
+            $user->photo = $photoPath;
+        }
+
+        $user->save();
+
+        return redirect()->route('profile')->with('success', 'Profil mis à jour avec succès.');
     }
-
-    $user->save();
-
-    return redirect()->route('profile')->with('success', 'Profil mis à jour avec succès.');
-}
 
 }
