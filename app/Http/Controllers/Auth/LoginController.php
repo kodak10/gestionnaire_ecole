@@ -40,8 +40,7 @@ class LoginController extends Controller
     public function showLoginForm()
     {
         // Récupérer toutes les années scolaires actives avec les écoles associées
-        $anneesScolaires = AnneeScolaire::with('ecole')
-            ->get();
+        $anneesScolaires = AnneeScolaire::with('ecole')->get();
 
         return view('home.auth.login', compact('anneesScolaires'));
     }
@@ -79,73 +78,52 @@ class LoginController extends Controller
      */
    
 
-protected function attemptLogin(Request $request)
-{
-    Log::info('--- Tentative de connexion ---', [
-        'pseudo' => $request->pseudo,
-        'user_ecole_annee' => $request->input('user_ecole_annee'),
-    ]);
+    protected function attemptLogin(Request $request)
+    {
+        // Valider et extraire les informations d'école et année scolaire
+        $userEcoleAnnee = $request->input('user_ecole_annee');
+        if (!str_contains($userEcoleAnnee, '_')) {
+            return false;
+        }
 
-    // Valider et extraire les informations d'école et année scolaire
-    $userEcoleAnnee = $request->input('user_ecole_annee');
-    if (!str_contains($userEcoleAnnee, '_')) {
-        Log::warning('Format user_ecole_annee invalide', [
-            'value' => $userEcoleAnnee,
-        ]);
+        list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
+
+        // Vérifier que l'école et l'année scolaire existent
+        $ecole = Ecole::find($ecoleId);
+        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
+        if (!$ecole || !$anneeScolaire) {
+            return false;
+        }
+
+        // Vérifier si l'utilisateur existe
+        $user = User::where('pseudo', $request->pseudo)
+            ->where('ecole_id', $ecoleId)
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Tenter la connexion
+        $credentials = $this->credentials($request);
+        $remember = $request->filled('remember');
+
+        if (Auth::attempt($credentials, $remember)) {
+            // Stocker les informations en session
+            session([
+                'current_ecole_id' => $ecoleId,
+                'current_annee_scolaire_id' => $anneeScolaireId,
+                'current_ecole_nom' => $ecole->nom_ecole,
+                'current_annee_scolaire' => $anneeScolaire->annee
+            ]);
+
+            return true;
+        }
+
         return false;
     }
-
-    list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
-
-    // Vérifier que l'école et l'année scolaire existent
-    $ecole = Ecole::find($ecoleId);
-    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-
-    if (!$ecole || !$anneeScolaire) {
-        Log::warning('Ecole ou année scolaire introuvable', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-        ]);
-        return false;
-    }
-
-    // Vérifier si l'utilisateur existe
-    $user = User::where('pseudo', $request->pseudo)
-                ->where('ecole_id', $ecoleId)
-                ->where('is_active', 1)
-                ->first();
-
-    if (!$user) {
-        Log::warning('Utilisateur non trouvé ou inactif', [
-            'pseudo' => $request->pseudo,
-            'ecole_id' => $ecoleId,
-        ]);
-        return false;
-    }
-
-    Log::info('Utilisateur trouvé, tentative Auth::attempt', [
-        'pseudo' => $request->pseudo,
-        'ecole_id' => $ecoleId,
-    ]);
-
-    // Tenter la connexion
-    $credentials = $this->credentials($request);
-    $remember = $request->filled('remember');
-
-    if (Auth::attempt($credentials, $remember)) {
-        // Stocker les informations en session
-        session([
-            'current_ecole_id' => $ecoleId,
-            'current_annee_scolaire_id' => $anneeScolaireId,
-            'current_ecole_nom' => $ecole->nom_ecole,
-            'current_annee_scolaire' => $anneeScolaire->annee
-        ]);
-
-        return true;
-    }
-
-    return false;
-}
 
 
     /**

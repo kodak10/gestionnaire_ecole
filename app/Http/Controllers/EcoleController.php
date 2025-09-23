@@ -10,33 +10,14 @@ class EcoleController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
-        Log::info('Utilisateur connecté : ', ['user_id' => $user->id, 'ecole_id' => $user->ecole_id]);
-
-        if (!$user->ecole_id) {
-            Log::warning('Utilisateur sans ecole_id', ['user_id' => $user->id]);
-            return redirect()->route('dashboard')->with('error', 'Aucune école assignée à votre compte.');
-        }
-
-        $ecoleInfos = Ecole::find($user->ecole_id);
-
-        if (!$ecoleInfos) {
-            Log::error('École introuvable', ['ecole_id' => $user->ecole_id]);
-            return redirect()->route('dashboard')->with('error', 'École non trouvée.');
-        }
-        
-
-        Log::info('École trouvée', ['ecole' => $ecoleInfos->toArray()]);
-
-        // dd($ecole);
+        $ecoleId = session('current_ecole_id');
+        $ecoleInfos = Ecole::find($ecoleId);
 
         return view('dashboard.pages.parametrage.ecole', compact('ecoleInfos'));
     }
 
     public function update(Request $request)
     {
-        Log::info('Update demandé', ['request' => $request->all()]);
-
         $request->validate([
             'nom_ecole' => 'required|string|max:255',
             'sigle_ecole' => 'required|string|max:10',
@@ -50,11 +31,10 @@ class EcoleController extends Controller
             'sms_notification' => 'nullable|boolean',
         ]);
 
-        $ecole = Ecole::find(auth()->user()->ecole_id);
-        Log::info('École avant update', ['ecole' => $ecole ? $ecole->toArray() : null]);
+        $ecoleId = session('current_ecole_id');
+        $ecole = Ecole::find($ecoleId);
 
         if (!$ecole) {
-            Log::error('École introuvable pour update', ['user_id' => auth()->user()->id]);
             return redirect()->back()->with('error', 'École non trouvée.');
         }
 
@@ -62,12 +42,10 @@ class EcoleController extends Controller
         if ($request->hasFile('logo')) {
             if ($ecole->logo && file_exists(public_path($ecole->logo))) {
                 unlink(public_path($ecole->logo));
-                Log::info('Ancien logo supprimé');
             }
 
             $path = $request->file('logo')->store('ecole/logo', 'public');
             $ecole->logo = 'storage/' . $path;
-            Log::info('Nouveau logo stocké', ['logo' => $ecole->logo]);
         }
 
         // Mise à jour des champs
@@ -82,7 +60,6 @@ class EcoleController extends Controller
         $ecole->sms_notification = $request->has('sms_notification') ? $request->sms_notification : false;
 
         $ecole->save();
-        Log::info('École mise à jour avec succès', ['ecole' => $ecole->toArray()]);
 
         return redirect()->route('ecoles.index')->with('success', 'Paramètres mis à jour avec succès');
     }

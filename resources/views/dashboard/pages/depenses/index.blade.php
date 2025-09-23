@@ -162,7 +162,6 @@
                 <form id="depense-form">
                     @csrf
                     <input type="hidden" id="depense_id" name="id">
-                    <input type="hidden" name="annee_scolaire_id" id="form_annee_id" value="{{ $anneesScolaires->where('est_active', true)->first()->id }}">
 
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -562,10 +561,7 @@ $(document).ready(function() {
         });
     });
 
-    // Charger les dépenses au chargement de la page si une année est sélectionnée
-    @if($anneesScolaires->where('est_active', true)->first())
-        loadDepenses();
-    @endif
+    loadDepenses();
 });
 </script>
 @endsection

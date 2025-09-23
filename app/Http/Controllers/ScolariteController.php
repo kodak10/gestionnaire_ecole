@@ -20,7 +20,6 @@ class ScolariteController extends Controller
 {
     public function index()
     {
-        // Récupérer l'école et l'année scolaire depuis la session ou depuis l'utilisateur connecté
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
@@ -138,62 +137,62 @@ class ScolariteController extends Controller
         }
     }
 
-public function applyReduction(Request $request)
-{
-    $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'reduction' => 'required|numeric|min:0'
-    ]);
-
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
-
-    DB::beginTransaction();
-
-    try {
-        $inscription = Inscription::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeId)
-            ->findOrFail($request->inscription_id);
-
-        $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
-
-        if (!$typeScolarite) {
-            throw new \Exception("Type de frais 'Scolarité' introuvable");
-        }
-
-        // Supprimer anciennes réductions pour cette année et ce type
-        $inscription->reductions()
-            ->where('annee_scolaire_id', $anneeId)
-            ->where('type_frais_id', $typeScolarite->id)
-            ->where('ecole_id', $ecoleId)
-            ->delete();
-
-        // Ajouter la nouvelle réduction si > 0
-        if ($request->reduction > 0) {
-            $inscription->reductions()->create([
-                'annee_scolaire_id' => $anneeId,
-                'montant' => $request->reduction,
-                'raison' => 'Réduction manuelle sur scolarité',
-                'type_frais_id' => $typeScolarite->id,
-                'ecole_id' => $ecoleId,
-            ]);
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Réduction appliquée avec succès'
+    public function applyReduction(Request $request)
+    {
+        $request->validate([
+            'inscription_id' => 'required|exists:inscriptions,id',
+            'reduction' => 'required|numeric|min:0'
         ]);
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors de l\'application de la réduction: ' . $e->getMessage()
-        ], 500);
+        $ecoleId = session('current_ecole_id');
+        $anneeId = session('current_annee_scolaire_id');
+
+        DB::beginTransaction();
+
+        try {
+            $inscription = Inscription::where('ecole_id', $ecoleId)
+                ->where('annee_scolaire_id', $anneeId)
+                ->findOrFail($request->inscription_id);
+
+            $typeScolarite = TypeFrais::where('nom', 'like', '%Scolarité%')->first();
+
+            if (!$typeScolarite) {
+                throw new \Exception("Type de frais 'Scolarité' introuvable");
+            }
+
+            // Supprimer anciennes réductions pour cette année et ce type
+            $inscription->reductions()
+                ->where('annee_scolaire_id', $anneeId)
+                ->where('ecole_id', $ecoleId)
+                ->where('type_frais_id', $typeScolarite->id)
+                ->delete();
+
+            // Ajouter la nouvelle réduction si > 0
+            if ($request->reduction > 0) {
+                $inscription->reductions()->create([
+                    'annee_scolaire_id' => $anneeId,
+                    'montant' => $request->reduction,
+                    'raison' => 'Réduction manuelle sur scolarité',
+                    'type_frais_id' => $typeScolarite->id,
+                    'ecole_id' => $ecoleId,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Réduction appliquée avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'application de la réduction: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     public function printScolarite($eleveId, $anneeId)
     {

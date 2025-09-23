@@ -29,7 +29,6 @@ class HomeController extends Controller
      */
     public function index()
     {
-        //dd(session()->all());
         $user = Auth::user();
 
         // Total élèves de l'école

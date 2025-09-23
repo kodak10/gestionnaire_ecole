@@ -13,10 +13,8 @@ class DepenseController extends Controller
 {
     public function index()
     {
-        $anneesScolaires = AnneeScolaire::all();
         $categories = DepenseCategorie::all();
-        
-        return view('dashboard.pages.depenses.index', compact('anneesScolaires', 'categories'));
+        return view('dashboard.pages.depenses.index', compact('categories'));
     }
 
     public function getDepensesData(Request $request)
@@ -28,10 +26,12 @@ class DepenseController extends Controller
         ]);
 
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $ecoleId = session('current_ecole_id');
 
         try {
             $query = Depense::with(['anneeScolaire', 'category'])
-                ->where('annee_scolaire_id', $anneeScolaireId);
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId);
                 
             if ($request->depense_category_id) {
                 $query->where('depense_category_id', $request->depense_category_id);
@@ -73,42 +73,42 @@ class DepenseController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'libelle' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'montant' => 'required|numeric|min:1',
-        'date_depense' => 'required|date',
-        'depense_category_id' => 'required|exists:depense_categories,id',
-        'mode_paiement' => 'required|in:especes,cheque,virement,mobile_money',
-        'beneficiaire' => 'required|string|max:255',
-        'reference' => 'nullable|string|max:100',
-        'justificatif' => 'nullable|string',
-    ]);
-
-    $anneeScolaireId = session('current_annee_scolaire_id');
-    $ecoleId = session('current_ecole_id');
-
-    try {
-        $data = $request->all();
-        $data['annee_scolaire_id'] = $anneeScolaireId;
-        $data['ecole_id'] = $ecoleId; // ajouter l'ecole_id depuis l'utilisateur
-
-        $depense = Depense::create($data);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Dépense enregistrée avec succès',
-            'depense' => $depense
+    {
+        $request->validate([
+            'libelle' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'montant' => 'required|numeric|min:1',
+            'date_depense' => 'required|date',
+            'depense_category_id' => 'required|exists:depense_categories,id',
+            'mode_paiement' => 'required|in:especes,cheque,virement,mobile_money',
+            'beneficiaire' => 'required|string|max:255',
+            'reference' => 'nullable|string|max:100',
+            'justificatif' => 'nullable|string',
         ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors de l\'enregistrement de la dépense: ' . $e->getMessage()
-        ]);
+
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $ecoleId = session('current_ecole_id');
+
+        try {
+            $data = $request->all();
+            $data['annee_scolaire_id'] = $anneeScolaireId;
+            $data['ecole_id'] = $ecoleId;
+
+            $depense = Depense::create($data);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Dépense enregistrée avec succès',
+                'depense' => $depense
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'enregistrement de la dépense: ' . $e->getMessage()
+            ]);
+        }
     }
-}
 
     public function update(Request $request, $id)
     {
@@ -143,22 +143,21 @@ class DepenseController extends Controller
     }
 
     public function show($id)
-{
-    try {
-        // On récupère la dépense avec sa catégorie et son année scolaire
-        $depense = Depense::with('category', 'anneeScolaire')->findOrFail($id);
+    {
+        try {
+            // On récupère la dépense avec sa catégorie et son année scolaire
+            $depense = Depense::with('category', 'anneeScolaire')->findOrFail($id);
 
-        // On renvoie la dépense au format JSON
-        return response()->json($depense);
+            // On renvoie la dépense au format JSON
+            return response()->json($depense);
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors de la récupération de la dépense: ' . $e->getMessage()
-        ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de la dépense: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
-
 
     public function destroy($id)
     {

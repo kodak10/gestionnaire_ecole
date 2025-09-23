@@ -9,35 +9,31 @@ use Illuminate\Http\Request;
 
 class MatiereController extends Controller
 {
-public function index(Request $request)
-{
-    // Récupérer l'école et l'année scolaire depuis la session ou l'utilisateur connecté
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
 
-    // Récupérer les niveaux de l'école et de l'année scolaire
-    $niveaux = Niveau::where('ecole_id', $ecoleId)
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->orderBy('ordre', 'asc') // ordre défini pour tri
-        ->get();
+    public function index(Request $request)
+    {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    // Récupérer les matières filtrées par école, année et éventuellement niveau
-    $matieresQuery = Matiere::where('ecole_id', $ecoleId)
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->orderBy('ordre', 'desc');
+        $niveaux = Niveau::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('ordre', 'asc')
+            ->get();
 
-    if ($request->filled('niveau_id')) {
-        $matieresQuery->where('niveau_id', $request->niveau_id);
+        $matieresQuery = Matiere::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('ordre', 'desc');
+
+        if ($request->filled('niveau_id')) {
+            $matieresQuery->where('niveau_id', $request->niveau_id);
+        }
+
+        $matieres = $matieresQuery->get();
+
+        return view('dashboard.pages.parametrage.matiere', compact('matieres', 'niveaux'));
     }
 
-    $matieres = $matieresQuery->get();
-
-    return view('dashboard.pages.parametrage.matiere', compact('matieres', 'niveaux'));
-}
-
-
-
-   public function getMatieres($id)
+    public function getMatieres($id)
     {
         $niveau = Niveau::with('matieres')->findOrFail($id);
 
@@ -53,126 +49,111 @@ public function index(Request $request)
         return response()->json($matieres);
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255|unique:matieres,nom',
+            'ordre' => 'nullable|integer|min:0', 
+        ]);
 
-   public function store(Request $request)
-{
-    $validated = $request->validate([
-        'nom' => 'required|string|max:255|unique:matieres,nom',
-        'ordre' => 'nullable|integer|min:0', 
-    ]);
+        // Récupérer ecole et année depuis la session
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    // Récupérer ecole et année depuis la session
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
+        Matiere::create([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'nom' => $validated['nom'],
+            'ordre' => $validated['ordre'] ?? 0,
+        ]);
 
-    Matiere::create([
-        'annee_scolaire_id' => $anneeScolaireId,
-        'ecole_id' => $ecoleId,
-        'nom' => $validated['nom'],
-        'ordre' => $validated['ordre'] ?? 0,
-    ]);
+        return redirect()->route('matieres.index')->with('success', 'Matière créée avec succès');
+    }
 
-    return redirect()->route('matieres.index')
-        ->with('success', 'Matière créée avec succès');
-}
+    public function update(Request $request, Matiere $matiere)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255|unique:matieres,nom,'.$matiere->id,
+            'ordre' => 'nullable|integer|min:0', 
+        ]);
 
-public function update(Request $request, Matiere $matiere)
-{
-    $validated = $request->validate([
-        'nom' => 'required|string|max:255|unique:matieres,nom,'.$matiere->id,
-        'ordre' => 'nullable|integer|min:0', 
-    ]);
+        $matiere->update([
+            'nom' => $validated['nom'],
+            'ordre' => $validated['ordre'] ?? $matiere->ordre,
+        ]);
 
-    // Récupérer ecole et année depuis la session
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
-
-    $matiere->update([
-        'nom' => $validated['nom'],
-        'ordre' => $validated['ordre'] ?? $matiere->ordre,
-        'ecole_id' => $ecoleId,
-        'annee_scolaire_id' => $anneeScolaireId,
-    ]);
-
-    return redirect()->route('matieres.index')
-        ->with('success', 'Matière mise à jour avec succès');
-}
-
-
+        return redirect()->route('matieres.index')->with('success', 'Matière mise à jour avec succès');
+    }
 
     public function destroy(Matiere $matiere)
     {
         // Vérifier si la matière est utilisée dans des classes
         if ($matiere->niveaux()->count() > 0) {
-            return redirect()->route('matieres.index')
-                ->with('error', 'Impossible de supprimer : cette matière est associée à des classes');
+            return redirect()->route('matieres.index')->with('error', 'Impossible de supprimer : cette matière est associée à des classes');
         }
 
         $matiere->delete();
         
-        return redirect()->route('matieres.index')
-            ->with('success', 'Matière supprimée avec succès');
+        return redirect()->route('matieres.index')->with('success', 'Matière supprimée avec succès');
     }
 
-   public function assignMatieres(Request $request)
-{
-    $request->validate([
-        'niveau_id' => 'required|exists:niveaux,id',
-        'matieres' => 'required|array',
-        'matieres.*' => 'exists:matieres,id',
-        'coefficients' => 'required|array',
-        'coefficients.*' => 'integer|min:1|max:10',
-    ]);
+    public function assignMatieres(Request $request)
+    {
+        $request->validate([
+            'niveau_id' => 'required|exists:niveaux,id',
+            'matieres' => 'required|array',
+            'matieres.*' => 'exists:matieres,id',
+            'coefficients' => 'required|array',
+            'coefficients.*' => 'integer|min:1|max:10',
+        ]);
 
-    $niveau = Niveau::findOrFail($request->niveau_id);
+        $niveau = Niveau::findOrFail($request->niveau_id);
 
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    $syncData = [];
-    foreach ($request->matieres as $matiereId) {
-        $coef = $request->coefficients[$matiereId];
-        $syncData[$matiereId] = [
-            'coefficient' => $coef,
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId
-        ];
-    }
-
-    $niveau->matieres()->sync($syncData);
-
-    return redirect()->back()->with('success', 'Matières affectées avec succès au niveau.');
-}
-
-public function updateClasses(Request $request, $id)
-{
-    $matiere = Matiere::findOrFail($id);
-
-    $validated = $request->validate([
-        'niveau' => 'required|array',
-        'niveau.*' => 'integer|min:0|max:10'
-    ]);
-
-    $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
-    $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
-
-    $niveauxToSync = [];
-    foreach ($request->niveau as $niveauId => $coefficient) {
-        if ($coefficient > 0) {
-            $niveauxToSync[$niveauId] = [
-                'coefficient' => $coefficient,
+        $syncData = [];
+        foreach ($request->matieres as $matiereId) {
+            $coef = $request->coefficients[$matiereId];
+            $syncData[$matiereId] = [
+                'coefficient' => $coef,
                 'ecole_id' => $ecoleId,
                 'annee_scolaire_id' => $anneeScolaireId
             ];
         }
+
+        $niveau->matieres()->sync($syncData);
+
+        return redirect()->back()->with('success', 'Matières affectées avec succès au niveau.');
     }
 
-    $matiere->niveaux()->sync($niveauxToSync);
+    public function updateClasses(Request $request, $id)
+    {
+        $matiere = Matiere::findOrFail($id);
 
-    return redirect()->route('matieres.index')
-                     ->with('success', 'Classes associées mises à jour avec succès');
-}
+        $validated = $request->validate([
+            'niveau' => 'required|array',
+            'niveau.*' => 'integer|min:0|max:10'
+        ]);
 
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $niveauxToSync = [];
+        foreach ($request->niveau as $niveauId => $coefficient) {
+            if ($coefficient > 0) {
+                $niveauxToSync[$niveauId] = [
+                    'coefficient' => $coefficient,
+                    'ecole_id' => $ecoleId,
+                    'annee_scolaire_id' => $anneeScolaireId
+                ];
+            }
+        }
+
+        $matiere->niveaux()->sync($niveauxToSync);
+
+        return redirect()->route('matieres.index')->with('success', 'Classes associées mises à jour avec succès');
+    }
 
     public function show($id)
     {
@@ -193,6 +174,5 @@ public function updateClasses(Request $request, $id)
             'currentMatiere' => $matiere
         ]);
     }
-
 
 }

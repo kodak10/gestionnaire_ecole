@@ -226,6 +226,7 @@ class RelanceController extends Controller
         $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
             ->where('classe_id', $request->classe_id)
             ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId)
             ->where('statut', 'active')
             ->get();
 

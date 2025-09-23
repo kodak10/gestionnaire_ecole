@@ -17,23 +17,12 @@ class CheckEcoleAnnee
             $anneeId = session('current_annee_scolaire_id');
 
             if (!$ecoleId || !$anneeId) {
-                Log::warning('Middleware CheckEcoleAnnee: valeurs école/année manquantes en session', [
-                    'user_id' => Auth::id(),
-                ]);
-
-                return redirect()->route('login')
-                                 ->with('error', 'Veuillez sélectionner une école et une année scolaire valides.');
+                return redirect()->route('login')->with('error', 'Veuillez sélectionner une école et une année scolaire valides.');
             }
 
-            Log::info('Middleware CheckEcoleAnnee - session OK', [
-                'user_id' => Auth::id(),
-                'current_ecole_id' => $ecoleId,
-                'current_annee_scolaire_id' => $anneeId,
-            ]);
-
             // Optionnel : stocker dans les attributs de la requête
-            $request->attributes->set('ecole_id', $ecoleId);
-            $request->attributes->set('annee_scolaire_id', $anneeId);
+            // $request->attributes->set('ecole_id', $ecoleId);
+            // $request->attributes->set('annee_scolaire_id', $anneeId);
         }
 
         return $next($request);

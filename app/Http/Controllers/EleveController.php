@@ -23,7 +23,13 @@ class EleveController extends Controller
    
     public function index(Request $request)
     {
-        $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $ecoleId = session('current_ecole_id');
+
+        $query = Inscription::with(['eleve', 'classe'])
+            ->where('inscriptions.ecole_id', $ecoleId)
+            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+            ->where('statut', 'active');
 
         // Filtre par classe
         $query->when($request->filled('classe_id'), function($q) use ($request) {
@@ -45,7 +51,7 @@ class EleveController extends Controller
             });
         });
 
-        // Filtre par cantine (CORRIGÉ - sur la table inscriptions)
+        // Filtre par cantine
         $query->when($request->filled('cantine'), function($q) use ($request) {
             if ($request->cantine == '1') {
                 return $q->where('cantine_active', true);
@@ -54,7 +60,7 @@ class EleveController extends Controller
             }
         });
 
-        // Filtre par transport (CORRIGÉ - sur la table inscriptions)
+        // Filtre par transport
         $query->when($request->filled('transport'), function($q) use ($request) {
             if ($request->transport == '1') {
                 return $q->where('transport_active', true);
@@ -99,9 +105,14 @@ class EleveController extends Controller
     public function export(Request $request)
     {
         $format = $request->format;
+
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $ecoleId = session('current_ecole_id');
         
         // Récupérer les élèves avec les mêmes filtres que l'index
-        $query = Inscription::with(['eleve', 'classe', 'anneeScolaire']);
+        $query = Inscription::with(['eleve', 'classe'])
+            ->where('inscriptions.ecole_id', $ecoleId)
+            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId);
 
         // Appliquer les filtres
         $query->when($request->filled('classe_id'), function($q) use ($request) {
@@ -176,13 +187,11 @@ class EleveController extends Controller
         return redirect()->back()->with('error', 'Format non supporté');
     }
 
-   public function create(Request $request)
+    public function create(Request $request)
     {
-        // Récupérer les IDs depuis la session ou l'utilisateur connecté
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
         
-
         // Filtrer et trier les classes
         $classes = Classe::where('ecole_id', $ecoleId)
                         ->where('annee_scolaire_id', $anneeScolaireId)
@@ -205,11 +214,7 @@ class EleveController extends Controller
             'tarifs'
         ));
     }
-
-
-
-
-   
+  
     public function store(Request $request)
     {
         $request->validate([
@@ -314,9 +319,9 @@ class EleveController extends Controller
 
         $eleve = Inscription::findOrFail($id);
         $classes = Classe::all();
+
         return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }
-
 
     public function update(Request $request, $id)
     {
@@ -353,8 +358,6 @@ class EleveController extends Controller
 
         return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
     }
-
-
 
     public function destroy($id)
     {

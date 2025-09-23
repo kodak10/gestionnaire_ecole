@@ -16,94 +16,78 @@ class JournalCaisseController extends Controller
 {
     public function index()
     {
-        $anneesScolaires = AnneeScolaire::orderBy('annee', 'desc')->get();
         $typesFrais = TypeFrais::orderBy('nom')->get();
         
-        return view('dashboard.pages.comptabilites.journal_caisse', compact('anneesScolaires', 'typesFrais'));
+        return view('dashboard.pages.comptabilites.journal_caisse', compact('typesFrais'));
     }
 
+    public function getData(Request $request)
+    {
+        $request->validate([
+            'type_frais_id' => 'nullable|exists:type_frais,id',
+            'date_debut' => 'nullable|date',
+            'date_fin' => 'nullable|date',
+        ]);
 
-public function getData(Request $request)
-{
-    $request->validate([
-        'type_frais_id' => 'nullable|exists:type_frais,id',
-        'date_debut' => 'nullable|date',
-        'date_fin' => 'nullable|date',
-    ]);
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
 
-    $ecoleId = session('current_ecole_id'); 
-    $anneeScolaireId = session('current_annee_scolaire_id');
+        try {
+            $paiements = Paiement::with([
+                'details.typeFrais',
+                'details.inscription.eleve'
+            ])
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId)
+            ->when($request->date_debut, fn($q) => $q->whereDate('created_at', '>=', $request->date_debut))
+            ->when($request->date_fin, fn($q) => $q->whereDate('created_at', '<=', $request->date_fin))
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    Log::info('Requête getData reçue', $request->all());
+            $paiementsData = collect();
+            $totalPaiements = 0;
 
-    try {
-        $paiements = Paiement::with([
-            'details.typeFrais',
-            'details.inscription.eleve'
-        ])
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->when($request->date_debut, fn($q) => $q->whereDate('created_at', '>=', $request->date_debut))
-        ->when($request->date_fin, fn($q) => $q->whereDate('created_at', '<=', $request->date_fin))
-        ->orderBy('created_at', 'desc')
-        ->get();
+            foreach ($paiements as $paiement) {
 
-        Log::info("Nombre de paiements récupérés: " . $paiements->count());
+                foreach ($paiement->details as $detail) {
+                    if ($request->type_frais_id && $detail->type_frais_id != $request->type_frais_id) {
+                        continue;
+                    }
 
-        $paiementsData = collect();
-        $totalPaiements = 0;
+                    $eleveNom = $detail->inscription && $detail->inscription->eleve
+                        ? $detail->inscription->eleve->prenom . ' ' . $detail->inscription->eleve->nom
+                        : 'N/A';
 
-        foreach ($paiements as $paiement) {
-            Log::info("Traitement du paiement ID: {$paiement->id}, mode: {$paiement->mode_paiement}, date: {$paiement->created_at}");
+                    $typeFrais = $detail->typeFrais ? $detail->typeFrais->nom : 'N/A';
+                    $montant = $detail->montant;
 
-            foreach ($paiement->details as $detail) {
-                if ($request->type_frais_id && $detail->type_frais_id != $request->type_frais_id) {
-                    Log::info("Détail ignoré car type_frais_id filtré: {$detail->type_frais_id}");
-                    continue;
+                    $totalPaiements += $montant;
+
+                    $paiementsData->push([
+                        'date' => $paiement->created_at,
+                        'eleve' => $eleveNom,
+                        'type_frais' => $typeFrais,
+                        'montant' => $montant,
+                        'mode_paiement' => $paiement->mode_paiement
+                    ]);
                 }
-
-                $eleveNom = $detail->inscription && $detail->inscription->eleve
-                    ? $detail->inscription->eleve->prenom . ' ' . $detail->inscription->eleve->nom
-                    : 'N/A';
-
-                $typeFrais = $detail->typeFrais ? $detail->typeFrais->nom : 'N/A';
-                $montant = $detail->montant;
-
-                $totalPaiements += $montant;
-
-                Log::info("Détail paiement ID: {$detail->id}, élève: $eleveNom, type frais: $typeFrais, montant: $montant");
-
-                $paiementsData->push([
-                    'date' => $paiement->created_at,
-                    'eleve' => $eleveNom,
-                    'type_frais' => $typeFrais,
-                    'montant' => $montant,
-                    'mode_paiement' => $paiement->mode_paiement
-                ]);
             }
+
+            return response()->json([
+                'success' => true,
+                'paiements' => $paiementsData->values(),
+                'total_paiements' => $totalPaiements,
+                'nombre_paiements' => $paiementsData->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur getData: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
+            ]);
         }
-
-        Log::info("Total paiements calculé: $totalPaiements, nombre de paiements: " . $paiementsData->count());
-
-        return response()->json([
-            'success' => true,
-            'paiements' => $paiementsData->values(),
-            'total_paiements' => $totalPaiements,
-            'nombre_paiements' => $paiementsData->count()
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Erreur getData: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors du chargement des données: ' . $e->getMessage()
-        ]);
     }
-}
-
-
-
-
-
 
     public function destroy(Paiement $paiement)
     {
@@ -139,6 +123,8 @@ public function getData(Request $request)
 
         $inscriptions = Inscription::with('eleve')
             ->where('classe_id', $request->classe_id)
+            ->where('ecole_id', session('current_ecole_id'))
+            ->where('annee_scolaire_id', session('current_annee_scolaire_id'))
             ->where('statut', 'active')
             ->get()
             ->map(function($inscription) {

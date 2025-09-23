@@ -13,14 +13,19 @@ use App\Models\TypeFrais;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // si ce n'est pas déjà importé
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class ReglementController extends Controller
 {
     public function index()
     {
-        $classes = Classe::all();
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $classes = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->orderBy('id')->get();
 
         return view('dashboard.pages.comptabilites.reglement', compact('classes'));
     }
@@ -34,12 +39,11 @@ class ReglementController extends Controller
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-
         $eleves = Inscription::with('eleve')
-            ->where('classe_id', $request->classe_id)
             ->where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
-            ->whereHas('eleve', fn($q) => $q->where('est_active', true)) // corrige ici
+            ->where('classe_id', $request->classe_id)
+            ->whereHas('eleve', fn($q) => $q->where('est_active', 'active')) // corrige ici
             ->get()
             ->map(fn($i) => [
                 'id' => $i->id,
@@ -206,7 +210,6 @@ class ReglementController extends Controller
         }
     }
 
-
     public function generateReceipt($paiementId)
     {
         $paiement = Paiement::with([
@@ -232,7 +235,7 @@ class ReglementController extends Controller
         $classe = $inscription->classe;
         $ecole = $paiement->ecole;
 
-        // Récupérer l'année scolaire
+        // Récupérer
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
         $userId = Auth::id();
@@ -294,8 +297,6 @@ class ReglementController extends Controller
 
         return $pdf->stream("recu_paiement_{$paiement->id}.pdf");
     }
-
-
 
     public function deletePaiement(Request $request)
     {

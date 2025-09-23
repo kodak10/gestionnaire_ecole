@@ -10,7 +10,13 @@ class PreInscriptionController extends Controller
 {
     public function index()
     {
-        $preinscriptions = PreInscription::orderBy('date_preinscription', 'desc')
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $preinscriptions = PreInscription::
+            where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            -> orderBy('date_preinscription', 'desc')
             ->paginate(20);
 
         return view('dashboard.pages.eleves.preinscriptions.index', compact('preinscriptions'));
