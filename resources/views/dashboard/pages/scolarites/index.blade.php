@@ -95,7 +95,7 @@
                                 <th>Type</th>
                                 <th>Montant</th>
                                 <th>Mode de Paiement</th>
-                                <th>Actions</th>
+                                {{-- <th>Actions</th> --}}
                             </tr>
                         </thead>
                         <tbody>
@@ -339,11 +339,7 @@ $(document).ready(function() {
                     <td>${paiement.type_frais_id == 1 ? 'Inscription' : 'Scolarité'}</td>
                     <td>${formatMoney(paiement.montant)}</td>
                     <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-success btn-reçu" data-id="${paiement.id}">
-                            <i class="ti ti-printer"></i>
-                        </button>
-                    </td>
+                    
 
                 </tr>
                 `;

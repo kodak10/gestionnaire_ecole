@@ -213,8 +213,11 @@ public function applyReduction(Request $request)
     public function generateReceipt($paiementId)
     {
 
-        $paiement = Paiement::with(['eleve', 'typeFrais', 'anneeScolaire'])
+        $paiement = Paiement::with(['eleve', 'typeFrais'])
             ->findOrFail($paiementId);
+
+        $ecoleId = session('current_ecole_id');
+        $anneeId = session('current_annee_scolaire_id');
         
         $data = [
             'paiement' => $paiement
