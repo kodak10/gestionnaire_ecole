@@ -4,12 +4,28 @@
     <meta charset="UTF-8">
     <title>Relance - {{ $mois ?? '' }}</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; }
-        h2 { text-align: center; }
-        .eleve { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ccc; }
-        .details { margin-top: 5px; }
-        .bold { font-weight: bold; }
-    </style>
+    body { font-family: Arial, sans-serif; font-size: 12px; margin:0; padding:0; }
+    h2 { text-align: center; margin:0; }
+
+    .eleve { 
+        margin: 0 0 20px 0; /* supprime le margin-top */
+        padding: 10px; 
+        border-bottom: 1px solid #ccc; 
+        page-break-inside: avoid; 
+    }
+
+    .eleve p { 
+        margin: 0; /* supprime les marges par défaut des p */
+        padding: 0; 
+    }
+
+    .details { 
+        margin: 0; /* supprime le margin-top */
+    }
+
+    .bold { font-weight: bold; }
+</style>
+
 </head>
 <body>
 
@@ -26,12 +42,16 @@
             présente le détail suivant :
         </p>
 
-        <div class="details">
-            <p>Montant attendu pour le mois : <span class="bold">{{ number_format($recusEleve['montant_attendu'], 0, ',', ' ') }} FCFA</span></p>
-            <p>Montant déjà payé pour le mois : <span class="bold">{{ number_format($recusEleve['montant_paye'], 0, ',', ' ') }} FCFA</span></p>
-            <p>Reste à payer sur le mois : <span class="bold">{{ number_format($recusEleve['reste_mois'], 0, ',', ' ') }} FCFA</span></p>
-            <p>Reste total de la scolarité : <span class="bold">{{ number_format($recusEleve['reste_total'], 0, ',', ' ') }} FCFA</span></p>
+       <div class="details">
+            <p>
+                Montant attendu pour le mois : <span class="bold">{{ number_format($recusEleve['montant_attendu'], 0, ',', ' ') }} FCFA</span> |
+                Montant déjà payé pour le mois : <span class="bold">{{ number_format($recusEleve['montant_paye'], 0, ',', ' ') }} FCFA</span> |
+                Reste à payer sur le mois : <span class="bold">{{ number_format($recusEleve['reste_mois'], 0, ',', ' ') }} FCFA</span> |
+                Reste total de {{ $type_frais }} : <span class="bold">{{ number_format($recusEleve['reste_total'], 0, ',', ' ') }} FCFA</span>
+            </p>
         </div>
+
+
 
         <p>Nous vous prions de bien vouloir régulariser le paiement dans les meilleurs délais.</p>
         <p>La Direction</p>

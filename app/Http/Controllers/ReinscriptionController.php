@@ -2,87 +2,117 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Eleve;
-use App\Models\Reinscription;
 use App\Models\Inscription;
-use App\Models\AnneeScolaire;
+use App\Models\Reinscription;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReinscriptionController extends Controller
 {
     
 
-    public function getElevesByClasse(Classe $classe)
+    public function index()
     {
-        $currentYear = Carbon::now()->format('Y');
-        $nextYear = Carbon::now()->addYear()->format('Y');
-        $anneeScolaire = $currentYear . '-' . $nextYear;
+        $ecoleId = session('current_ecole_id');
+        $anneeId = session('current_annee_scolaire_id');
 
-        // On récupère les élèves qui n'ont pas encore été réinscrits pour cette année
-        $eleves = $classe->eleves()
-            ->whereDoesntHave('reinscriptions', function ($q) use ($anneeScolaire) {
-                $q->where('annee_scolaire', $anneeScolaire);
-            })
+        $annee = session('current_annee_scolaire');
+
+        // Toutes les années scolaires de cette école
+        $anneescolaires = AnneeScolaire::where('ecole_id', $ecoleId)
+            ->orderBy('annee', 'desc')
+            ->get();
+
+        // Classes de cette école
+        $classes = Classe::where('ecole_id', $ecoleId)
             ->orderBy('nom')
-            ->get(['id', 'nom', 'prenom', 'matricule']);
+            ->get();
+
+        return view('dashboard.pages.eleves.reinscriptions.create', compact('classes', 'anneescolaires', 'annee', 'anneeId'));
+    }
+
+    /**
+     * Récupérer les élèves d’une classe et année scolaire (qui ne sont pas encore réinscrits)
+     */
+    public function getElevesByClasse(Request $request, Classe $classe)
+    {
+        $anneeId = $request->input('annee_scolaire_id');
+
+        Log::info($anneeId);
+
+        $eleves = Inscription::with('eleve')
+            ->where('classe_id', $classe->id)
+            ->where('annee_scolaire_id', $anneeId)
+            ->whereDoesntHave('eleve.reinscriptions', function ($q) use ($anneeId) {
+                $q->where('annee_scolaire_id', $anneeId);
+            })
+            ->get()
+            ->map(function ($inscription) {
+                return [
+                    'id'        => $inscription->eleve->id,
+                    'matricule' => $inscription->eleve->matricule,
+                    'nom'       => $inscription->eleve->nom,
+                    'prenom'    => $inscription->eleve->prenom,
+                    'classe'    => $inscription->classe->nom,
+                ];
+            });
 
         return response()->json($eleves);
     }
 
-    public function index()
-    {
-        $classes = Classe::orderBy('nom')->get();
-        
-        $currentYear = Carbon::now()->format('Y');
-        $nextYear = Carbon::now()->addYear()->format('Y');
-        $anneeScolaire = $currentYear . '-' . $nextYear;
-
-        return view('dashboard.pages.eleves.reinscriptions.create', compact('classes', 'anneeScolaire'));
-    }
-
-    // CORRECTION: Renommez Store en store (minuscule)
+    /**
+     * Enregistrer les réinscriptions groupées
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'eleves' => 'required|array',
-            'eleves.*' => 'exists:eleves,id',
-            'classe_id' => 'required|exists:classes,id',
-            'annee_scolaire' => 'required|string',
+            'eleves'    => 'required|array',
+            'eleves.*'  => 'exists:eleves,id',
+            'classe_id' => 'required|exists:classes,id', // destination
         ]);
-        //dd($validated);
 
-        // Récupérer l'année scolaire
-        $anneeScolaireModel = AnneeScolaire::where('annee', $validated['annee_scolaire'])->first();
-        
-        if (!$anneeScolaireModel) {
-            return redirect()->back()->with('error', 'Année scolaire non trouvée');
+        $ecoleId = session('current_ecole_id');
+        $anneeId = session('current_annee_scolaire_id');
+
+        // sécurité : vérifier que la session contient bien ces valeurs
+        if (!$ecoleId || !$anneeId) {
+            return redirect()->back()->withErrors('Ecole ou année scolaire non définie en session.');
         }
 
-        foreach ($validated['eleves'] as $eleveId) {
-            // Créer la réinscription
-            $reinscription = Reinscription::create([
-                'eleve_id' => $eleveId,
-                'classe_id' => $validated['classe_id'],
-                'annee_scolaire' => $validated['annee_scolaire'],
-                'statut' => 'validée',
-                'user_id' => auth()->id(),
-                'date_reinscription' => now()
-            ]);
+        DB::transaction(function () use ($validated, $ecoleId, $anneeId) {
+            foreach ($validated['eleves'] as $eleveId) {
 
-            // Créer l'inscription pour l'année suivante
-            Inscription::create([
-                'eleve_id' => $eleveId,
-                'classe_id' => $validated['classe_id'],
-                'annee_scolaire_id' => $anneeScolaireModel->id,
-                'date_inscription' => now(),
-            ]);
-        }
+                Reinscription::create([
+                    'annee_scolaire_id'  => $anneeId,
+                    'ecole_id'           => $ecoleId,
+                    'eleve_id'           => $eleveId,
+                    'classe_id'          => $validated['classe_id'],
+                    'statut'             => 'validée',
+                    'user_id'            => auth()->id(),
+                    'date_reinscription' => now(),
+                ]);
+
+                Inscription::create([
+                    'annee_scolaire_id'  => $anneeId,
+                    'ecole_id'           => $ecoleId,
+                    'eleve_id'           => $eleveId,
+                    'classe_id'          => $validated['classe_id'],
+                    'date_inscription'   => now(),
+                    'statut'             => true,
+                ]);
+            }
+        });
 
         return redirect()->route('reinscriptions.index')
             ->with('success', 'Réinscriptions groupées enregistrées avec succès');
     }
+
+   
 
     public function show($id)
     {

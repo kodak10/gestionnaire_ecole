@@ -10,7 +10,6 @@ use App\Models\MoisScolaire;
 use App\Models\Paiement;
 use App\Models\Reduction;
 use App\Models\Tarif;
-
 use App\Models\TypeFrais;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

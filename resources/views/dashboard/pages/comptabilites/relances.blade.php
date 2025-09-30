@@ -247,50 +247,68 @@ $(document).ready(function() {
         });
     }
 
-    function afficherResultats(data) {
-        $('#result-title').text(data.classe);
-        $('#result-summary').text(`Relance générée pour la classe ${data.classe} du mois de ${data.mois_reference}`);
+   function afficherResultats(data) {
+    $('#result-title').text(data.classe);
+    
+    // Mettre à jour le résumé avec les informations de filtre
+    let summaryText = `Relance générée pour la classe ${data.classe} du mois de ${data.mois_reference}`;
+    if (data.type_frais_id) {
+        const typeFraisName = $('#type_frais_id option:selected').text();
+        summaryText += ` - ${typeFraisName}`;
+    }
+    $('#result-summary').text(summaryText);
+    
+    const tbody = $('#relance-table tbody');
+    tbody.empty();
+    
+    let totalAttendu = 0;
+    let totalPaye = 0;
+    
+    data.data.forEach(function(eleve) {
+        totalAttendu += eleve.total_attendu;
+        totalPaye += eleve.total_paye;
         
-        const tbody = $('#relance-table tbody');
-        tbody.empty();
+        const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
         
-        let totalAttendu = 0;
-        let totalPaye = 0;
+        // Ajouter des badges pour cantine/transport
+        let servicesBadges = '';
+        if (eleve.cantine_active) {
+            servicesBadges += '<span class="badge bg-warning me-1">Cantine</span>';
+        }
+        if (eleve.transport_active) {
+            servicesBadges += '<span class="badge bg-info">Transport</span>';
+        }
         
-        data.data.forEach(function(eleve) {
-            totalAttendu += eleve.total_attendu;
-            totalPaye += eleve.total_paye;
-            
-            const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
-            
-            tbody.append(`
-                <tr>
-                    <td>${eleve.eleve}</td>
-                    <td>${eleve.classe}</td>
-                    <td class="fw-bold">${formatMoney(eleve.total_attendu)}</td>
-                    <td class="text-success">${formatMoney(eleve.total_paye)}</td>
-                    <td class="text-danger">${formatMoney(eleve.reste_a_payer)}</td>
-                    <td><span class="statut-badge ${statutClass}">${eleve.statut}</span></td>
-                    
-                </tr>
-            `);
-        });
-        
-        // Ajouter le total
+        tbody.append(`
+            <tr>
+                <td>
+                    <div class="fw-semibold">${eleve.eleve}</div>
+                    <div class="mt-1">${servicesBadges}</div>
+                </td>
+                <td>${eleve.classe}</td>
+                <td class="fw-bold">${formatMoney(eleve.total_attendu)}</td>
+                <td class="text-success">${formatMoney(eleve.total_paye)}</td>
+                <td class="text-danger">${formatMoney(eleve.reste_a_payer)}</td>
+                <td><span class="statut-badge ${statutClass}">${eleve.statut}</span></td>
+            </tr>
+        `);
+    });
+    
+    // Ajouter le total seulement s'il y a des données
+    if (data.data.length > 0) {
         tbody.append(`
             <tr class="table-active fw-bold">
                 <td colspan="2">TOTAL</td>
                 <td>${formatMoney(totalAttendu)}</td>
                 <td class="text-success">${formatMoney(totalPaye)}</td>
                 <td class="text-danger">${formatMoney(totalAttendu - totalPaye)}</td>
-                <td colspan="2"></td>
+                <td></td>
             </tr>
         `);
-        
-        $('#relance-results').removeClass('d-none');
-        
-        
     }
+    
+    $('#relance-results').removeClass('d-none');
+}
 
    
 

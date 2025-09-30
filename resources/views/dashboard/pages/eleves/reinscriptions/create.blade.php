@@ -69,8 +69,12 @@
                             <div class="card-body pb-1">
                                 <div class="mb-3">
                                     <label class="form-label">Année scolaire actuelle <span class="text-danger">*</span></label>
-                                    <div class="form-control-plaintext p-0">{{ $anneeScolaire }}</div>
-                                    <input type="hidden" name="annee_scolaire" value="{{ $anneeScolaire }}">
+                                    <select class="form-select" name="anneeId" id="anneeId" required>
+                                        <option value="">Sélectionner une classe</option>
+                                        @foreach($anneescolaires as $anneescolaire)
+                                            <option value="{{ $anneescolaire->id }}">{{ $anneescolaire->annee }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="form-label mb-2">Classe d'origine<span class="text-danger"> *</span></label>
@@ -95,8 +99,14 @@
                             <div class="card-body pb-1">
                                 <div class="mb-3">
                                     <label class="form-label">Réinscription pour l'année <span class="text-danger"> *</span></label>
-                                    <input type="text" class="form-control" value="{{ $anneeScolaire }}" readonly>
+
+                                    <!-- Champ visible juste pour afficher -->
+                                    <input type="text" class="form-control" value="{{ $annee }}" readonly>
+
+                                    <!-- Champ caché qui sera soumis au controller -->
+                                    <input type="hidden" name="annee_scolaire_id" value="{{ $anneeId }}">
                                 </div>
+
                                 <div>
                                     <label class="form-label mb-2">Classe de destination<span class="text-danger"> *</span></label>
                                     <div class="d-block d-md-flex">
@@ -156,7 +166,7 @@
                 </div>
                 
                 <div class="promoted-year text-center mt-4">
-                    <p>Les élèves sélectionnés seront réinscrits pour l'année scolaire {{ $anneeScolaire }}</p>
+                    <p>Les élèves sélectionnés seront réinscrits pour l'année scolaire {{ $annee }}</p>
                     <button type="submit" class="btn btn-primary" id="submit-reinscription">
                         <i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés
                     </button>
@@ -174,6 +184,8 @@
         document.getElementById('load-students').addEventListener('click', function() {
             const classeId = document.getElementById('classe-origin').value;
             const classeDestination = document.querySelector('select[name="classe_id"]').value;
+            const anneeId = document.getElementById('anneeId').value; // récupération de l'année
+
             
             if (!classeId) {
                 alert('Veuillez sélectionner une classe d\'origine');
@@ -191,7 +203,7 @@
             
             
             // CORRECTION: Utilisez la route nommée avec l'URL correcte
-            const url = "/reinscriptions/eleves-by-classe/" + classeId;
+            const url = "/reinscriptions/eleves-by-classe/" + classeId + "?annee_scolaire_id=" + anneeId;;
 
             console.log("URL AJAX :", url);
 

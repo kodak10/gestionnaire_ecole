@@ -9,7 +9,7 @@ class Reinscription extends Model
     protected $fillable = [
         'eleve_id',
         'classe_id',
-        'annee_scolaire',
+        'annee_scolaire_id',
         'statut',
         'user_id',
         'date_reinscription',
