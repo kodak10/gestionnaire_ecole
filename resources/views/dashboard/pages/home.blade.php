@@ -3,13 +3,16 @@
 	<!-- Page Header -->
 				<div class="d-md-flex d-block align-items-center justify-content-between mb-3">
 					<div class="my-auto mb-2">
-						<h3 class="page-title mb-1">Tableau de Bord Admin</h3>
+						<h3 class="page-title mb-1">Tableau de Bord {{ Auth::user()->getRoleNames()->first() ?? 'Aucun rôle' }}</h3>
 						<nav>
 							<ol class="breadcrumb mb-0">
 								<li class="breadcrumb-item">
 									<a href="#">Tableau de Bord</a>
 								</li>
-								<li class="breadcrumb-item active" aria-current="page">Admin</li>
+								<li class="breadcrumb-item active" aria-current="page">
+									{{ Auth::user()->getRoleNames()->first() ?? 'Aucun rôle' }}
+								</li>
+
 							</ol>
 						</nav>
 					</div>
