@@ -142,7 +142,7 @@
 									<hr class="m-0">
 									<a class="dropdown-item d-inline-flex align-items-center p-2" href="{{ route('logout') }}"
 									onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-									<i class="ti ti-login me-2"></i>Se Déconnecter
+									Se Déconnecter
 									</a>
 
 									<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -160,9 +160,12 @@
 			<div class="dropdown mobile-user-menu">
 				<a href="javascript:void(0);" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
 				<div class="dropdown-menu dropdown-menu-end">
-					<a class="dropdown-item" href="#">My Profile</a>
-					<a class="dropdown-item" href="#">Settings</a>
-					<a class="dropdown-item" href="#">Logout</a>
+					<a class="dropdown-item" href="{{ route('profile') }}">Mon Profil</a>
+					<a class="dropdown-item" href="{{ route('logout') }}"
+									onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+									<i class="ti ti-login me-2"></i>Se Déconnecter
+									</a>
+					
 				</div>
 			</div>
 			<!-- /Mobile Menu -->

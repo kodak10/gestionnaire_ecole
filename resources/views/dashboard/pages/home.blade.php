@@ -16,6 +16,7 @@
 							</ol>
 						</nav>
 					</div>
+					@hasanyrole('SuperAdministrateur|Administrateur')
 					<div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
 						<div class="mb-2">
 							<a href="{{ route('eleves.create') }}" class="btn btn-primary d-flex align-items-center me-3"><i class="ti ti-square-rounded-plus me-2"></i>Ajouter un Eleve</a>
@@ -24,6 +25,7 @@
 							<a href="{{ route('reglements.index') }}" class="btn btn-light d-flex align-items-center">Faire un Règlement</a>
 						</div>
 					</div>
+					@endhasanyrole
 				</div>
 				<!-- /Page Header -->
 
