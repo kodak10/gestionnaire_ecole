@@ -12,6 +12,12 @@ use Illuminate\Http\JsonResponse;
 
 class TarifMensuelController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur');
+    }
+    
     public function index(Request $request)
     {
         $ecoleId = session('current_ecole_id'); 

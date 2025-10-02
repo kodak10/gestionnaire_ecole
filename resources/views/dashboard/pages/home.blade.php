@@ -59,385 +59,148 @@
 					</div>
 				</div>
 
+				
 				<div class="row">
-
-					<div class="col-xxl-3 col-sm-6 d-flex">
-						<div class="card flex-fill animate-card border-0">
-							<div class="card-body">
-								<div class="d-flex align-items-center">
-									<div class="avatar avatar-xl bg-danger-transparent me-2 p-1">
-										<img src="assets/img/icons/student.svg" alt="img">
-									</div>
-									<div class="overflow-hidden flex-fill">
-										<div class="d-flex align-items-center justify-content-between">
-											<h2 class="counter">{{ $totalEleves }}</h2>
-											<span class="badge bg-danger">1.2%</span>
+					@hasanyrole('SuperAdministrateur|Administrateur|Directeur')
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl bg-danger-transparent me-2 p-1">
+											<img src="assets/img/icons/student.svg" alt="img">
 										</div>
-										<p>Total Eleves</p>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2 class="counter">{{ $totalEleves }}</h2>
+												<span class="badge bg-danger">1.2%</span>
+											</div>
+											<p>Total Eleves</p>
+										</div>
 									</div>
+									<div class="d-flex align-items-center justify-content-between border-top mt-3 pt-3">
+										<p class="mb-0">Active : <span class="text-dark fw-semibold">254</span></p>
+										<span class="text-light">|</span>
+										<p>Inactive : <span class="text-dark fw-semibold">30</span></p>
+									</div>
+									
 								</div>
 								
 							</div>
 						</div>
-					</div>
 
-					<div class="col-xxl-3 col-sm-6 d-flex">
-						<div class="card flex-fill animate-card border-0">
-							<div class="card-body">
-								<div class="d-flex align-items-center">
-									<div class="avatar avatar-xl me-2 bg-secondary-transparent p-1">
-										<img src="assets/img/icons/teacher.svg" alt="img">
-									</div>
-									<div class="overflow-hidden flex-fill">
-										<div class="d-flex align-items-center justify-content-between">
-											<h2 class="counter">{{ $totalInscriptions }}</h2>
-											<span class="badge bg-skyblue">1.2%</span>
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl me-2 bg-secondary-transparent p-1">
+											<img src="assets/img/icons/teacher.svg" alt="img">
 										</div>
-										
-										<p>Total des inscriptions cette année</p>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2 class="counter">{{ $totalInscriptions }}</h2>
+												<span class="badge bg-skyblue">1.2%</span>
+											</div>
+											
+											<p>Total des inscriptions cette année</p>
+										</div>
 									</div>
+									<div class="d-flex align-items-center justify-content-between border-top mt-3 pt-3">
+										<p class="mb-0">Active : <span class="text-dark fw-semibold">254</span></p>
+										<span class="text-light">|</span>
+										<p>Inactive : <span class="text-dark fw-semibold">30</span></p>
+									</div>
+									
+								</div>
+							</div>
+						</div>
+					@endhasanyrole
+
+					@hasanyrole('SuperAdministrateur|Administrateur|Directeur')
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl bg-danger-transparent me-2 p-1">
+											<img src="assets/img/icons/student.svg" alt="img">
+										</div>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2 class="counter">{{ $totalGarcons }}</h2>
+												<span class="badge bg-danger">1.2%</span>
+											</div>
+											<p>Total Garcons</p>
+										</div>
+									</div>
+									
+									
 								</div>
 								
 							</div>
 						</div>
-					</div>
 
-					<div class="col-xxl-3 col-sm-6 d-flex">
-						<div class="card flex-fill animate-card border-0">
-							<div class="card-body">
-								<div class="d-flex align-items-center">
-									<div class="avatar avatar-xl me-2 bg-warning-transparent p-1">
-										<img src="{{ asset('assets/img/icons/money-bag.svg') }}" alt="img">
-									</div>
-									<div class="overflow-hidden flex-fill">
-										<div class="d-flex align-items-center justify-content-between">
-											<h2>{{ number_format($fraisStats['frais_attendus'], 0, ',', ' ') }}</h2>
-											<span class="badge bg-warning">{{ $fraisStats['evolution_frais'] }}%</span>
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl me-2 bg-secondary-transparent p-1">
+											<img src="assets/img/icons/teacher.svg" alt="img">
 										</div>
-										<p>Total des frais Attendu</p>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2 class="counter">{{ $totalFilles }}</h2>
+												<span class="badge bg-skyblue">1.2%</span>
+											</div>
+											
+											<p>Nombre de Filles</p>
+										</div>
+									</div>
+									
+									
+								</div>
+							</div>
+						</div>
+					@endhasanyrole
+					@hasanyrole('SuperAdministrateur')
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl me-2 bg-warning-transparent p-1">
+											<img src="{{ asset('assets/img/icons/money-bag.svg') }}" alt="img">
+										</div>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2>{{ number_format($fraisStats['frais_attendus'], 0, ',', ' ') }}</h2>
+												<span class="badge bg-warning">{{ $fraisStats['evolution_frais'] }}%</span>
+											</div>
+											<p>Total des frais Attendu</p>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="col-xxl-3 col-sm-6 d-flex">
-						<div class="card flex-fill animate-card border-0">
-							<div class="card-body">
-								<div class="d-flex align-items-center">
-									<div class="avatar avatar-xl me-2 bg-success-transparent p-1">
-										<img src="{{ asset('assets/img/icons/cash.svg') }}" alt="img">
-									</div>
-									<div class="overflow-hidden flex-fill">
-										<div class="d-flex align-items-center justify-content-between">
-											<h2>{{ number_format($fraisStats['frais_percus'], 0, ',', ' ') }}</h2>
-											<span class="badge bg-success">{{ $fraisStats['pourcentage_perception'] }}%</span>
+						<div class="col-xxl-3 col-sm-6 d-flex">
+							<div class="card flex-fill animate-card border-0">
+								<div class="card-body">
+									<div class="d-flex align-items-center">
+										<div class="avatar avatar-xl me-2 bg-success-transparent p-1">
+											<img src="{{ asset('assets/img/icons/cash.svg') }}" alt="img">
 										</div>
-										<p>Total des frais perçus</p>
+										<div class="overflow-hidden flex-fill">
+											<div class="d-flex align-items-center justify-content-between">
+												<h2>{{ number_format($fraisStats['frais_percus'], 0, ',', ' ') }}</h2>
+												<span class="badge bg-success">{{ $fraisStats['pourcentage_perception'] }}%</span>
+											</div>
+											<p>Total des frais perçus</p>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
+					@endhasanyrole
 
 				</div>
-
-				{{-- <div class="row">
-
-					<!-- Schedules -->
-					<div class="col-xxl-4 col-xl-6 col-md-12 d-flex">
-						<div class="card flex-fill">
-							<div class="card-header d-flex align-items-center justify-content-between">
-								<div>
-									<h4 class="card-title">Calendrier</h4>
-								</div>
-								<a href="#" class="link-primary fw-medium me-2" data-bs-toggle="modal" data-bs-target="#add_event"><i class="ti ti-square-plus me-1"></i>Add New</a>
-							</div>
-							<div class="card-body">
-								<div class="datepic mb-4"></div>
-								<h5 class="mb-3">Événements à venir</h5>
-								<div class="event-wrapper event-scroll">
-									<!-- Event Item -->
-									<div class="border-start border-skyblue border-3 shadow-sm p-3 mb-3">
-										<div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-											<span class="avatar p-1 me-2 bg-teal-transparent flex-shrink-0">
-												<i class="ti ti-user-edit text-info fs-20"></i>
-											</span>
-											<div class="flex-fill">
-												<h6 class="mb-1">Rencontre parents-enseignants</h6>
-												<p class="d-flex align-items-center"><i class="ti ti-calendar me-1"></i>15 July 2024</p>
-											</div>
-										</div>
-										<div class="d-flex align-items-center justify-content-between">
-											<p class="mb-0"><i class="ti ti-clock me-1"></i>09:10AM - 10:50PM</p>
-											<div class="avatar-list-stacked avatar-group-sm">
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-01.jpg" class="rounded-circle" alt="img">
-												</span>
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-07.jpg" class="rounded-circle" alt="img">
-												</span>
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-02.jpg" class="rounded-circle" alt="img">
-												</span>
-											</div>
-										</div>
-									</div>
-									<!-- /Event Item -->
-
-									<!-- Event Item -->
-									<div class="border-start border-info border-3 shadow-sm p-3 mb-3">
-										<div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-											<span class="avatar p-1 me-2 bg-info-transparent flex-shrink-0">
-												<i class="ti ti-user-edit fs-20"></i>
-											</span>
-											<div class="flex-fill">
-												<h6 class="mb-1">Rencontre parents-enseignants</h6>
-												<p class="d-flex align-items-center"><i class="ti ti-calendar me-1"></i>15 July 2024</p>
-											</div>
-										</div>
-										<div class="d-flex align-items-center justify-content-between">
-											<p class="mb-0"><i class="ti ti-clock me-1"></i>09:10AM - 10:50PM</p>
-											<div class="avatar-list-stacked avatar-group-sm">
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-05.jpg" class="rounded-circle" alt="img">
-												</span>
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-06.jpg" class="rounded-circle" alt="img">
-												</span>
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-07.jpg" class="rounded-circle" alt="img">
-												</span>
-											</div>
-										</div>
-									</div>
-									<!-- /Event Item -->
-
-									<!-- Event Item -->
-									<div class="border-start border-danger border-3 shadow-sm p-3 mb-3">
-										<div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-											<span class="avatar p-1 me-2 bg-danger-transparent flex-shrink-0">
-												<i class="ti ti-vacuum-cleaner fs-24"></i>
-											</span>
-											<div class="flex-fill">
-												<h6 class="mb-1">Réunion de vacances</h6>
-												<p class="d-flex align-items-center"><i class="ti ti-calendar me-1"></i>07 July 2024 - 07 July 2024</p>
-											</div>
-										</div>
-										<div class="d-flex align-items-center justify-content-between">
-											<p class="mb-0"><i class="ti ti-clock me-1"></i>09:10 AM - 10:50 PM</p>
-											<div class="avatar-list-stacked avatar-group-sm">
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-11.jpg" class="rounded-circle" alt="img">
-												</span>
-												<span class="avatar border-0">
-													<img src="assets/img/parents/parent-13.jpg" class="rounded-circle" alt="img">
-												</span>
-											</div>
-										</div>
-									</div>
-									<!-- /Event Item -->
-
-								</div>
-							</div>
-						</div>
-					</div>
-					<!-- /Schedules -->
-
-					<!-- Attendance -->
-					<div class="col-xxl-4 col-xl-6 col-md-12 d-flex flex-column">
-
-						<div class="card">
-							<div class="card-header d-flex align-items-center justify-content-between">
-								<h4 class="card-title">Bilan du mois</h4>
-								
-							</div>
-							<div class="card-body">
-								<div class="list-tab mb-4">
-									<ul class="nav">
-										<li>
-											<a href="#" class="active" data-bs-toggle="tab" data-bs-target="#students">Scolarité</a>
-										</li>
-										<li>
-											<a href="#" data-bs-toggle="tab" data-bs-target="#teachers">Transport</a>
-										</li>
-										<li>
-											<a href="#" data-bs-toggle="tab" data-bs-target="#staff">Cantine</a>
-										</li>
-                                        
-									</ul>
-								</div>
-								<div class="tab-content">
-									<div class="tab-pane fade active show" id="students">
-										<div class="row gx-3">
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>28</h5>
-														<p class="fs-12">Emergency</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>01</h5>
-														<p class="fs-12">Absent</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>01</h5>
-														<p class="fs-12">Late</p>
-													</div>
-												</div>
-											</div>
-										</div>
-										<div class="text-center">
-											<div id="student-chart" class="mb-4"></div>
-											<a href="student-attendance.html" class="btn btn-light"><i class="ti ti-calendar-share me-1"></i>View All</a>
-										</div>
-									</div>
-									<div class="tab-pane fade" id="teachers">
-										<div class="row gx-3">
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>30</h5>
-														<p class="fs-12">Emergency</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>03</h5>
-														<p class="fs-12">Absent</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>03</h5>
-														<p class="fs-12">Late</p>
-													</div>
-												</div>
-											</div>
-										</div>
-										<div class="text-center">
-											<div id="teacher-chart" class="mb-4"></div>
-											<a href="teacher-attendance.html" class="btn btn-light"><i class="ti ti-calendar-share me-1"></i>View All</a>
-										</div>
-									</div>
-									<div class="tab-pane fade" id="staff">
-										<div class="row gx-3">
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>45</h5>
-														<p class="fs-12">Emergency</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>01</h5>
-														<p class="fs-12">Absent</p>
-													</div>
-												</div>
-											</div>
-											<div class="col-sm-4">
-												<div class="card bg-light-300 shadow-none border-0">
-													<div class="card-body p-3 text-center">
-														<h5>10</h5>
-														<p class="fs-12">Late</p>
-													</div>
-												</div>
-											</div>
-										</div>
-										<div class="text-center">
-											<div id="staff-chart" class="mb-4"></div>
-											<a href="staff-attendance.html" class="btn btn-light"><i class="ti ti-calendar-share me-1"></i>View All</a>
-										</div>
-									</div>
-								</div>
-
-							</div>
-						</div>
-
-						<div class="row flex-fill">
-
-							<!-- Best Performer -->
-							<div class="col-sm-6 d-flex flex-column">
-								<div class="bg-success-800 p-3 br-5 text-center flex-fill mb-4 pb-0  owl-height bg-01">
-									<div class="owl-carousel student-slider h-100">
-										<div class="item h-100">
-											<div class="d-flex justify-content-between flex-column h-100">
-												<div>
-													<h5 class="mb-3 text-white">Meilleur de classe</h5>
-													<h4 class="mb-1 text-white">Rubell</h4>
-													<p class="text-light">CP1</p>
-												</div>
-												<img src="assets/img/performer/performer-01.png" alt="img">
-											</div>
-										</div>
-										<div class="item h-100">
-											<div class="d-flex justify-content-between flex-column h-100">
-												<div>
-													<h5 class="mb-3 text-white">Meilleur de classe</h5>
-													<h4 class="mb-1 text-white">George Odell</h4>
-													<p class="text-light">CP2</p>
-												</div>
-												<img src="assets/img/performer/performer-02.png" alt="img">
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							<!-- /Best Performer -->
-
-							<!-- Star Students -->
-							<div class="col-sm-6 d-flex flex-column">
-								<div class="bg-info p-3 br-5 text-center flex-fill mb-4 pb-0 owl-height bg-02">
-									<div class="owl-carousel teacher-slider h-100">
-										<div class="item h-100">
-											<div class="d-flex justify-content-between flex-column h-100">
-												<div>
-													<h5 class="mb-3 text-white">SMeilleur de classe</h5>
-													<h4 class="mb-1 text-white">Tenesa</h4>
-													<p class="text-light">CE1</p>
-												</div>
-												<img src="assets/img/performer/student-performer-01.png" alt="img">
-											</div>
-										</div>
-										<div class="item h-100">
-											<div class="d-flex justify-content-between flex-column h-100">
-												<div>
-													<h5 class="mb-3 text-white">Meilleur de classe</h5>
-													<h4 class="mb-1 text-white">Michael </h4>
-													<p>CM2</p>
-												</div>
-												<img src="assets/img/performer/student-performer-02.png" alt="img">
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							<!-- /Star Students -->
-
-						</div>
-
-					</div>
-					<!-- /Attendance -->
-
-					
-
-				</div> --}}
-
 				
 
 				<div class="row">
@@ -515,4 +278,407 @@
 					<!-- /Links -->
 
 				</div>
+				@hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
+					<div class="row">
+
+						<!-- Total Earnings -->
+						<div class="col-xxl-4 col-xl-6 d-flex flex-column">
+							<div class="card flex-fill">
+								<div class="card-body">
+									<div class="d-flex align-items-center justify-content-between">
+										<div>
+											<h6 class="mb-1">Total Revenu 30 derniers jours</h6>
+											<h2>$64,522,24</h2>
+										</div>
+										<span class="avatar avatar-lg bg-primary">
+											<i class="ti ti-user-dollar"></i>
+										</span>
+									</div>
+								</div>
+								<div id="total-earning"></div>
+							</div>
+							<div class="card flex-fill">
+								<div class="card-body">
+									<div class="d-flex align-items-center justify-content-between">
+										<div>
+											<h6 class="mb-1">Total Dépenses 30 derniers jours</h6>
+											<h2>$60,522,24</h2>
+										</div>
+										<span class="avatar avatar-lg bg-danger">
+											<i class="ti ti-user-dollar"></i>
+										</span>
+									</div>
+								</div>
+								<div id="total-expenses"></div>
+							</div>
+						</div>
+						<!-- /Total Earnings -->
+
+						
+
+						<!-- Fees Collection -->
+						<div class="col-xxl-3 col-xl-6 order-2 order-xxl-3 d-flex flex-column">
+							<div class="card flex-fill mb-2">
+								<div class="card-body">
+									<p class="mb-2">Total Fees Collected</p>
+									<div class="d-flex align-items-end justify-content-between">
+										<h4>$25,000,02</h4>
+										<span class="badge badge-soft-success"><i class="ti ti-chart-line me-1"></i>1.2%</span>
+									</div>
+								</div>
+							</div>
+							<div class="card flex-fill mb-2">
+								<div class="card-body">
+									<p class="mb-2">Fine Collected till date</p>
+									<div class="d-flex align-items-end justify-content-between">
+										<h4>$4,56,64</h4>
+										<span class="badge badge-soft-danger"><i class="ti ti-chart-line me-1"></i>1.2%</span>
+									</div>
+								</div>
+							</div>
+							<div class="card flex-fill mb-2">
+								<div class="card-body">
+									<p class="mb-2">Student Not Paid</p>
+									<div class="d-flex align-items-end justify-content-between">
+										<h4>$545</h4>
+										<span class="badge badge-soft-info"><i class="ti ti-chart-line me-1"></i>1.2%</span>
+									</div>
+								</div>
+							</div>
+							<div class="card flex-fill mb-4">
+								<div class="card-body">
+									<p class="mb-2">Total Outstanding</p>
+									<div class="d-flex align-items-end justify-content-between">
+										<h4>$4,56,64</h4>
+										<span class="badge badge-soft-danger"><i class="ti ti-chart-line me-1"></i>1.2%</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- /Fees Collection -->
+
+					</div>
+				@endhasanyrole
+				@hasanyrole('SuperAdministrateur|Administrateur|Directeur|Enseignant')
+					<div class="row">
+						<div class= "col-lg-6">
+							<div class="card flex-fill">
+								<div class="card-header d-flex align-items-center justify-content-between flex-wrap">
+									<h4 class="card-title">Meilleur Notes</h4>
+									<div class="d-flex align-items-center">
+										<div class="dropdown me-2 ">
+											<a href="javascript:void(0);" class="bg-white dropdown-toggle" data-bs-toggle="dropdown"><i class="ti ti-calendar me-2"></i>All Classes
+											</a>
+											<ul class="dropdown-menu mt-2 p-3">
+												<li>
+													<a href="javascript:void(0);" class="dropdown-item rounded-1">
+														I
+													</a>
+												</li>
+												<li>
+													<a href="javascript:void(0);" class="dropdown-item rounded-1">
+														II
+													</a>
+												</li>
+												<li>
+													<a href="javascript:void(0);" class="dropdown-item rounded-1">
+														III
+													</a>
+												</li>
+											</ul>
+										</div>
+										
+									</div>
+								</div>
+								<div class="card-body px-0">
+									<div class="custom-datatable-filter table-responsive">
+										<table class="table ">
+											<thead class="thead-light">
+												<tr>
+													<th>Nom & Prénoms</th>
+													<th>Discipline </th>
+													<th>Discipline </th>
+													<th>Discipline </th>
+													<th>Discipline </th>
+													<th>Discipline </th>
+													<th>Moyenne Générale</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<a href="student-details.html" class="avatar avatar-md"><img src="assets/img/students/student-01.jpg" class="img-fluid rounded-circle" alt="img"></a>
+															<div class="ms-2">
+																<p class="text-dark mb-0"><a href="student-details.html">Janet</a></p>
+															</div>
+														</div>
+													</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>
+													<td>10</td>                                                
+												</tr>
+												
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-lg-6">
+							<div class="row">
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-success-800 p-3 br-5 text-center flex-fill mb-4 pb-0  owl-height bg-01">
+										<div class="owl-carousel student-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">Rubell</h4>
+														<p class="text-light">Physics Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">George Odell</h4>
+														<p class="text-light">English Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-info p-3 br-5 text-center flex-fill mb-4 pb-0 owl-height bg-02">
+										<div class="owl-carousel teacher-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Tenesa</h4>
+														<p class="text-light">XII, A</p>
+													</div>
+													<img src="assets/img/performer/student-performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Michael </h4>
+														<p>XII, B</p>
+													</div>
+													<img src="assets/img/performer/student-performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-success-800 p-3 br-5 text-center flex-fill mb-4 pb-0  owl-height bg-01">
+										<div class="owl-carousel student-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">Rubell</h4>
+														<p class="text-light">Physics Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">George Odell</h4>
+														<p class="text-light">English Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-info p-3 br-5 text-center flex-fill mb-4 pb-0 owl-height bg-02">
+										<div class="owl-carousel teacher-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Tenesa</h4>
+														<p class="text-light">XII, A</p>
+													</div>
+													<img src="assets/img/performer/student-performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Michael </h4>
+														<p>XII, B</p>
+													</div>
+													<img src="assets/img/performer/student-performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-success-800 p-3 br-5 text-center flex-fill mb-4 pb-0  owl-height bg-01">
+										<div class="owl-carousel student-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">Rubell</h4>
+														<p class="text-light">Physics Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Best Performer</h5>
+														<h4 class="mb-1 text-white">George Odell</h4>
+														<p class="text-light">English Teacher</p>
+													</div>
+													<img src="assets/img/performer/performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-sm-4 d-flex flex-column">
+									<div class="bg-info p-3 br-5 text-center flex-fill mb-4 pb-0 owl-height bg-02">
+										<div class="owl-carousel teacher-slider h-100">
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Tenesa</h4>
+														<p class="text-light">XII, A</p>
+													</div>
+													<img src="assets/img/performer/student-performer-01.png" alt="img">
+												</div>
+											</div>
+											<div class="item h-100">
+												<div class="d-flex justify-content-between flex-column h-100">
+													<div>
+														<h5 class="mb-3 text-white">Star Students</h5>
+														<h4 class="mb-1 text-white">Michael </h4>
+														<p>XII, B</p>
+													</div>
+													<img src="assets/img/performer/student-performer-02.png" alt="img">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				@endhasanyrole
+				
+				
 @endsection

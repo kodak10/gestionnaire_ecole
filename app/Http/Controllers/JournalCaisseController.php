@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Log;
 
 class JournalCaisseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['role:SuperAdministrateur|Administrateur|Caissiere']);
+    }
+
     public function index()
     {
         $typesFrais = TypeFrais::orderBy('nom')->get();

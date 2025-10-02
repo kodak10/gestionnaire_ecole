@@ -9,6 +9,10 @@ use Illuminate\Http\Request;
 
 class MatiereController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur|Administrateur|Directeur');
+    }
 
     public function index(Request $request)
     {

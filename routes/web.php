@@ -30,11 +30,6 @@ use App\Models\Eleve;
 use Illuminate\Support\Facades\Route;
 
 
-
-
-
-
-
     // Routes d'authentification personnalisées
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);

@@ -8,6 +8,11 @@ use Illuminate\Validation\Rule;
 
 class MentionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur|Administrateur|Directeur');
+    }
+    
     public function index()
     {
         $ecoleId = session('current_ecole_id');

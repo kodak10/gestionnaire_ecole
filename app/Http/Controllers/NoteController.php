@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Auth;
 
 class NoteController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['role:SuperAdministrateur|Administrateur|Directeur|Enseignant']);
+    }
+
     public function index(Request $request)
     {
         $ecoleId = session('current_ecole_id');

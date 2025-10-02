@@ -12,6 +12,12 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ClasseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur|Administrateur|Directeur');
+    }
+
+
     public function index(Request $request)
     {
         $user = auth()->user();

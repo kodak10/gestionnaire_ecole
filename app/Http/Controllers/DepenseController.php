@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Auth;
 
 class DepenseController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware(['role:SuperAdministrateur|Administrateur|Caissiere']);
+    }
+    
     public function index()
     {
         $categories = DepenseCategorie::all();

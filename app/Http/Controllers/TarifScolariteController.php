@@ -11,6 +11,11 @@ use App\Models\Tarif;
 
 class TarifScolariteController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur');
+    }
+    
     public function index()
     {
         $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;

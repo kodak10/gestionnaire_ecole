@@ -13,6 +13,14 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        // Middleware Spatie appliqué à toutes les méthodes
+        // sauf profil et updateProfile
+        $this->middleware('role:SuperAdministrateur')->except(['profile', 'updateProfile']);
+    }
+
+    
     /**
      * Display a listing of the resource.
      */

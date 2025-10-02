@@ -17,10 +17,15 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
+use Illuminate\Support\Facades\Auth;
 
 class EleveController extends Controller
 {
-   
+   public function __construct()
+    {
+        $this->middleware('role:SuperAdministrateur|Administrateur')->except(['index', 'export']);
+    }
+
     public function index(Request $request)
     {
         $anneeScolaireId = session('current_annee_scolaire_id');
@@ -104,6 +109,9 @@ class EleveController extends Controller
 
     public function export(Request $request)
     {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
+            abort(403, 'Vous n\'avez pas la permission d\'exporter la liste des élèves.');
+        }
         $format = $request->format;
 
         $anneeScolaireId = session('current_annee_scolaire_id');
@@ -310,6 +318,10 @@ class EleveController extends Controller
 
     public function edit($id)
     {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
+            abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
+        }
+
         $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
         $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
 
@@ -325,6 +337,10 @@ class EleveController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
+            abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
+        }
+
         $validatedData = $request->validate([
             'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
             'nom' => 'required|string|max:255',

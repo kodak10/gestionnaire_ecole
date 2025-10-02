@@ -43,15 +43,34 @@ class HomeController extends Controller
                         ->where('ecole_id', session('current_ecole_id'))
                         ->count()
             : 0;
+        $totalGarcons = Inscription::where('annee_scolaire_id', $anneeScolaireId)
+        ->where('ecole_id', session('current_ecole_id'))
+        ->whereHas('eleve', function($query) {
+            $query->where('sexe', 'Masculin');
+        })
+        ->count();
+
+        $totalFilles = Inscription::where('annee_scolaire_id', $anneeScolaireId)
+        ->where('ecole_id', session('current_ecole_id'))
+        ->whereHas('eleve', function($query) {
+            $query->where('sexe', 'Feminin');
+        })
+        ->count();
+
+
+           
 
         // Calcul des frais attendus et perçus
-        $fraisStats = $this->getFraisStatistics(session('current_ecole_id'), $anneeScolaireId);
+        $fraisStats = $this->getFraisStatistics(session('current_annee_scolaire_id'), $anneeScolaireId);
 
         return view('dashboard.pages.home', compact(
             'user', 
             'totalEleves', 
             'totalInscriptions',
-            'fraisStats'
+            'fraisStats',
+            'totalGarcons',
+            'totalFilles',
+
         ));
     }
 
