@@ -166,8 +166,14 @@
                                 <li>
                                     <a href="{{ route('profile') }}" class="{{ $currentRoute == 'profile' ? 'active' : '' }}">Mon Profil</a>
                                 </li>
+                                <li>
+                                    <a href="#" class="">Mon Activité</a>
+                                </li>
                                 @hasanyrole('SuperAdministrateur')
-                                <li><a href="{{ route('users.index') }}" class="{{ $currentRoute == 'users.index' ? 'active' : '' }}">Utilisateurs</a></li>
+                                    <li><a href="{{ route('users.index') }}" class="{{ $currentRoute == 'users.index' ? 'active' : '' }}">Utilisateurs</a></li>
+                                    <li>
+                                        <a href="#" class="">Mouchard</a>
+                                    </li>
                                 @endhasanyrole
                             </ul>
                         </li>
