@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('reinscriptions', function (Blueprint $table) {
-            $table->dropColumn('anneescolaire_id');
+        Schema::table('classe_matiere', function (Blueprint $table) {
+            $table->integer('ordre')->default(0)->after('coefficient'); 
         });
     }
 
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('reinscriptions', function (Blueprint $table) {
+        Schema::table('classe_matiere', function (Blueprint $table) {
             //
         });
     }

@@ -75,7 +75,6 @@
                         <th>#</th>
                         <th>Niveau</th>
                         <th>Nom</th>
-                        <th>Ordre</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -88,7 +87,6 @@
 </td>
 
                         <td>{{ $matiere->nom }}</td>
-                        <td>{{ $matiere->ordre }}</td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="dropdown">
@@ -146,15 +144,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Ordre <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('ordre') is-invalid @enderror" name="ordre" value="{{ old('ordre') }}" required>
-                                @error('ordre')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
+                       
                         
                         
                         
@@ -194,19 +184,6 @@
                                 @enderror
                             </div>
                         </div>
-                       
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Ordre <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control @error('ordre') is-invalid @enderror" 
-                                    name="ordre" value="{{ old('ordre', $matiere->ordre) }}" min="0" required>
-                                @error('ordre')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
                     </div>
                     
                 </div>
@@ -230,8 +207,9 @@
                     <h5 class="modal-title" id="assignMatieresModalLabel">Affecter Matières à une Classe</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
+
                 <div class="modal-body">
-                    <!-- Sélection de la classe -->
+                    <!-- Choix du niveau -->
                     <div class="mb-3">
                         <label for="niveau_id" class="form-label">Choisir le Niveau <span class="text-danger">*</span></label>
                         <select id="niveau_id" name="niveau_id" class="form-select @error('niveau_id') is-invalid @enderror" required>
@@ -241,7 +219,6 @@
                                     {{ $niveau->nom }}
                                 </option>
                             @endforeach
-
                         </select>
                         @error('niveau_id')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -263,12 +240,13 @@
                         @enderror
                     </div>
 
-                    <!-- Coefficients dynamiques -->
+                    <!-- Zone Coefficients et Ordres -->
                     <div id="coefficients_container" style="display:none;">
-                        <h6>Coefficients par matière sélectionnée</h6>
+                        <h6 class="mb-2">Paramètres par matière sélectionnée</h6>
                         <div id="coefficients_inputs"></div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" class="btn btn-primary">Enregistrer</button>
@@ -298,27 +276,28 @@
 <!-- Inclure JS Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Initialisation Select2 pour matières
+    // Initialisation Select2
     $('#matieres_select').select2({
         placeholder: 'Sélectionnez les matières',
         allowClear: true,
         dropdownParent: $('#assignMatieresModal')
     });
 
-   
-
     let allMatieres = @json($matieres->map(function($m) {
         return ['id' => $m->id, 'nom' => $m->nom, 'coefficient' => $m->coefficient];
     }));
 
-
-    // Fonction pour mettre à jour les inputs coefficients
-    function updateCoefficientsInputs(selectedMatiereIds, allMatieres, coefficientsData = {}) {
+    /**
+     * Met à jour les champs coefficient + ordre
+     */
+   function updateCoefficientsInputs(selectedMatiereIds, allMatieres, data = {}) {
         let container = document.getElementById('coefficients_inputs');
-        container.innerHTML = ''; // reset
+        container.innerHTML = '';
         if (selectedMatiereIds.length === 0) {
             document.getElementById('coefficients_container').style.display = 'none';
             return;
@@ -329,83 +308,86 @@ document.addEventListener('DOMContentLoaded', function() {
             let matiere = allMatieres.find(m => m.id == matiereId);
             if (!matiere) return;
 
-            let value = coefficientsData[matiereId] !== undefined ? coefficientsData[matiereId] : (matiere.coefficient || 1);
+            // <-- ici on utilise bien "data" et pas "matieresDataById"
+            let coef = data[matiereId]?.coefficient ?? matiere.coefficient ?? 1;
+            let ordre = data[matiereId]?.ordre ?? matiere.ordre ?? 1;
 
-            let div = document.createElement('div');
-            div.classList.add('mb-2');
+            let row = document.createElement('div');
+            row.classList.add('row', 'mb-2', 'align-items-center');
 
-            let label = document.createElement('label');
-            label.textContent = matiere.nom + " (Coefficient)";
-            label.setAttribute('for', 'coefficient_' + matiere.id);
-            label.classList.add('form-label');
+            // Nom
+            let colNom = document.createElement('div');
+            colNom.classList.add('col-md-4', 'fw-bold');
+            colNom.textContent = matiere.nom;
 
-            let input = document.createElement('input');
-            input.type = 'number';
-            input.min = '1';
-            input.max = '10';
-            input.name = 'coefficients[' + matiere.id + ']';
-            input.id = 'coefficient_' + matiere.id;
-            input.classList.add('form-control', 'coefficient-input');
-            input.value = value;
-            input.required = true;
+            // Coefficient
+            let colCoef = document.createElement('div');
+            colCoef.classList.add('col-md-4');
+            colCoef.innerHTML = `
+                <label class="form-label mb-1 small">Coefficient</label>
+                <input type="number" min="1" max="10" name="coefficients[${matiere.id}]" 
+                    class="form-control form-control-sm" value="${coef}" required>
+            `;
 
-            div.appendChild(label);
-            div.appendChild(input);
-            container.appendChild(div);
+            // Ordre
+            let colOrdre = document.createElement('div');
+            colOrdre.classList.add('col-md-4');
+            colOrdre.innerHTML = `
+                <label class="form-label mb-1 small">Ordre</label>
+                <input type="number" min="1" name="ordres[${matiere.id}]" 
+                    class="form-control form-control-sm" value="${ordre}" required>
+            `;
+
+            row.appendChild(colNom);
+            row.appendChild(colCoef);
+            row.appendChild(colOrdre);
+            container.appendChild(row);
         });
     }
 
-    // Initialisation à vide au chargement
+
+    // Initialisation
     updateCoefficientsInputs($('#matieres_select').val() || [], allMatieres);
 
-    // Mise à jour coefficients au changement des matières sélectionnées
+    // Changement matières → MAJ inputs
     $('#matieres_select').on('change', function() {
         updateCoefficientsInputs($(this).val() || [], allMatieres);
     });
 
-
-    // Gestion du changement de classe avec affichage du spinner pendant le chargement AJAX
+    // Changement niveau → chargement via AJAX
     $('#niveau_id').on('change', function() {
-        let classeId = $(this).val();
-
-        // Afficher le spinner dès le début
+        let niveauId = $(this).val();
         $('#loadingSpinner').show();
 
-        if (!classeId) {
+        if (!niveauId) {
             $('#matieres_select').val(null).trigger('change');
             updateCoefficientsInputs([], allMatieres);
-            $('#loadingSpinner').hide();  // cacher le spinner car rien à charger
+            $('#loadingSpinner').hide();
             return;
         }
 
         $.ajax({
-            url: '/parametrages/classes/' + classeId + '/matieres',
+            url: '/parametrages/classes/' + niveauId + '/matieres',
             type: 'GET',
             dataType: 'json',
             success: function(data) {
                 let matieresIds = data.map(m => m.id.toString());
-
-                // Mettre à jour select2
                 $('#matieres_select').val(matieresIds).trigger('change');
 
-                let coefficientsData = {};
+                let infos = {};
                 data.forEach(m => {
-                    coefficientsData[m.id] = m.coefficient;
+                    infos[m.id] = {
+                        coefficient: m.coefficient,
+                        ordre: m.ordre
+                    };
                 });
 
-                updateCoefficientsInputs(matieresIds, allMatieres, coefficientsData);
-
-                // Masquer le spinner quand terminé
+                updateCoefficientsInputs(matieresIds, allMatieres, infos);
                 $('#loadingSpinner').hide();
             },
             error: function(xhr) {
-                alert('Erreur lors du chargement des matières de la classe sélectionnée.');
+                alert('Erreur lors du chargement des matières.');
                 console.error(xhr.responseText);
-
-                $('#matieres_select').val(null).trigger('change');
-                updateCoefficientsInputs([], allMatieres);
-
-                // Masquer aussi le spinner en cas d'erreur
                 $('#loadingSpinner').hide();
             }
         });

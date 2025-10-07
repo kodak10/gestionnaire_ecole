@@ -41,7 +41,6 @@ class DatabaseSeeder extends Seeder
             // MatiereSeeder::class,
             // MentionSeeder::class,
             
-            
         ]);
 
         // User::factory()->create([

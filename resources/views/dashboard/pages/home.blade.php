@@ -47,7 +47,7 @@
 										<div class="d-flex align-items-center flex-wrap mb-2">
 										<h1 class="text-white me-2">Bienvenue, {{ $user->name }}</h1>
 
-											<a href="#" class="avatar avatar-sm img-rounded bg-gray-800 dark-hover"><i class="ti ti-edit text-white"></i></a>
+											<a href="{{route('profile')}}" class="avatar avatar-sm img-rounded bg-gray-800 dark-hover"><i class="ti ti-edit text-white"></i></a>
 										</div>
 										<p class="text-white">Passez une bonne journée au travail</p>
 									</div>

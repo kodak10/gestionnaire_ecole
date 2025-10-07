@@ -122,9 +122,25 @@
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                         <li><a href="#" class="{{ $currentRoute == 'archivages' ? 'active' : '' }}"><i class="ti ti-archive"></i><span>Archivages</span></a></li>
                         @endhasanyrole
+
+                        @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
+                        <li class="submenu">
+                            <a href="javascript:void(0);" class="">
+                                <i class="ti ti-files"></i><span>Document</span><span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li><a href="#" class="">Fiche d'inscription</a></li>
+                                <li><a href="#" class="">Carte d'Eleves</a></li>
+                                <li><a href="#" class="">Certificat de Scolarité</a></li>
+                                <li><a href="#" class="">Certification de fréquentation</a></li>
+                            </ul>
+                        </li>
+                        @endhasanyrole
                     </ul>
                 </li>
                 @endhasanyrole
+
+                
 
                 <li>
                     <h6 class="submenu-hdr"><span>Paramètrages</span></h6>
