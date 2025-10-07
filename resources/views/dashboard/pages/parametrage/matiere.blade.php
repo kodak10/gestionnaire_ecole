@@ -134,7 +134,7 @@
                 @csrf
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label class="form-label">Nom <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control @error('nom') is-invalid @enderror" name="nom" value="{{ old('nom') }}" required>
@@ -175,7 +175,7 @@
                 @method('PUT')
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label class="form-label">Nom <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control @error('nom') is-invalid @enderror" name="nom" value="{{ old('nom', $matiere->nom) }}" required>
