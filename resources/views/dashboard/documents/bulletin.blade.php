@@ -21,8 +21,6 @@ body {
 }
 .header {
     width: 100%;
-    border-top: 1px solid #000;
-    margin-bottom: 5mm;
     min-height: 30mm;
     overflow: hidden;
 }
@@ -34,9 +32,6 @@ body {
 
 .bulletin-row {
     width: 100%;
-    margin-top: 2mm;
-    margin-bottom: 4mm;
-    border: 2px solid #000;
     border-collapse: collapse;
 }
 .bulletin-row td { padding: 2mm 1mm; vertical-align: middle; font-weight: bold; }
@@ -88,74 +83,49 @@ table.general th { background: #ccc; }
         <div class="clearfix"></div>
     </div>
 
+   
     <!-- En-tête principal -->
-    {{-- <div class="header">
-        <div class="header-left">
-            <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école">
+    <hr>
+    <div class="header" style="width:100%; overflow:hidden">
+        <!-- Logo -->
+        <div style="float:left; width:20%; text-align:center;">
+            <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style=" width:100%;">
         </div>
-        <div class="header-center">
+
+        <!-- Partie centrale (plus large) -->
+        <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
             MINISTÈRE DE L’ÉDUCATION NATIONALE<br>
             DE L’ENSEIGNEMENT TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE<br>
-            <b>{{ $classe->nom }}</b>
+            <span>...........................</span><br>
+            <b>{{ $ecole->nom }}</b>
         </div>
-        <div class="header-right">
+
+        <!-- Partie droite -->
+        <div style="float:right; width:25%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
             Adresse : {{ $classe->adresse ?? '...' }}<br>
             Téléphone : {{ $classe->telephone ?? '...' }}<br>
             Code : {{ $classe->code ?? '...' }}<br>
             Statut : {{ $classe->statut ?? '...' }}
+            <br><br>
         </div>
-        <div class="clearfix"></div>
-    </div> --}}
-    <!-- En-tête principal -->
-    <<!-- En-tête principal -->
-<div class="header" style="width:100%; overflow:hidden; margin-bottom:5mm;">
-    <!-- Logo -->
-    <div style="float:left; width:20%; text-align:center;">
-        <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style=" width:100%;">
+
+        <div style="clear:both;"></div>
     </div>
 
-    <!-- Partie centrale (plus large) -->
-    <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
-        MINISTÈRE DE L’ÉDUCATION NATIONALE<br>
-        DE L’ENSEIGNEMENT TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE<br>
-        <span>...........................</span><br>
-        <b>{{ $ecole->nom }}</b>
-    </div>
-
-    <!-- Partie droite -->
-    <div style="float:right; width:25%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
-        Adresse : {{ $classe->adresse ?? '...' }}<br>
-        Téléphone : {{ $classe->telephone ?? '...' }}<br>
-        Code : {{ $classe->code ?? '...' }}<br>
-        Statut : {{ $classe->statut ?? '...' }}
-        <br><br>
-    </div>
-
-    <div style="clear:both;"></div>
-</div>
-
-
-
-<div class="container">
 
 
     <!-- Bulletin / Année -->
     <table class="bulletin-row">
-    <tr>
-        <td class="bulletin-left"><strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong></td>
-        <td class="bulletin-right">
-            <div style="width:100%; overflow:hidden;">
-                <div style="float:left; font-weight:bold;">
-                    {{ $ecole->nom ?? 'Nom École' }}
-                </div>
-                <div style="float:right; text-align:right;">
-                    Édition : {{ \Carbon\Carbon::now()->format('d/m/Y') }}
-                </div>
-                <div class="clearfix"></div>
-            </div>
-        </td>
-    </tr>
-</table>
+        <tr style="text-align:center; font-size:16px; text-transform:uppercase;">
+            <td><strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong> {{ $annee->annee ?? 'Annee' }}</td>
+            
+        </tr>
+    </table>
+
+<div class="container">
+
+
+    
 
 
     <!-- Informations élève -->
