@@ -111,22 +111,24 @@ table.general th { background: #ccc; }
 <div class="header" style="width:100%; overflow:hidden; margin-bottom:5mm;">
     <!-- Logo -->
     <div style="float:left; width:20%; text-align:center;">
-        <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style="height:50px;">
+        <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style=" width:100%;">
     </div>
 
     <!-- Partie centrale (plus large) -->
-    <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;">
+    <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
         MINISTÈRE DE L’ÉDUCATION NATIONALE<br>
         DE L’ENSEIGNEMENT TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE<br>
-        <b>{{ $classe->nom }}</b>
+        <span>...........................</span><br>
+        <b>{{ $ecole->nom }}</b>
     </div>
 
     <!-- Partie droite -->
-    <div style="float:right; width:25%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;">
+    <div style="float:right; width:25%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
         Adresse : {{ $classe->adresse ?? '...' }}<br>
         Téléphone : {{ $classe->telephone ?? '...' }}<br>
         Code : {{ $classe->code ?? '...' }}<br>
         Statut : {{ $classe->statut ?? '...' }}
+        <br><br>
     </div>
 
     <div style="clear:both;"></div>
@@ -199,7 +201,6 @@ table.general th { background: #ccc; }
                 <th>Coeff.</th>
                 <th>M. x C</th>
                 <th>Rang</th>
-                <th>Professeurs</th>
                 <th>Appréciation</th>
             </tr>
         </thead>
@@ -211,7 +212,6 @@ table.general th { background: #ccc; }
                 <td>{{ $note->coefficient ?? 1 }}</td>
                 <td>{{ number_format(($note->valeur * ($note->coefficient ?? 1)),2,',','') }}</td>
                 <td>{{ $note->rang_matiere ?? '-' }}</td>
-                <td>{{ $note->matiere->professeur ?? '-' }}</td>
                 <td>{{ $note->appreciation ?? '-' }}</td>
             </tr>
         @endforeach
@@ -223,8 +223,7 @@ table.general th { background: #ccc; }
         <tr>
             <td><b>TOTAUX</b></td>
             <td>{{ number_format($eleveData['total_notes'],2,',','') }}</td>
-            <td></td>
-            <td><b>MOY. TRIM :</b></td>
+            <td><b>MOYENNE :</b></td>
             <td>{{ number_format($eleveData['moyenne'],2,',','') }}</td>
             <td><b>RANG :</b></td>
             <td>{{ $eleveData['rang_general'] }} / {{ $effectif }}</td>
@@ -237,7 +236,7 @@ table.general th { background: #ccc; }
     <table class="general">
         <thead>
             <tr>
-                <th>RÉSULTAT TRIMESTRIEL</th>
+                <th>RÉSULTAT DE CLASSE</th>
                 <th>DISTINCTIONS</th>
                 <th>SANCTIONS</th>
             </tr>
@@ -269,22 +268,20 @@ table.general th { background: #ccc; }
     <table class="general">
         <thead>
             <tr>
-                <th>Appreciation du conseil</th>
-                <th>visa du chef d'etabilssement</th>
+                <th>Appreciation du conseil de classe</th>
+                <th>Visa du chef d'etabilssement</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>
-                    Moy Premier: {{ $moyPremier }}<br>
-                    Moy Dernier: {{ $moyDernier }}<br>
-                    Moy Classe: {{ $moyClasse }}<br><br>
-                    0 - 8,49 | 8,50 - 9,99 | 10 - 20
+                    L'enseignant<br> {{ $enseignantPrincipal->nom_complet ?? '...' }}
+                    <br><br><br>
                 </td>
                 <td>
-                    ☐ Tableau d’Honneur<br>
-                    ☐ Tableau d’Honneur + Encouragement<br>
-                    ☐ Tableau d’Honneur + Félicitation
+                    {{ $ecole->lieu ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                    <br>
+                    
                 </td>
                 
             </tr>
@@ -302,28 +299,16 @@ table.general th { background: #ccc; }
         <tbody>
             <tr>
                 <td>
-                    Moy Premier: {{ $moyPremier }}<br>
-                    Moy Dernier: {{ $moyDernier }}<br>
-                    Moy Classe: {{ $moyClasse }}<br><br>
-                    0 - 8,49 | 8,50 - 9,99 | 10 - 20
+                    
                 </td>
                 <td>
-                    ☐ Tableau d’Honneur<br>
-                    ☐ Tableau d’Honneur + Encouragement<br>
-                    ☐ Tableau d’Honneur + Félicitation
+                    
                 </td>
                 
             </tr>
         </tbody>
     </table>
 
-    <p style="text-align:center; font-weight:bold; margin-top:3mm;">{{ $eleveData['mention'] }}</p>
-
-    <div class="signature">
-        <div>Professeur Principal</div>
-        <div>Directeur Des Études</div>
-        <div class="clearfix"></div>
-    </div>
 
 </div>
 @endforeach
