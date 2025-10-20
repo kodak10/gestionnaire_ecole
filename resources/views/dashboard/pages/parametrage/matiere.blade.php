@@ -83,8 +83,8 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>
-    {{ $matiere->niveaux->pluck('nom')->join(', ') }}
-</td>
+                            {{ $matiere->niveaux->pluck('nom')->join(', ') }}
+                        </td>
 
                         <td>{{ $matiere->nom }}</td>
                         <td>

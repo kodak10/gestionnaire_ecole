@@ -18,5 +18,18 @@ class Matiere extends Model
                     ->withTimestamps();
     }
 
+    public function classes($ecoleId = null, $anneeScolaireId = null)
+    {
+        return $this->niveaux->flatMap(function ($niveau) use ($ecoleId, $anneeScolaireId) {
+            return $niveau->classes
+                          ->filter(function ($classe) use ($ecoleId, $anneeScolaireId) {
+                              return (!$ecoleId || $classe->ecole_id == $ecoleId)
+                                  && (!$anneeScolaireId || $classe->annee_scolaire_id == $anneeScolaireId);
+                          });
+        });
+    }
+
+    
+
 
 }
