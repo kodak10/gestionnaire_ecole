@@ -17,10 +17,7 @@ body {
 }
 
 .container {
-    width: 180mm;
-    margin: 0 auto;
     border: 1px solid #000;
-    padding: 5mm;
     page-break-after: always;
     box-sizing: border-box;
 }
@@ -290,7 +287,7 @@ table.general th { background: #ccc; }
         <thead>
             <tr>
                 <th>Appreciation du conseil de classe</th>
-                <th>Visa du chef d'etabilssement</th>
+                <th>Visa du directeur</th>
             </tr>
         </thead>
         <tbody>
@@ -300,7 +297,8 @@ table.general th { background: #ccc; }
                     <br><br><br>
                 </td>
                 <td>
-                    {{ $ecole->lieu ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                    {{ $ecole->directeur ?? '...' }} <br>
+                    {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                     <br>
                     
                 </td>
