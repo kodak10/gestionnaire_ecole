@@ -140,7 +140,7 @@ table.general th { background: #ccc; }
         <table style="width:100%; border-collapse:collapse;">
             <!-- Première ligne : Matricule + Nom et Prénoms -->
             <tr style="text-transform:uppercase;background:#ccc">
-                <td style="text-align:left; width:70%; padding:5px;">
+                <td style="text-align:left; width:70%; padding:5px;text-transform:uppercase;">
                     <b>{{ $eleveData['inscription']->eleve->nom_complet }}</b> 
                 </td>
                 <td style="text-align:right; width:30%; padding:5px;">
@@ -179,7 +179,7 @@ table.general th { background: #ccc; }
                         </tr>
 
                         <tr>
-                            <td style="padding:6px;">
+                            <td style="padding:6px; text-transform:uppercase;">
                                 <b>Nom du parent :</b> {{ $eleveData['inscription']->eleve->parent_nom ?? '' }}
                             </td>
                             <td style="padding:6px; text-align:left;">
@@ -288,14 +288,14 @@ table.general th { background: #ccc; }
                         L'enseignant <br>
                         <br> <br> <br> <br>
                         <br>
-{{ $eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...' }}
+{{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
                     <td>
                         {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
                         <br> <br> <br> <br>
-                        {{ $ecole->directeur ?? '...' }}
+                        {{ strtoupper($ecole->directeur ?? '...') }}
                     </td>
                 </tr>
             </tbody>
