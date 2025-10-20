@@ -286,7 +286,7 @@ table.general th { background: #ccc; }
                 <tr>
                     <td>
                         <span style="text-decoration: underline;">L'enseignant</span> <br>
-                        <br> <br> <br> <br>
+                        <br> <br> <br>
                         <br>
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
@@ -294,7 +294,7 @@ table.general th { background: #ccc; }
                         {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
-                        <br> <br> <br> <br>
+                        <br> <br> <br>
                         {{ strtoupper($ecole->directeur ?? '...') }}
                     </td>
                 </tr>
