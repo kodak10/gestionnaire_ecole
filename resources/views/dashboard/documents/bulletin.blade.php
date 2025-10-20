@@ -171,16 +171,18 @@ table.general th { background: #ccc; }
                                 <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
                             </td>
                             <td style="padding:6px; text-align:left;">
-                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }} à
-                                <br>
-                                {{ strtoupper($eleveData['inscription']->eleve->lieu_naissance ?? '') }}
+                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
+                                @if(!empty($eleveData['inscription']->eleve->lieu_naissance))
+                                    à {{ strtoupper($eleveData['inscription']->eleve->lieu_naissance) }}
+                                @endif
                             </td>
+
                             
                         </tr>
 
                         <tr>
-                            <td style="padding:6px; text-transform:uppercase;">
-                                <b>Nom du parent :</b> {{ $eleveData['inscription']->eleve->parent_nom ?? '' }}
+                            <td style="padding:6px; ">
+                                <b>Nom du parent :</b> {{ strtoupper($eleveData['inscription']->eleve->parent_nom ?? '') }}
                             </td>
                             <td style="padding:6px; text-align:left;">
                                 <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
