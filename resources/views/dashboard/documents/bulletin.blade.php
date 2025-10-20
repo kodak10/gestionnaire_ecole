@@ -195,7 +195,7 @@ table.general th { background: #ccc; }
 <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
              ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
              : public_path('images/default.png') }}"
-     alt="Photo élève"
+     alt="Photo"
      style="width:100px; height:100px; object-fit:cover; border-radius:5px;">
 
         </div>
