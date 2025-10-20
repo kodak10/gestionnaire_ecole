@@ -189,10 +189,15 @@ table.general th { background: #ccc; }
 
     <!-- Photo -->
     <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
-        <div style="width:100%; height:10%; border:1px solid #000; padding:4px; display:inline-block;">
-            <img src="{{ $eleveData['inscription']->eleve->photo ?? 'https://randomuser.me/api/portraits/lego/1.jpg' }}" 
-                 alt="Photo élève" 
-                 style="width:100px; height:100px; object-fit:cover; border-radius:5px;">
+        <div style="width:100%; height:100px; border:1px solid #000; padding:4px; display:inline-block;">
+           
+
+<img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
+             ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
+             : public_path('images/default.png') }}"
+     alt="Photo élève"
+     style="width:100px; height:100px; object-fit:cover; border-radius:5px;">
+
         </div>
     </td>
 </tr>
@@ -228,8 +233,8 @@ table.general th { background: #ccc; }
     </table>
 
     <!-- Totaux -->
-    <table class="general">
-        <tr>
+    <table class="general" >
+        <tr style="background:#ccc">
             <td><b>TOTAUX</b></td>
             <td>{{ number_format($eleveData['total_notes'],2,',','') }}</td>
             <td><b>MOYENNE :</b></td>
