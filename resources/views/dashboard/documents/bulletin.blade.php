@@ -287,14 +287,14 @@ table.general th { background: #ccc; }
                     <td>
                         L'enseignant <br>
                         <br> <br> <br> <br>
-                        
+                        <br>
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
                     <td>
                         {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
-                        <br> <br> <br> 
+                        <br> <br> <br> <br>
                         {{ strtoupper($ecole->directeur ?? '...') }}
                     </td>
                 </tr>
@@ -303,7 +303,7 @@ table.general th { background: #ccc; }
 
 
     </div>
-        <p style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</p>
+        <span style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</span>
 
     @if(!$loop->last)
         <div class="page-break"></div>
