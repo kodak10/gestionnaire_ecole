@@ -141,7 +141,7 @@ table.general th { background: #ccc; }
             <!-- Première ligne : Matricule + Nom et Prénoms -->
             <tr style="text-transform:uppercase;background:#ccc">
                 <td style="text-align:left; width:70%; padding:5px;text-transform:uppercase;">
-                    <b>{{ $eleveData['inscription']->eleve->nom_complet }}</b> 
+                    <b>{{ strtoupper($eleveData['inscription']->eleve->nom_complet) }}</b> 
                 </td>
                 <td style="text-align:right; width:30%; padding:5px;">
                     <b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}
@@ -171,9 +171,9 @@ table.general th { background: #ccc; }
                                 <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
                             </td>
                             <td style="padding:6px; text-align:left;">
-                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
+                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }} à
                                 <br>
-                                {{ $eleveData['inscription']->eleve->lieu_naissance ?? '' }}
+                                {{ strtoupper($eleveData['inscription']->eleve->lieu_naissance ?? '') }}
                             </td>
                             
                         </tr>
@@ -287,14 +287,14 @@ table.general th { background: #ccc; }
                     <td>
                         L'enseignant <br>
                         <br> <br> <br> <br>
-                        <br>
+                        
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
                     <td>
                         {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
-                        <br> <br> <br> <br>
+                        <br> <br> <br> 
                         {{ strtoupper($ecole->directeur ?? '...') }}
                     </td>
                 </tr>
