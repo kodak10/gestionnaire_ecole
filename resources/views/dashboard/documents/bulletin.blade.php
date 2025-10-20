@@ -102,9 +102,9 @@ table.general th { background: #ccc; }
 
         <!-- Partie droite -->
         <div style="float:right; width:30%; text-align:left; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
-            Code : {{ $ecole->code ?? '' }}<br>
-            Adresse : {{ $ecole->adresse ?? '' }}<br>
-            Tél. / Fax : {{ $ecole->telephone ?? '' }} / {{ $ecole->fax ?? '0274839310' }}<br>
+            Code : <b>{{ $ecole->code ?? '' }}</b><br>
+            Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
+            Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b><br>
             <br><br>
         </div>
 
@@ -132,42 +132,74 @@ table.general th { background: #ccc; }
 <div class="container">
 
 
-    
-
-
     <!-- Informations élève -->
-    <div class="student-info-wrapper">
-        <div class="student-left">
-            <div class="info-card">
-                <table>
-                    <tr>
-                        <td><b>Nom et Prénoms :</b> {{ $eleveData['inscription']->eleve->nom_complet }}</td>
-                        <td><b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}</td>
-                    </tr>
-                    <tr>
-                        <td><b>Classe :</b> {{ $classe->nom }}</td>
-                        <td><b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe }}</td>
-                    </tr>
-                    <tr>
-                        <td><b>Effectif :</b> {{ $effectif }}</td>
-                        <td><b>Nationalité :</b> {{ $eleveData['inscription']->eleve->nationalite ?? '...' }}</td>
-                    </tr>
-                    <tr>
-                        <td><b>Née le :</b> {{ $eleveData['inscription']->eleve->date_naissance }}</td>
-                        <td><b>Lieu :</b> {{ $eleveData['inscription']->eleve->lieu_naissance ?? '...' }}</td>
-                    </tr>
-                    <tr>
-                        <td><b>Redoublant :</b> {{ $eleveData['inscription']->eleve->redoublant ? 'OUI' : 'NON' }}</td>
-                        <td><b>Situation :</b> {{ $eleveData['inscription']->eleve->situation ?? '...' }}</td>
-                    </tr>
-                </table>
-            </div>
+ <!-- Informations Élève -->
+<table style="width:100%; border-collapse:collapse;">
+    <!-- Première ligne : Matricule + Nom et Prénoms -->
+    <tr style="text-transform:uppercase;background:#ccc">
+        <td style="text-align:left; width:70%; padding:5px;">
+            <b>{{ $eleveData['inscription']->eleve->nom_complet }}</b> 
+        </td>
+        <td style="text-align:right; width:30%; padding:5px;">
+            <b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}
+        </td>
+        
+    </tr>
+
+    <!-- Deuxième ligne : infos + photo -->
+    <tr>
+    <!-- Infos élève -->
+    <td style="vertical-align:top; padding:5px;">
+        <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+            <tr>
+                <!-- Colonne gauche large -->
+                <td style="padding:6px; width:60%;">
+                    <b>Classe :</b> {{ $classe->nom }}
+                </td>
+
+                <!-- Colonne droite pour effectif -->
+                <td style="padding:6px; width:30%; text-align:left;">
+                    <b>Effectif :</b> {{ $effectif }}
+                </td>
+            </tr>
+
+            <tr>
+                <td style="padding:6px;">
+                    <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
+                </td>
+                <td style="padding:6px; text-align:left;">
+                    <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
+                    <br>
+                    {{ $eleveData['inscription']->eleve->lieu_naissance ?? '' }}
+                </td>
+                
+            </tr>
+
+            <tr>
+                <td style="padding:6px;">
+                    <b>Nom du parent :</b> {{ $eleveData['inscription']->eleve->parent_nom ?? '' }}
+                </td>
+                <td style="padding:6px; text-align:left;">
+                    <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
+                </td>
+                
+            </tr>
+        </table>
+    </td>
+
+    <!-- Photo -->
+    <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
+        <div style="width:100%; height:10%; border:1px solid #000; padding:4px; display:inline-block;">
+            <img src="{{ $eleveData['inscription']->eleve->photo ?? 'https://randomuser.me/api/portraits/lego/1.jpg' }}" 
+                 alt="Photo élève" 
+                 style="width:100px; height:100px; object-fit:cover; border-radius:5px;">
         </div>
-        <div class="photo-box">
-            <img src="{{ $eleveData['inscription']->eleve->photo ?? 'https://randomuser.me/api/portraits/lego/1.jpg' }}" alt="Photo élève">
-        </div>
-        <div class="clearfix"></div>
-    </div>
+    </td>
+</tr>
+
+</table>
+
+
 
     <!-- Matières -->
     <table class="general">

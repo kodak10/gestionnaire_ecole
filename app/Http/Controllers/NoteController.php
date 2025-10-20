@@ -409,9 +409,6 @@ class NoteController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
-
-
-
         $classe = Classe::with('niveau.matieres')->findOrFail($request->classe_id);
         $mois = MoisScolaire::findOrFail($request->mois_id);
 
