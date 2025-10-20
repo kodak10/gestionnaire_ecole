@@ -25,6 +25,7 @@ class EcoleController extends Controller
     {
         $request->validate([
             'nom_ecole' => 'required|string|max:255',
+            'code' => 'required|string|max:20',
             'sigle_ecole' => 'required|string|max:10',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'adresse' => 'required|string',
@@ -55,6 +56,7 @@ class EcoleController extends Controller
 
         // Mise à jour des champs
         $ecole->nom_ecole = $request->nom_ecole;
+        $ecole->code = $request->code;
         $ecole->sigle_ecole = $request->sigle_ecole;
         $ecole->adresse = $request->adresse;
         $ecole->telephone = $request->telephone;

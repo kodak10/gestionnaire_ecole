@@ -88,7 +88,7 @@ table.general th { background: #ccc; }
     <hr>
     <div class="header" style="width:100%; overflow:hidden">
         <!-- Logo -->
-        <div style="float:left; width:20%; text-align:center;">
+        <div style="float:left; width:15%; text-align:center;">
             <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style=" width:100%;">
         </div>
 
@@ -101,11 +101,10 @@ table.general th { background: #ccc; }
         </div>
 
         <!-- Partie droite -->
-        <div style="float:right; width:25%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
-            Adresse : {{ $classe->adresse ?? '...' }}<br>
-            Téléphone : {{ $classe->telephone ?? '...' }}<br>
-            Code : {{ $classe->code ?? '...' }}<br>
-            Statut : {{ $classe->statut ?? '...' }}
+        <div style="float:right; width:30%; text-align:left; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
+            Code : {{ $ecole->code ?? '' }}<br>
+            Adresse : {{ $ecole->adresse ?? '' }}<br>
+            Tél. / Fax : {{ $ecole->telephone ?? '' }} / {{ $ecole->fax ?? '0274839310' }}<br>
             <br><br>
         </div>
 
@@ -115,12 +114,20 @@ table.general th { background: #ccc; }
 
 
     <!-- Bulletin / Année -->
-    <table class="bulletin-row">
-        <tr style="text-align:center; font-size:16px; text-transform:uppercase;">
-            <td><strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong> {{ $annee->annee ?? 'Annee' }}</td>
-            
+    <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
+        <tr>
+            <!-- Colonne pour le titre -->
+            <td style="text-align:center; width:70%;">
+                <strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong>
+            </td>
+
+            <!-- Colonne pour l'année à droite -->
+            <td style="text-align:right; width:30%;">
+                {{ $anneeScolaire->annee ?? 'Année' }}
+            </td>
         </tr>
     </table>
+
 
 <div class="container">
 

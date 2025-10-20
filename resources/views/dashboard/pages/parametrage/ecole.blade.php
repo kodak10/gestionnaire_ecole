@@ -118,6 +118,22 @@
                                 <div class="row align-items-center flex-fill">
                                     <div class="col-xxl-8 col-lg-6">
                                         <div class="mb-3">
+                                            <h6>Code</h6>
+                                            <p>Code de l'établissement</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-lg-6">
+                                        <div class="mb-3">
+                                            <input type="text" class="form-control" name="code" value="{{ $ecoleInfos->code ?? '' }}" placeholder="Entrez le code de l'école">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                                <div class="row align-items-center flex-fill">
+                                    <div class="col-xxl-8 col-lg-6">
+                                        <div class="mb-3">
                                             <h6>Sigle</h6>
                                             <p>Sigle de l'établissement</p>
                                         </div>

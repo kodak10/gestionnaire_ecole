@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Inscription;
@@ -406,6 +407,8 @@ class NoteController extends Controller
 
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
 
 
 
@@ -531,7 +534,8 @@ class NoteController extends Controller
             'moyClasse' => round($moyClasse, 2),
             'moyPremier' => round($moyPremier, 2),
             'moyDernier' => round($moyDernier, 2),
-            'effectif' => count($elevesAvecMoyennes)
+            'effectif' => count($elevesAvecMoyennes),
+            'anneeScolaire' => $anneeScolaire,
         ]);
 
         return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
