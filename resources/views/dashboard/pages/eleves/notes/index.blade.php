@@ -20,7 +20,7 @@
 
         <div class="pe-1 mb-2">
             <a href="{{ route('notes.create') }}" class="btn btn-outline-primary">
-                <i class="ti ti-file-spreadsheet me-2"></i>Saisie de Note
+                <i class="ti ti-file-spreadsheet me-2"></i>Saisie de Moyenne
             </a>
         </div>
     </div>

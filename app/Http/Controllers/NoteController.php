@@ -161,7 +161,7 @@ class NoteController extends Controller
             );
         }
 
-        return redirect()->route('notes.index')->with('success', 'Notes enregistrées avec succès');
+        return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
     }
 
     // je en gère pas ça
@@ -273,7 +273,7 @@ class NoteController extends Controller
     $anneeScolaireId = session('current_annee_scolaire_id');
     $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
-    // Classe et niveau avec matières (triées par ordre)
+    // Classe et niveau avec matières (triées par ordre numérique)
     $classe = Classe::with(['niveau.matieres' => function($q) {
         $q->orderByPivot('ordre');
     }])->findOrFail($request->classe_id);
@@ -293,7 +293,6 @@ class NoteController extends Controller
         ->orderBy('min_note')
         ->get();
 
-    // Calcul des moyennes, mentions et ex-aequo
     $elevesAvecMoyennes = [];
     foreach ($inscriptions as $inscription) {
         $notes = $inscription->notes ?? collect();
@@ -309,9 +308,24 @@ class NoteController extends Controller
         $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
         $moyenneArrondie = round($moyenne, 2);
 
+        // Mention
         $mention = $mentions->first(function($m) use ($moyenneArrondie) {
             return $moyenneArrondie >= $m->min_note && $moyenneArrondie <= $m->max_note;
         });
+
+        // Distinctions et sanctions par élève
+        $distinctions = [
+            'tableau_honneur' => $moyenneArrondie >= 12,
+            'encouragement'   => $moyenneArrondie >= 14,
+            'felicitation'    => $moyenneArrondie >= 16,
+        ];
+
+        $sanctions = [
+            'avertissement_travail' => $moyenneArrondie >= 10 ? false : ($moyenneArrondie < 10 && $moyenneArrondie >= 8),
+            'blame_travail'          => $moyenneArrondie < 8,
+            'avertissement_conduite' => false, // ajouter selon règles
+            'blame_conduite'         => false, // ajouter selon règles
+        ];
 
         $elevesAvecMoyennes[] = [
             'inscription' => $inscription,
@@ -321,18 +335,15 @@ class NoteController extends Controller
             'execo_count' => $notes->where('valeur', 20)->count(),
             'total_notes' => $totalNotes,
             'total_coeffs' => $totalCoeffs,
+            'distinctions' => $distinctions,
+            'sanctions' => $sanctions,
         ];
     }
 
     // Classement par matière (respect de l'ordre pivot)
-    // $matieres = $classe->niveau->matieres;
-    // $matieres = $classe->niveau->matieres->sortBy('pivot.ordre')->values();
     $matieres = $classe->niveau->matieres
-    ->sortBy(function($matiere) {
-        return (int) $matiere->pivot->ordre; // tri numérique
-    })
-    ->values();
-
+        ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
+        ->values();
 
     foreach ($matieres as $matiere) {
         $notesMatiere = [];
@@ -347,9 +358,7 @@ class NoteController extends Controller
         }
 
         // Trier par valeur décroissante
-        usort($notesMatiere, function($a, $b) {
-            return $b['note_obj']->valeur <=> $a['note_obj']->valeur;
-        });
+        usort($notesMatiere, fn($a, $b) => $b['note_obj']->valeur <=> $a['note_obj']->valeur);
 
         // Attribuer les rangs en tenant compte des ex-aequo
         foreach ($notesMatiere as $idx => $data) {
@@ -357,11 +366,9 @@ class NoteController extends Controller
                 $data['note_obj']->rang_matiere = 1;
             } else {
                 $prev = $notesMatiere[$idx - 1];
-                if ($data['note_obj']->valeur == $prev['note_obj']->valeur) {
-                    $data['note_obj']->rang_matiere = $prev['note_obj']->rang_matiere;
-                } else {
-                    $data['note_obj']->rang_matiere = $idx + 1;
-                }
+                $data['note_obj']->rang_matiere = ($data['note_obj']->valeur == $prev['note_obj']->valeur)
+                    ? $prev['note_obj']->rang_matiere
+                    : $idx + 1;
             }
         }
     }
@@ -399,10 +406,6 @@ class NoteController extends Controller
     $moyPremier = count($moyennes) > 0 ? max($moyennes) : 0;
     $moyDernier = count($moyennes) > 0 ? min($moyennes) : 0;
 
-    // === NOUVEAU : Calcul des distinctions et sanctions ===
-    $distinctions = $this->calculerDistinctions($elevesAvecMoyennes);
-    $sanctions = $this->calculerSanctions($elevesAvecMoyennes);
-
     // Génération PDF
     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
         'classe' => $classe,
@@ -414,14 +417,13 @@ class NoteController extends Controller
         'moyDernier' => round($moyDernier, 2),
         'effectif' => count($elevesAvecMoyennes),
         'anneeScolaire' => $anneeScolaire,
-        'distinctions' => $distinctions, // ← NOUVEAU
-        'sanctions' => $sanctions,       // ← NOUVEAU
     ]);
 
-    $pdf->setOption('defaultFont', 'DejaVu Sans');    
+    $pdf->setOption('defaultFont', 'DejaVu Sans');
 
     return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
 }
+
 
 private function calculerDistinctions($elevesAvecMoyennes)
 {
@@ -433,6 +435,11 @@ private function calculerDistinctions($elevesAvecMoyennes)
 
     foreach ($elevesAvecMoyennes as $eleve) {
         $moyenne = $eleve['moyenne'];
+        
+        // Si l'élève a une moyenne qui mérite une sanction, on ignore les distinctions
+        if ($moyenne < 10) {
+            continue;
+        }
         
         // Tableau d'Honneur + Félicitation (≥ 16/20)
         if ($moyenne >= 16) {
@@ -465,16 +472,17 @@ private function calculerSanctions($elevesAvecMoyennes)
     foreach ($elevesAvecMoyennes as $eleve) {
         $moyenne = $eleve['moyenne'];
         
+        // Si l'élève a une bonne moyenne, on ignore les sanctions travail
+        if ($moyenne >= 10) {
+            continue;
+        }
+        
         // Sanctions pour travail insuffisant
         if ($moyenne < 8) {
             $sanctions['blame_travail'] = true;
         } elseif ($moyenne < 10) {
             $sanctions['avertissement_travail'] = true;
         }
-
-        // Ici vous pourriez ajouter la logique pour les sanctions de conduite
-        // basée sur d'autres critères (absences, comportement, etc.)
-        // Pour l'instant, on les laisse non cochées par défaut
     }
 
     return $sanctions;

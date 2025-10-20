@@ -52,7 +52,7 @@
                                 @endhasanyrole
                                 <li><a href="{{ route('eleves.index') }}" class="{{ $currentRoute == 'eleves.index' ? 'active' : '' }}">Liste des Eleves</a></li>
                                 @hasanyrole('SuperAdministrateur|Administrateur|Directeur|Enseignant')
-                                <li><a href="{{ route('notes.index') }}" class="{{ $currentRoute == 'notes.index' ? 'active' : '' }}">Saisie de Note</a></li>
+                                <li><a href="{{ route('notes.index') }}" class="{{ $currentRoute == 'notes.index' ? 'active' : '' }}">Saisie de Moyenne</a></li>
                                 @endhasanyrole
                             </ul>
                         </li>
