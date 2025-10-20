@@ -11,6 +11,11 @@ body {
     padding: 0;
     color: #000;
 }
+.checkbox {
+    font-family: DejaVu Sans, sans-serif;
+    font-size: 14px;
+}
+
 .container {
     width: 180mm;
     margin: 0 auto;
@@ -189,14 +194,14 @@ table.general th { background: #ccc; }
 
     <!-- Photo -->
     <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
-        <div style="width:100%; height:100px; border:1px solid #000; padding:4px; display:inline-block;">
+        <div style="width:100%; height:80px; border:1px solid #000; padding:4px; display:inline-block;">
            
 
 <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
              ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
              : public_path('images/default.png') }}"
      alt="Photo"
-     style="width:100px; height:100px; object-fit:cover; border-radius:5px;">
+     style="width:100px; height:80px; object-fit:cover; border-radius:5px;">
 
         </div>
     </td>
@@ -233,50 +238,68 @@ table.general th { background: #ccc; }
     </table>
 
     <!-- Totaux -->
-    <table class="general" >
-        <tr style="background:#ccc">
-            <td><b>TOTAUX</b></td>
-            <td>{{ number_format($eleveData['total_notes'],2,',','') }}</td>
-            <td><b>MOYENNE :</b></td>
-            <td>{{ number_format($eleveData['moyenne'],2,',','') }}</td>
-            <td><b>RANG :</b></td>
-            <td>{{ $eleveData['rang_general'] }} / {{ $effectif }}</td>
-        </tr>
-    </table>
+    <table class="general" style="width:100%; border-collapse: collapse;">
+    <tr style="background:#ccc; text-align: center;">
+        <td style="padding:5px;"><b>MOYENNE :</b> {{ number_format($eleveData['moyenne'],2,',','') }}</td>
+        <td style="padding:5px;"><b>RANG :</b> {{ $eleveData['rang_general'] }} / {{ $effectif }}</td>
+        <td style="padding:5px;"><b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}</td>
+    </tr>
+</table>
+
 
     
 
     <!-- Résultats et distinctions -->
-    <table class="general">
-        <thead>
-            <tr>
-                <th>RÉSULTAT DE CLASSE</th>
-                <th>DISTINCTIONS</th>
-                <th>SANCTIONS</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    Moy Premier: {{ $moyPremier }}<br>
-                    Moy Dernier: {{ $moyDernier }}<br>
-                    Moy Classe: {{ $moyClasse }}<br><br>
-                    0 - 8,49 | 8,50 - 9,99 | 10 - 20
-                </td>
-                <td>
-                    ☐ Tableau d’Honneur<br>
-                    ☐ Tableau d’Honneur + Encouragement<br>
-                    ☐ Tableau d’Honneur + Félicitation
-                </td>
-                <td>
-                    ☐ Avertissement pour travail insuffisant<br>
-                    ☐ Blâme pour travail insuffisant<br>
-                    ☐ Avertissement pour mauvaise conduite<br>
-                    ☐ Blâme pour mauvaise conduite
-                </td>
-            </tr>
-        </tbody>
-    </table>
+<table class="general">
+    <thead>
+        <tr>
+            <th>RÉSULTAT DE CLASSE</th>
+            <th>DISTINCTIONS</th>
+            <th>SANCTIONS</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                Moy Premier: {{ $moyPremier }}<br>
+                Moy Dernier: {{ $moyDernier }}<br>
+                Moy Classe: {{ $moyClasse }}<br><br>
+                0 - 8,49 | 8,50 - 9,99 | 10 - 20
+            </td>
+            <td>
+                <span class="checkbox">{{ $distinctions['tableau_honneur'] ? '☑' : '□' }}</span> Tableau d'Honneur<br>
+                <span class="checkbox">{{ $distinctions['encouragement'] ? '☑' : '□' }}</span> Tableau d'Honneur + Encouragement<br>
+                <span class="checkbox">{{ $distinctions['felicitation'] ? '☑' : '□' }}</span> Tableau d'Honneur + Félicitation
+            </td>
+            <td>
+                @if($sanctions['avertissement_travail'])
+                <span class="checkbox"></span>
+                    <br>
+                @else
+                    □ Avertissement pour travail insuffisant<br>
+                @endif
+                
+                @if($sanctions['blame_travail'])
+                    ☑ Blâme pour travail insuffisant<br>
+                @else
+                    □ Blâme pour travail insuffisant<br>
+                @endif
+                
+                @if($sanctions['avertissement_conduite'])
+                    ☑ Avertissement pour mauvaise conduite<br>
+                @else
+                    □ Avertissement pour mauvaise conduite<br>
+                @endif
+                
+                @if($sanctions['blame_conduite'])
+                    ☑ Blâme pour mauvaise conduite
+                @else
+                    □ Blâme pour mauvaise conduite
+                @endif
+            </td>
+        </tr>
+    </tbody>
+</table>
 
     <!-- Appreciation du conseil de classe et visa du chef d'etabilssement -->
     <table class="general">
@@ -303,7 +326,7 @@ table.general th { background: #ccc; }
     </table>
 
     <!-- Recapitulatif des compo et decision de fin d'année -->
-    <table class="general">
+    {{-- <table class="general">
         <thead>
             <tr>
                 <th>Recapitulatif des compo</th>
@@ -321,7 +344,7 @@ table.general th { background: #ccc; }
                 
             </tr>
         </tbody>
-    </table>
+    </table> --}}
 
 
 </div>
