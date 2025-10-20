@@ -29,7 +29,7 @@ body {
 }
 .header {
     width: 100%;
-    min-height: 30mm;
+    min-height: 15mm;
     overflow: hidden;
 }
 .header-left { float: left; width: 32%; text-align: center; }
@@ -81,7 +81,7 @@ table.general th { background: #ccc; }
 @foreach($elevesAvecMoyennes as $eleveData)
 
     <!-- En-tête supérieur : nom école à gauche, date d'édition à droite -->
-    <div style="width:100%; margin-bottom:3mm; overflow:hidden;">
+    <div style="width:100%; overflow:hidden;">
         <div style="float:left; width:50%; font-weight:bold;">
             {{ $ecole->nom ?? 'Nom École' }}
         </div>
@@ -285,7 +285,7 @@ table.general th { background: #ccc; }
             <tbody>
                 <tr>
                     <td>
-                        L'enseignant <br>
+                        <span style="text-decoration: underline;">L'enseignant</span> <br>
                         <br> <br> <br> <br>
                         <br>
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
@@ -303,7 +303,7 @@ table.general th { background: #ccc; }
 
 
     </div>
-        <span style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</span>
+        <p style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</p>
 
     @if(!$loop->last)
         <div class="page-break"></div>
