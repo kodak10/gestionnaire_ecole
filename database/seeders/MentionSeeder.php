@@ -2,58 +2,61 @@
 
 namespace Database\Seeders;
 
-use App\Models\Mention;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Mention;
 
 class MentionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
-   public function run(): void
+    public function run(): void
     {
-        $ecoleId = 1; // ID de l'école par défaut
+        // ⚠️ Adapte ces IDs selon tes données existantes
+        $anneeScolaireId = 1;
+        $ecoleId = 1;
 
         $mentions = [
             [
+                'nom' => 'Insuffisant',
+                'min_note' => 0,
+                'max_note' => 9,
+            ],
+            [
                 'nom' => 'Passable',
-                'description' => 'Performance minimale acceptable',
                 'min_note' => 10,
                 'max_note' => 11,
             ],
             [
                 'nom' => 'Assez Bien',
-                'description' => 'Travail correct avec quelques insuffisances',
                 'min_note' => 12,
                 'max_note' => 13,
             ],
             [
                 'nom' => 'Bien',
-                'description' => 'Bon niveau de maîtrise',
                 'min_note' => 14,
                 'max_note' => 15,
             ],
             [
                 'nom' => 'Très Bien',
-                'description' => 'Très bon niveau, peu d’erreurs',
                 'min_note' => 16,
                 'max_note' => 17,
             ],
             [
                 'nom' => 'Excellent',
-                'description' => 'Maîtrise parfaite et rigueur exemplaire',
                 'min_note' => 18,
                 'max_note' => 20,
             ],
         ];
 
         foreach ($mentions as $mention) {
-            Mention::firstOrCreate(
-                ['nom' => $mention['nom'], 'ecole_id' => $ecoleId], // condition unique
-                array_merge($mention, ['ecole_id' => $ecoleId])     // valeurs à insérer si pas trouvé
-            );
+            Mention::create([
+                'annee_scolaire_id' => $anneeScolaireId,
+                'ecole_id' => $ecoleId,
+                'nom' => $mention['nom'],
+                'min_note' => $mention['min_note'],
+                'max_note' => $mention['max_note'],
+            ]);
         }
-
     }
 }
