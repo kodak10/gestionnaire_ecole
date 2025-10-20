@@ -156,6 +156,7 @@
                             </a>
                             <ul>
                                 <li><a href="{{ route('classes.index') }}" class="{{ $currentRoute == 'classes.index' ? 'active' : '' }}">Classes</a></li>
+                                <li><a href="{{ route('enseignants.index') }}" class="{{ $currentRoute == 'enseignants.index' ? 'active' : '' }}">Enseignants</a></li>
                                 <li><a href="{{ route('matieres.index') }}" class="{{ $currentRoute == 'matieres.index' ? 'active' : '' }}">Disciplines</a></li>
                                 <li><a href="{{ route('mentions.index') }}" class="{{ $currentRoute == 'mentions.index' ? 'active' : '' }}">Critères de Notation</a></li>
                             </ul>

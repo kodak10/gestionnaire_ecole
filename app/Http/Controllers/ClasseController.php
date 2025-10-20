@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\ClassesExport;
 use App\Models\Classe;
+use App\Models\Enseignant;
 use App\Models\Niveau;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -25,6 +26,10 @@ class ClasseController extends Controller
         // Récupérer l'école et l'année depuis la session
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $enseignants = Enseignant::where('ecole_id', $ecoleId)
+                        ->orderBy('nom_prenoms')
+                        ->get();
 
         // Récupérer les classes avec relations
         $classes = Classe::with(['niveau', 'inscriptions'])
@@ -50,6 +55,7 @@ class ClasseController extends Controller
             'classes' => $classes,
             'niveaux' => $niveaux,
             'annee_active' => $anneeActive,
+            'enseignants' => $enseignants,
         ]);
     }
 
@@ -59,6 +65,8 @@ class ClasseController extends Controller
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
+            'enseignant_id'=> 'required|exists:enseignants,id',
+
         ]);
 
         $niveau = Niveau::findOrFail($request->niveau_id);
@@ -84,6 +92,7 @@ class ClasseController extends Controller
             'niveau_id' => $request->niveau_id,
             'nom' => $nomComplet,
             'capacite' => $request->capacite,
+            'enseignant_id'     => $request->enseignant_id,
         ]);
 
         return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
@@ -95,6 +104,8 @@ class ClasseController extends Controller
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
+            'enseignant_id'=> 'required|exists:enseignants,id',
+
         ]);
 
         $classe = Classe::findOrFail($id);
@@ -114,10 +125,18 @@ class ClasseController extends Controller
             return back()->withErrors(['nom' => 'Cette classe existe déjà'])->withInput();
         }
 
+        $nomClasse = $request->nom;
+
+        // Vérifier si le nom commence déjà par le niveau
+        if (!str_starts_with($nomClasse, $niveau->nom . '_')) {
+            $nomClasse = $niveau->nom . '_' . $nomClasse;
+        }
+
         $classe->update([
             'niveau_id' => $request->niveau_id,
-            'nom' => $nomComplet,
+            'nom' => $nomClasse,
             'capacite' => $request->capacite,
+            'enseignant_id' => $request->enseignant_id,
         ]);
 
         return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');

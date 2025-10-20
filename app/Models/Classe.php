@@ -25,7 +25,7 @@ class Classe extends Model
 
     public function enseignant()
     {
-        return $this->belongsTo(User::class, 'enseignant_id');
+        return $this->belongsTo(Enseignant::class);
     }
 
     public function matieres()

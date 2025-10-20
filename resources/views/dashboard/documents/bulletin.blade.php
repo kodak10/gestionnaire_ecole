@@ -17,9 +17,15 @@ body {
 }
 
 .container {
-    border: 1px solid #000;
-    page-break-after: always;
+    border-top: 1px solid #000;
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+    border-bottom: none; /* ✅ Enlève la bordure du bas */
     box-sizing: border-box;
+}
+
+.page-break {
+    page-break-after: always;
 }
 .header {
     width: 100%;
@@ -85,7 +91,6 @@ table.general th { background: #ccc; }
         <div class="clearfix"></div>
     </div>
 
-   
     <!-- En-tête principal -->
     <hr>
     <div class="header" style="width:100%; overflow:hidden">
@@ -113,8 +118,6 @@ table.general th { background: #ccc; }
         <div style="clear:both;"></div>
     </div>
 
-
-
     <!-- Bulletin / Année -->
     <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
         <tr>
@@ -131,205 +134,180 @@ table.general th { background: #ccc; }
     </table>
 
 
-<div class="container">
+    <div class="container">
 
-
-    <!-- Informations élève -->
- <!-- Informations Élève -->
-<table style="width:100%; border-collapse:collapse;">
-    <!-- Première ligne : Matricule + Nom et Prénoms -->
-    <tr style="text-transform:uppercase;background:#ccc">
-        <td style="text-align:left; width:70%; padding:5px;">
-            <b>{{ $eleveData['inscription']->eleve->nom_complet }}</b> 
-        </td>
-        <td style="text-align:right; width:30%; padding:5px;">
-            <b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}
-        </td>
-        
-    </tr>
-
-    <!-- Deuxième ligne : infos + photo -->
-    <tr>
-    <!-- Infos élève -->
-    <td style="vertical-align:top; padding:5px;">
-        <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
-            <tr>
-                <!-- Colonne gauche large -->
-                <td style="padding:6px; width:60%;">
-                    <b>Classe :</b> {{ $classe->nom }}
+        <!-- Informations élève -->
+        <table style="width:100%; border-collapse:collapse;">
+            <!-- Première ligne : Matricule + Nom et Prénoms -->
+            <tr style="text-transform:uppercase;background:#ccc">
+                <td style="text-align:left; width:70%; padding:5px;">
+                    <b>{{ $eleveData['inscription']->eleve->nom_complet }}</b> 
                 </td>
-
-                <!-- Colonne droite pour effectif -->
-                <td style="padding:6px; width:30%; text-align:left;">
-                    <b>Effectif :</b> {{ $effectif }}
-                </td>
-            </tr>
-
-            <tr>
-                <td style="padding:6px;">
-                    <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
-                </td>
-                <td style="padding:6px; text-align:left;">
-                    <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
-                    <br>
-                    {{ $eleveData['inscription']->eleve->lieu_naissance ?? '' }}
+                <td style="text-align:right; width:30%; padding:5px;">
+                    <b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}
                 </td>
                 
             </tr>
 
+            <!-- Deuxième ligne : infos + photo -->
             <tr>
-                <td style="padding:6px;">
-                    <b>Nom du parent :</b> {{ $eleveData['inscription']->eleve->parent_nom ?? '' }}
+                <!-- Infos élève -->
+                <td style="vertical-align:top; padding:5px;">
+                    <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                        <tr>
+                            <!-- Colonne gauche large -->
+                            <td style="padding:6px; width:60%;">
+                                <b>Classe :</b> {{ $classe->nom }}
+                            </td>
+
+                            <!-- Colonne droite pour effectif -->
+                            <td style="padding:6px; width:30%; text-align:left;">
+                                <b>Effectif :</b> {{ $effectif }}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:6px;">
+                                <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
+                            </td>
+                            <td style="padding:6px; text-align:left;">
+                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
+                                <br>
+                                {{ $eleveData['inscription']->eleve->lieu_naissance ?? '' }}
+                            </td>
+                            
+                        </tr>
+
+                        <tr>
+                            <td style="padding:6px;">
+                                <b>Nom du parent :</b> {{ $eleveData['inscription']->eleve->parent_nom ?? '' }}
+                            </td>
+                            <td style="padding:6px; text-align:left;">
+                                <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
+                            </td>
+                            
+                        </tr>
+                    </table>
                 </td>
-                <td style="padding:6px; text-align:left;">
-                    <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
+
+                <!-- Photo -->
+                <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
+                    <div style="width:100%; height:80px; border:1px solid #000; padding:4px; display:inline-block;">
+                    <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
+                            ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
+                            : public_path('images/default.png') }}"
+                    alt="Photo"
+                    style="width:100px; height:80px; object-fit:cover; border-radius:5px;">
+
+                    </div>
                 </td>
-                
+            </tr>
+
+        </table>
+
+        <!-- Matières -->
+        <table class="general">
+            <thead>
+                <tr>
+                    <th>MATIÈRES</th>
+                    <th>Moy.</th>
+                    <th>Coeff.</th>
+                    <th>M. x C</th>
+                    <th>Rang</th>
+                    <th>Appréciation</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach($eleveData['notes'] as $note)
+                <tr>
+                    <td class="left">{{ $note->matiere->nom }}</td>
+                    <td>{{ number_format($note->valeur,2,',','') }}</td>
+                    <td>{{ $note->coefficient ?? 1 }}</td>
+                    <td>{{ number_format(($note->valeur * ($note->coefficient ?? 1)),2,',','') }}</td>
+                    <td>{{ $note->rang_matiere ?? '-' }}</td>
+                    <td>{{ $note->appreciation ?? '-' }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+
+        <!-- Totaux -->
+        <table class="general" style="width:100%; border-collapse: collapse;">
+            <tr style="background:#ccc; text-align:center;">
+                <td style="padding:5px;">
+                    <b>MOYENNE :</b> {{ number_format($eleveData['moyenne'],2,',','') }} /20 &nbsp; | &nbsp;
+                    <b>RANG :</b> {{ $eleveData['rang_general'] }} / {{ $effectif }} &nbsp; | &nbsp;
+                    <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
+                </td>
             </tr>
         </table>
-    </td>
 
-    <!-- Photo -->
-    <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
-        <div style="width:100%; height:80px; border:1px solid #000; padding:4px; display:inline-block;">
-           
+        <!-- Résultats et distinctions -->
+        <table class="general">
+            <thead>
+                <tr>
+                    <th>RÉSULTAT DE CLASSE</th>
+                    <th>DISTINCTIONS</th>
+                    <th>SANCTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        Plus forte moyenne: {{ $moyPremier }}<br>
+                        Plus faible moyenne: {{ $moyDernier }}<br>
+                        Moyenne de la Classe: {{ $moyClasse }}<br><br>
+                        
+                    </td>
+                    <td>
+                        <span class="checkbox">{{ $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}</span> Tableau d'Honneur<br>
+                        <span class="checkbox">{{ $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}</span> Tableau d'Honneur + Encouragement<br>
+                        <span class="checkbox">{{ $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}</span> Tableau d'Honneur + Félicitation
+                    </td>
+                    <td>
+                        <span class="checkbox">{{ $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}</span> Avertissement pour travail insuffisant<br>
+                        <span class="checkbox">{{ $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}</span> Blâme pour travail insuffisant<br>
+                        <span class="checkbox">{{ $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}</span> Avertissement pour mauvaise conduite<br>
+                        <span class="checkbox">{{ $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}</span> Blâme pour mauvaise conduite
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
-<img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
-             ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
-             : public_path('images/default.png') }}"
-     alt="Photo"
-     style="width:100px; height:80px; object-fit:cover; border-radius:5px;">
+        <!-- Appreciation du conseil de classe et visa du chef d'etabilssement -->
+        <table class="general">
+            <thead>
+                <tr>
+                    <th>Appreciation du conseil de classe</th>
+                    <th>Visa du directeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        L'enseignant <br>
+                        <br> <br> <br> <br>
+                        <br>
+{{ $eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...' }}
+                    </td>
+                    <td>
+                        {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                        <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
-        </div>
-    </td>
-</tr>
-
-</table>
-
-
-
-    <!-- Matières -->
-    <table class="general">
-        <thead>
-            <tr>
-                <th>MATIÈRES</th>
-                <th>Moy.</th>
-                <th>Coeff.</th>
-                <th>M. x C</th>
-                <th>Rang</th>
-                <th>Appréciation</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach($eleveData['notes'] as $note)
-            <tr>
-                <td class="left">{{ $note->matiere->nom }}</td>
-                <td>{{ number_format($note->valeur,2,',','') }}</td>
-                <td>{{ $note->coefficient ?? 1 }}</td>
-                <td>{{ number_format(($note->valeur * ($note->coefficient ?? 1)),2,',','') }}</td>
-                <td>{{ $note->rang_matiere ?? '-' }}</td>
-                <td>{{ $note->appreciation ?? '-' }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-
-    <!-- Totaux -->
-   <table class="general" style="width:100%; border-collapse: collapse;">
-    <tr style="background:#ccc; text-align:center;">
-        <td style="padding:5px;">
-            <b>MOYENNE :</b> {{ number_format($eleveData['moyenne'],2,',','') }} &nbsp; | &nbsp;
-            <b>RANG :</b> {{ $eleveData['rang_general'] }} / {{ $effectif }} &nbsp; | &nbsp;
-            <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
-        </td>
-    </tr>
-</table>
-
-
-
-    
-
-    <!-- Résultats et distinctions -->
-<table class="general">
-    <thead>
-        <tr>
-            <th>RÉSULTAT DE CLASSE</th>
-            <th>DISTINCTIONS</th>
-            <th>SANCTIONS</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                Moy Premier: {{ $moyPremier }}<br>
-                Moy Dernier: {{ $moyDernier }}<br>
-                Moy Classe: {{ $moyClasse }}<br><br>
-                0 - 8,49 | 8,50 - 9,99 | 10 - 20
-            </td>
-            <td>
-    <span class="checkbox">{{ $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}</span> Tableau d'Honneur<br>
-    <span class="checkbox">{{ $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}</span> Tableau d'Honneur + Encouragement<br>
-    <span class="checkbox">{{ $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}</span> Tableau d'Honneur + Félicitation
-</td>
-<td>
-    <span class="checkbox">{{ $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}</span> Avertissement pour travail insuffisant<br>
-    <span class="checkbox">{{ $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}</span> Blâme pour travail insuffisant<br>
-    <span class="checkbox">{{ $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}</span> Avertissement pour mauvaise conduite<br>
-    <span class="checkbox">{{ $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}</span> Blâme pour mauvaise conduite
-</td>
-
-        </tr>
-    </tbody>
-</table>
-
-    <!-- Appreciation du conseil de classe et visa du chef d'etabilssement -->
-    <table class="general">
-        <thead>
-            <tr>
-                <th>Appreciation du conseil de classe</th>
-                <th>Visa du directeur</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    L'enseignant<br> {{ $enseignantPrincipal->nom_complet ?? '...' }}
-                    <br><br><br>
-                </td>
-                <td>
-                    {{ $ecole->directeur ?? '...' }} <br>
-                    {{ $ecole->adresse ?? '...' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
-                    <br>
-                    
-                </td>
-                
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- Recapitulatif des compo et decision de fin d'année -->
-    {{-- <table class="general">
-        <thead>
-            <tr>
-                <th>Recapitulatif des compo</th>
-                <th>decision de fin d'année</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    
-                </td>
-                <td>
-                    
-                </td>
-                
-            </tr>
-        </tbody>
-    </table> --}}
+                        <br> <br> <br> <br>
+                        {{ $ecole->directeur ?? '...' }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
 
-</div>
+    </div>
+        <p style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</p>
+
+    @if(!$loop->last)
+        <div class="page-break"></div>
+    @endif
 @endforeach
 
 </body>

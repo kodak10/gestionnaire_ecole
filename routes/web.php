@@ -10,6 +10,7 @@ use App\Http\Controllers\CritereNotationController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EcoleController;
 use App\Http\Controllers\EleveController;
+use App\Http\Controllers\EnseignantController;
 use App\Http\Controllers\FraisScolariteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JournalCaisseController;
@@ -30,6 +31,7 @@ use App\Models\Eleve;
 use Illuminate\Support\Facades\Route;
 
 
+
     // Routes d'authentification personnalisées
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
@@ -42,7 +44,6 @@ use Illuminate\Support\Facades\Route;
     Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
     Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
     Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
-
 
     // Route par défaut
     Route::get('/', function () {
@@ -66,6 +67,9 @@ use Illuminate\Support\Facades\Route;
             Route::get('/classes/{id}/matieres', [MatiereController::class, 'getMatieres'])->name('classes.matieres.get');
 
             Route::resource('mentions', MentionController::class);
+
+            Route::resource('enseignants', EnseignantController::class);
+
 
         });
 
@@ -98,7 +102,6 @@ use Illuminate\Support\Facades\Route;
             Route::post('/tarifs-mensuels/sync-filters', [TarifMensuelController::class, 'syncFilters'])->name('tarifs-mensuels.sync-filters');
             Route::get('/tarifs-mensuels/all-niveaux', [TarifMensuelController::class, 'getAllNiveauxWithTarifs'])->name('tarifs-mensuels.all-niveaux');
         
-
             Route::get('/eleve-paiements', [ScolariteController::class, 'getElevePaiements'])->name('paiements.eleve_data');
             Route::post('/store-paiement', [ScolariteController::class, 'storePaiement'])->name('paiements.store');
             Route::post('/apply-reduction', [ScolariteController::class, 'applyReduction'])->name('eleves.apply_reduction');
@@ -107,8 +110,6 @@ use Illuminate\Support\Facades\Route;
             Route::delete('/paiements/{paiement}', [ScolariteController::class, 'destroyPaiement'])->name('paiements.destroy');
             
         });
-
-
         
         Route::get('/eleves/export', [EleveController::class, 'export'])->name('eleves.export');
 
@@ -117,17 +118,12 @@ use Illuminate\Support\Facades\Route;
 
         Route::resource('reinscriptions', ReinscriptionController::class);
 
-
-
-
         // Pour réinscrire un élève spécifique enirdepuis sa fiche
         Route::get('eleves/{eleve}/reinscrire', [ReinscriptionController::class, 'create'])->name('eleves.reinscrire');
-
 
         Route::resource('preinscriptions', PreInscriptionController::class);
         Route::post('preinscriptions/{preinscription}/valider', [PreInscriptionController::class, 'valider'])->name('preinscriptions.valider');
         Route::post('preinscriptions/{preinscription}/refuser', [PreInscriptionController::class, 'refuser'])->name('preinscriptions.refuser');
-
 
         Route::get('/notes/inscriptions-by-classe', [NoteController::class, 'getInscriptionsByClasse'])->name('notes.inscriptions_by_classe');
         Route::get('/notes/matieres-by-classe', [NoteController::class, 'getMatieresByClasse'])->name('notes.matieres_by_classe');

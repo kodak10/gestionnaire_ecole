@@ -157,6 +157,23 @@
                                     <input type="number" class="form-control" name="capacite" value="30" required>
                                 </div>
                             </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Enseignant <span class="text-danger">*</span></label>
+                                    <select name="enseignant_id" class="form-control @error('enseignant_id') is-invalid @enderror" required>
+                                        <option value="">-- Sélectionner un enseignant --</option>
+                                        @foreach($enseignants as $enseignant)
+                                            <option value="{{ $enseignant->id }}" {{ old('enseignant_id', $classe->enseignant_id ?? '') == $enseignant->id ? 'selected' : '' }}>
+                                                {{ $enseignant->nom_prenoms }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('enseignant_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
                         
                     </div>
@@ -208,6 +225,24 @@
                                     <div class="mb-3">
                                         <label class="form-label">Capacité</label>
                                         <input type="number" class="form-control" name="capacite" value="{{ $classe->capacite }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Enseignant <span class="text-danger">*</span></label>
+                                        <select name="enseignant_id" class="form-control @error('enseignant_id') is-invalid @enderror" required>
+                                            <option value="">-- Sélectionner un enseignant --</option>
+                                            @foreach($enseignants as $enseignant)
+                                                <option value="{{ $enseignant->id }}"
+                                                    {{ old('enseignant_id', $classe->enseignant_id) == $enseignant->id ? 'selected' : '' }}>
+                                                    {{ $enseignant->nom_prenoms }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('enseignant_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
