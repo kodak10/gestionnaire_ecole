@@ -23,6 +23,11 @@
                 <i class="ti ti-file-spreadsheet me-2"></i>Saisie de Moyenne
             </a>
         </div>
+        <div class="pe-1 mb-2">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fichesMoyennesModal">
+                <i class="ti ti-file-spreadsheet me-2"></i>Imprimer Fiche de Notes
+            </button>
+        </div>
     </div>
 </div>
 
@@ -197,6 +202,43 @@
     </div>
 </div>
 
+<!-- Modal pour générer les fiches de notes -->
+<div class="modal fade" id="fichesMoyennesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('notes.generateFichesMoyennes') }}" method="GET" target="_blank">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Générer la Fiche de Notes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Classe</label>
+                        <select name="classe_id" class="form-select" required>
+                            <option value="">Choisir une classe</option>
+                            @foreach($classes as $classe)
+                                <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mois</label>
+                        <select name="mois_id" class="form-select" required>
+                            <option value="">Choisir un mois</option>
+                            @foreach($moisScolaire as $mois)
+                                <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Générer</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')

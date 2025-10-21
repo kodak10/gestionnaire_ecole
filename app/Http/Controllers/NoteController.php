@@ -488,4 +488,34 @@ private function calculerSanctions($elevesAvecMoyennes)
     return $sanctions;
 }
 
+
+public function generateFichesMoyennes(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id',
+        'mois_id' => 'required|exists:mois_scolaires,id'
+    ]);
+
+    $classe = Classe::with('niveau.matieres')->findOrFail($request->classe_id);
+    $mois = MoisScolaire::findOrFail($request->mois_id);
+
+    // Récupérer tous les élèves de la classe avec la jointure correcte
+    $eleves = Inscription::with(['eleve'])
+        ->where('classe_id', $request->classe_id)
+        ->where('statut', 'active')
+        ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+        ->orderBy('eleves.nom')
+        ->orderBy('eleves.prenom')
+        ->select('inscriptions.*')
+        ->get();
+
+    $pdf = Pdf::loadView('dashboard.documents.fiches-moyennes', [
+        'classe' => $classe,
+        'mois' => $mois,
+        'eleves' => $eleves
+    ])->setPaper('a4', 'landscape');
+
+    return $pdf->stream('fiche-notes-' . $classe->nom . '-' . $mois->nom . '.pdf');
+}
+
 }

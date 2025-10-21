@@ -131,6 +131,9 @@ use Illuminate\Support\Facades\Route;
         Route::get('/notes/generate-bulletin', [NoteController::class, 'generateBulletin'])->name('notes.generateBulletin');
         Route::get('/notes/filter-by-classe', [NoteController::class, 'filterByClasse'])->name('notes.filterByClasse');
 
+
+        Route::get('/notes/generate-fiches-moyennes', [NoteController::class, 'generateFichesMoyennes'])->name('notes.generateFichesMoyennes');
+        
         Route::resource('notes', NoteController::class);
 
 
