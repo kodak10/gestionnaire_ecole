@@ -72,7 +72,7 @@
                                     <div class="d-flex align-items-center flex-wrap row-gap-3 mb-3">
                                         <div class="avatar-upload">
                                             <div class="avatar-edit">
-                                                <input type='file' id="avatarUpload" name="photo_path" accept=".png, .jpg, .jpeg"/>
+                                                <input type='file' id="avatarUpload" name="photo_path" capture="environment" accept=".png, .jpg, .jpeg"/>
                                                 <label for="avatarUpload">
                                                     <i class="ti ti-camera fs-16"></i>
                                                 </label>
