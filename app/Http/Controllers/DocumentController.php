@@ -177,8 +177,7 @@ class DocumentController extends Controller
         }
 
         // Récupérer tous les mois scolaires de l'année académique
-        $moisScolaires = MoisScolaire::where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('ordre')
+        $moisScolaires = MoisScolaire::orderBy('numero')
             ->get();
 
         $pdf = PDF::loadView('dashboard.documents.fiche-frequentation', [

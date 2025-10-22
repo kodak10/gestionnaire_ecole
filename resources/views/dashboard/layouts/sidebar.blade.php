@@ -141,12 +141,12 @@
                                         <span>Certificats Scolarité</span>
                                     </a>
                                 </li>
-                                <li>
-                                    <a href="{{ route('documents.fiches-frequentation') }}">
+                                {{-- <li>
+                                    <a href="#">
                                         <i class="ti ti-calendar"></i>
                                         <span>Certificats de Frequentation</span>
                                     </a>
-                                </li>
+                                </li> --}}
                                 <li>
                                     <a href="{{ route('documents.fiches-presence') }}">
                                         <i class="ti ti-calendar"></i>
