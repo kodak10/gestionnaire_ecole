@@ -60,7 +60,7 @@ class JournalCaisseController extends Controller
                     }
 
                     $eleveNom = $detail->inscription && $detail->inscription->eleve
-                        ? $detail->inscription->eleve->prenom . ' ' . $detail->inscription->eleve->nom
+                        ? $detail->inscription->eleve->nom . ' ' . $detail->inscription->eleve->prenom
                         : 'N/A';
 
                     $typeFrais = $detail->typeFrais ? $detail->typeFrais->nom : 'N/A';
@@ -135,7 +135,7 @@ class JournalCaisseController extends Controller
             ->map(function($inscription) {
                 return [
                     'id' => $inscription->id,
-                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                     'matricule' => $inscription->eleve->matricule
                 ];
             });

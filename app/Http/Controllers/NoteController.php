@@ -89,7 +89,7 @@ class NoteController extends Controller
             ->map(function($note) {
                 return [
                     'id' => $note->id,
-                    'eleve' => $note->inscription->eleve->prenom . ' ' . $note->inscription->eleve->nom,
+                    'eleve' => $note->inscription->eleve->nom . ' ' . $note->inscription->eleve->prenom,
                     'matiere' => $note->matiere->nom,
                     'classe' => $note->classe->nom,
                     'valeur' => $note->valeur,
@@ -210,7 +210,7 @@ class NoteController extends Controller
             ->map(function($inscription) {
                 return [
                     'id' => $inscription->id,
-                    'nom_complet' => $inscription->eleve->prenom . ' ' . $inscription->eleve->nom,
+                    'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                 ];
             });
 
@@ -253,7 +253,7 @@ class NoteController extends Controller
                 return [
                     'id' => $note->id,
                     'inscription_id' => $note->inscription_id,
-                    'eleve' => $note->inscription->eleve->prenom . ' ' . $note->inscription->eleve->nom,
+                    'eleve' => $note->inscription->eleve->nom . ' ' . $note->inscription->eleve->prenom,
                     'valeur' => $note->valeur,
                 ];
             });
