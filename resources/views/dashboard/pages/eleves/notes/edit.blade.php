@@ -29,7 +29,7 @@
                                 @foreach($inscriptions as $inscription)
                                     <option value="{{ $inscription->id }}" 
                                         {{ $note->inscription_id == $inscription->id ? 'selected' : '' }}>
-                                        {{ $inscription->eleve->prenom }} {{ $inscription->eleve->nom }}
+                                        {{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}
                                     </option>
                                 @endforeach
                             </select>
