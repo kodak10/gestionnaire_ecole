@@ -129,10 +129,25 @@
                                 <i class="ti ti-files"></i><span>Document</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
-                                <li><a href="#" class="">Fiche d'inscription</a></li>
-                                <li><a href="#" class="">Carte d'Eleves</a></li>
-                                <li><a href="#" class="">Certificat de Scolarité</a></li>
-                                <li><a href="#" class="">Certification de fréquentation</a></li>
+                                <li>
+                                    <a href="{{ route('documents.inscriptions') }}">
+                                        <i class="ti ti-file-text"></i>
+                                        <span>Fiches Inscription</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('documents.certificats-scolarite') }}">
+                                        <i class="ti ti-certificate"></i>
+                                        <span>Certificats Scolarité</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('documents.fiches-frequentation') }}">
+                                        <i class="ti ti-calendar"></i>
+                                        <span>Certificati de Fréquentation</span>
+                                    </a>
+                                </li>
+                                {{-- <li><a href="#" class="">Carte d'Eleves</a></li> --}}
                             </ul>
                         </li>
                         @endhasanyrole
