@@ -60,7 +60,7 @@
                     <tr>
                         <th>Matricule</th>
                         <th>Élève</th>
-                        <th>Date Naiss.</th>
+                        <th>Date Nais.</th>
                         <th>Classe</th>
                         <th>Actions</th>
                     </tr>

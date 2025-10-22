@@ -7,8 +7,8 @@
         @page { margin: 3cm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 14px; line-height: 1.6; }
         .header { text-align: center; margin-bottom: 30px; }
-        .content { text-align: justify; margin: 40px 0; }
-        .signature { margin-top: 60px; text-align: right; }
+        .content { text-align: justify; margin: 0 0; }
+        .signature { text-align: right; }
         .certificate { border: 2px solid #000; padding: 40px; margin: 20px; }
     </style>
 </head>
@@ -17,7 +17,6 @@
         <div class="header">
             <h1 style="margin-bottom: 5px;">CERTIFICAT DE SCOLARITÉ</h1>
             <h2 style="margin-top: 5px; margin-bottom: 10px;">{{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}</h2>
-            <p>Établissement d'Enseignement Primaire</p>
         </div>
 
         <div class="content">
@@ -28,7 +27,7 @@
             </p>
             
             <p>Né(e) le <strong>{{ $inscription->eleve->naissance->format('d/m/Y') }}</strong> 
-               à <strong>{{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</strong>,</p>
+               à <strong>{{ $inscription->eleve->lieu_naissance ?? '...' }}</strong>,</p>
             
             <p>Matricule: <strong>{{ $inscription->eleve->matricule }}</strong>,</p>
             
@@ -40,7 +39,7 @@
 
         <div class="signature">
             <p>Fait à ______________, le {{ date('d/m/Y') }}</p>
-            <br><br>
+            <br>
             <p>Le Directeur</p>
             <p>_________________________</p>
             <p>Cachet de l'École</p>

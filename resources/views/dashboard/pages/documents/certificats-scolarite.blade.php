@@ -60,9 +60,8 @@
                     <tr>
                         <th>Matricule</th>
                         <th>Élève</th>
+                        <th>Date Nais.</th>
                         <th>Classe</th>
-                        <th>Date Naissance</th>
-                        <th>Lieu Naissance</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -83,11 +82,10 @@
                                 </div>
                             </div>
                         </td>
+                        <td>{{ $inscription->eleve->naissance_formattee }}</td>
                         <td>
                             <span class="badge bg-light text-dark">{{ $inscription->classe->nom }}</span>
                         </td>
-                        <td>{{ $inscription->eleve->naissance->format('d/m/Y') }}</td>
-                        <td>{{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</td>
                         <td>
                             <div class="d-flex">
                                 <a href="{{ route('documents.generer-certificat-scolarite', $inscription->eleve) }}" 
@@ -99,7 +97,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center">Aucun élève trouvé</td>
+                        <td colspan="6" class="text-center">Aucun Elève trouvé pour cette année scolaire</td>
                     </tr>
                     @endforelse
                 </tbody>
