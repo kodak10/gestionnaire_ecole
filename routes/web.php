@@ -142,11 +142,14 @@ use Illuminate\Support\Facades\Route;
         // Routes pour les documents
         Route::get('/documents/inscriptions', [DocumentController::class, 'inscriptions'])->name('documents.inscriptions');
         Route::get('/documents/certificats-scolarite', [DocumentController::class, 'certificatsScolarite'])->name('documents.certificats-scolarite');
+        Route::get('/documents/fiches-presence', [DocumentController::class, 'fichesPresence'])->name('documents.fiches-presence');
         Route::get('/documents/fiches-frequentation', [DocumentController::class, 'fichesFrequentation'])->name('documents.fiches-frequentation');
+
         Route::get('/documents/generer-fiche-inscription/{eleve}', [DocumentController::class, 'genererFicheInscription'])->name('documents.generer-fiche-inscription');
         Route::get('/documents/generer-certificat-scolarite/{eleve}', [DocumentController::class, 'genererCertificatScolarite'])->name('documents.generer-certificat-scolarite');
-        Route::get('/documents/generer-fiche-frequentation/{classe}', [DocumentController::class, 'genererFicheFrequentation'])->name('documents.generer-fiche-frequentation');
-
+        Route::get('/documents/generer-fiche-presence/{classe}', [DocumentController::class, 'genererFichePresence'])->name('documents.generer-fiche-presence');
+        Route::get('/documents/generer-fiche-frequentation/{eleve}', [DocumentController::class, 'genererFicheFrequentation'])->name('documents.generer-fiche-frequentation');
+        
         // Routes pour le journal des paiements
         Route::prefix('journal-paiements')->group(function () {
             Route::get('/', [JournalCaisseController::class, 'index'])->name('journal-paiements.index');

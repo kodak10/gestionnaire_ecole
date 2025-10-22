@@ -144,7 +144,13 @@
                                 <li>
                                     <a href="{{ route('documents.fiches-frequentation') }}">
                                         <i class="ti ti-calendar"></i>
-                                        <span>Certificati de Fréquentation</span>
+                                        <span>Certificats de Frequentation</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('documents.fiches-presence') }}">
+                                        <i class="ti ti-calendar"></i>
+                                        <span>Fiches de Présence</span>
                                     </a>
                                 </li>
                                 {{-- <li><a href="#" class="">Carte d'Eleves</a></li> --}}

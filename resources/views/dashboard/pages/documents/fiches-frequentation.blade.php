@@ -11,50 +11,110 @@
             </ol>
         </nav>
     </div>
+    <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
+        <div class="pe-1 mb-2">
+            <span class="text-muted">Année Académique: {{ \App\Models\AnneeScolaire::find(session('current_annee_scolaire_id'))->annee ?? 'N/A' }}</span>
+        </div>
+    </div>
 </div>
 
-<!-- Cards des classes -->
-<div class="row">
-    @foreach($classes as $classe)
-    <div class="col-xl-3 col-lg-4 col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="flex-grow-1">
-                        <h5 class="card-title mb-1">{{ $classe->nom }}</h5>
-                        <p class="text-muted mb-0">{{ $classe->niveau->nom }}</p>
-                        <small class="text-muted">
-                            @php
-                                $elevesCount = \App\Models\Inscription::where('classe_id', $classe->id)
-                                    ->where('statut', 'active')
-                                    ->count();
-                            @endphp
-                            {{ $elevesCount }} élève(s)
-                        </small>
+<!-- Filter -->
+<div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
+    <h4 class="mb-3">Liste des Élèves - Année {{ \App\Models\AnneeScolaire::find(session('current_annee_scolaire_id'))->annee ?? 'N/A' }}</h4>
+    <div class="d-flex align-items-center flex-wrap">		
+        <form method="GET" action="{{ route('documents.fiches-frequentation') }}" class="d-flex flex-wrap">
+            <div class="input-group mb-3 me-2" style="width: 200px;">
+                <input type="text" name="nom" class="form-control" placeholder="Nom élève..." value="{{ request('nom') }}">
+                <button class="btn btn-primary" type="submit"><i class="ti ti-search"></i></button>
+            </div>
+            
+            <div class="dropdown mb-3 me-2">
+                <a href="javascript:void(0);" class="btn btn-outline-light bg-white dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                    <i class="ti ti-filter me-2"></i>Filtrer
+                </a>
+                <div class="dropdown-menu drop-width p-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Classe</label>
+                                <select class="form-select" name="classe_id">
+                                    <option value="">Toutes</option>
+                                    @foreach($classes as $classe)
+                                        <option value="{{ $classe->id }}" {{ request('classe_id') == $classe->id ? 'selected' : '' }}>{{ $classe->nom }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex-shrink-0">
-                        <span class="badge bg-primary rounded-pill">{{ $classe->niveau->code }}</span>
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ route('documents.fiches-frequentation') }}" class="btn btn-light me-3">Réinitialiser</a>
+                        <button type="submit" class="btn btn-primary">Appliquer</button>
                     </div>
-                </div>
-                <div class="mt-3">
-                    <a href="{{ route('documents.generer-fiche-frequentation', $classe) }}" 
-                       class="btn btn-outline-primary btn-sm w-100" target="_blank">
-                        <i class="ti ti-calendar me-1"></i>Générer Fiche
-                    </a>
                 </div>
             </div>
-        </div>
-    </div>
-    @endforeach
+        </form>
+    </div>	
 </div>
 
-<!-- Information -->
-<div class="card mt-4">
+<div class="card">
     <div class="card-body">
-        <div class="alert alert-info mb-0">
-            <h6 class="alert-heading"><i class="ti ti-info-circle me-2"></i>Information</h6>
-            <p class="mb-0">Les fiches de fréquentation sont générées par classe. Chaque fiche contient la liste des élèves avec des cases à cocher pour suivre la présence quotidienne.</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-center mb-0">
+                <thead>
+                    <tr>
+                        <th>Matricule</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Date Inscription</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($inscriptions as $inscription)
+                    <tr>
+                        <td>
+                            <span class="fw-bold text-primary">{{ $inscription->eleve->matricule }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <img src="{{ $inscription->eleve->photo_url }}" alt="Photo" class="rounded-circle" width="40" height="40">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">{{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</h6>
+                                    <small class="text-muted">{{ $inscription->eleve->sexe }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ $inscription->classe->nom }}</span>
+                        </td>
+                        <td>{{ $inscription->created_at->format('d/m/Y') }}</td>
+                        <td>
+                            <span class="badge bg-success">Inscrit</span>
+                        </td>
+                        <td>
+                            <div class="d-flex">
+                                <a href="{{ route('documents.generer-fiche-frequentation', $inscription->eleve) }}" 
+                                   class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                    <i class="ti ti-calendar me-1"></i>Fiche Fréquentation
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="text-center">Aucun élève inscrit pour cette année académique</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
+
+<div class="col-md-12 text-center mt-4">
+    {{ $inscriptions->appends(request()->query())->links() }}
 </div>
 @endsection
