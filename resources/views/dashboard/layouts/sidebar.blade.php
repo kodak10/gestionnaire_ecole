@@ -54,7 +54,7 @@
                         </li>
 
                          <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs('notes*') ? 'active subdrop' : '' }}">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['notes*', 'tableaux-honneur.index']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-users"></i><span>Moyennes</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
@@ -62,7 +62,7 @@
                                 <li><a href="{{ route('notes.index') }}" class="{{ request()->routeIs('notes.index') ? 'active' : '' }}">Saisie de Moyenne</a></li>
                                 @endhasanyrole
                                 @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
-                                <li><a href="#" class="{{ request()->routeIs('notes.tableau') ? 'active' : '' }}">Tableau d'honneur</a></li>
+                                <li><a href="{{ route('tableaux-honneur.index') }}" class="{{ request()->routeIs('tableaux-honneur.index') ? 'active' : '' }}">Tableau d'honneur</a></li>
                                 @endhasanyrole
                             </ul>
                         </li>

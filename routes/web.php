@@ -24,12 +24,14 @@ use App\Http\Controllers\ReglementController;
 use App\Http\Controllers\ReinscriptionController;
 use App\Http\Controllers\RelanceController;
 use App\Http\Controllers\ScolariteController;
+use App\Http\Controllers\TableauHonneurController;
 use App\Http\Controllers\TarifMensuelController;
 use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
 use App\Http\Controllers\UserController;
 use App\Models\Eleve;
 use Illuminate\Support\Facades\Route;
+
 
 
 
@@ -150,6 +152,12 @@ use Illuminate\Support\Facades\Route;
         Route::get('/documents/generer-fiche-presence/{classe}', [DocumentController::class, 'genererFichePresence'])->name('documents.generer-fiche-presence');
         Route::get('/documents/generer-fiche-frequentation/{eleve}', [DocumentController::class, 'genererFicheFrequentation'])->name('documents.generer-fiche-frequentation');
         
+        // Routes pour les tableaux d'honneur
+        Route::get('/tableaux-honneur', [TableauHonneurController::class, 'index'])->name('tableaux-honneur.index');
+        Route::get('/tableaux-honneur/generer-mensuel', [TableauHonneurController::class, 'genererMensuel'])->name('tableaux-honneur.generer-mensuel');
+        Route::get('/tableaux-honneur/generer-annuel', [TableauHonneurController::class, 'genererAnnuel'])->name('tableaux-honneur.generer-annuel');
+        Route::get('/tableaux-honneur/generer-major', [TableauHonneurController::class, 'genererMajor'])->name('tableaux-honneur.generer-major');
+
         // Routes pour le journal des paiements
         Route::prefix('journal-paiements')->group(function () {
             Route::get('/', [JournalCaisseController::class, 'index'])->name('journal-paiements.index');
