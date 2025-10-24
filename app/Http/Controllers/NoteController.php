@@ -314,18 +314,8 @@ class NoteController extends Controller
         });
 
         // Distinctions et sanctions par élève
-        $distinctions = [
-            'tableau_honneur' => $moyenneArrondie >= 12,
-            'encouragement'   => $moyenneArrondie >= 14,
-            'felicitation'    => $moyenneArrondie >= 16,
-        ];
-
-        $sanctions = [
-            'avertissement_travail' => $moyenneArrondie >= 10 ? false : ($moyenneArrondie < 10 && $moyenneArrondie >= 8),
-            'blame_travail'          => $moyenneArrondie < 8,
-            'avertissement_conduite' => false, // ajouter selon règles
-            'blame_conduite'         => false, // ajouter selon règles
-        ];
+        $distinctions = $this->calculerDistinctions($moyenneArrondie);
+        $sanctions = $this->calculerSanctions($moyenneArrondie);
 
         $elevesAvecMoyennes[] = [
             'inscription' => $inscription,
@@ -425,66 +415,41 @@ class NoteController extends Controller
 }
 
 
-private function calculerDistinctions($elevesAvecMoyennes)
+private function calculerDistinctions($moyenne)
 {
     $distinctions = [
         'tableau_honneur' => false,
-        'encouragement' => false,
-        'felicitation' => false
+        'encouragement'   => false,
+        'felicitation'    => false,
     ];
 
-    foreach ($elevesAvecMoyennes as $eleve) {
-        $moyenne = $eleve['moyenne'];
-        
-        // Si l'élève a une moyenne qui mérite une sanction, on ignore les distinctions
-        if ($moyenne < 10) {
-            continue;
-        }
-        
-        // Tableau d'Honneur + Félicitation (≥ 16/20)
-        if ($moyenne >= 16) {
-            $distinctions['felicitation'] = true;
-            $distinctions['tableau_honneur'] = true;
-        }
-        // Tableau d'Honneur + Encouragement (14-15.99/20)
-        elseif ($moyenne >= 14) {
-            $distinctions['encouragement'] = true;
-            $distinctions['tableau_honneur'] = true;
-        }
-        // Tableau d'Honneur simple (12-13.99/20)
-        elseif ($moyenne >= 12) {
-            $distinctions['tableau_honneur'] = true;
-        }
+    if ($moyenne >= 16) {
+        $distinctions['felicitation'] = true;
+    } elseif ($moyenne >= 14) {
+        $distinctions['encouragement'] = true;
+    } elseif ($moyenne >= 12) {
+        $distinctions['tableau_honneur'] = true;
     }
 
     return $distinctions;
 }
 
-private function calculerSanctions($elevesAvecMoyennes)
+private function calculerSanctions($moyenne)
 {
     $sanctions = [
         'avertissement_travail' => false,
-        'blame_travail' => false,
+        'blame_travail'          => false,
         'avertissement_conduite' => false,
-        'blame_conduite' => false
+        'blame_conduite'         => false,
     ];
 
-    foreach ($elevesAvecMoyennes as $eleve) {
-        $moyenne = $eleve['moyenne'];
-        
-        // Si l'élève a une bonne moyenne, on ignore les sanctions travail
-        if ($moyenne >= 10) {
-            continue;
-        }
-        
-        // Sanctions pour travail insuffisant
-        if ($moyenne < 8) {
-            $sanctions['blame_travail'] = true;
-        } elseif ($moyenne < 10) {
-            $sanctions['avertissement_travail'] = true;
-        }
+    if ($moyenne < 8) {
+        $sanctions['blame_travail'] = true;
+    } elseif ($moyenne < 10) {
+        $sanctions['avertissement_travail'] = true;
     }
 
+    // tu pourras ajouter ici d’autres règles pour la conduite plus tard
     return $sanctions;
 }
 
