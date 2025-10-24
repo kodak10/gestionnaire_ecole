@@ -71,16 +71,7 @@
         <div class="date">Généré le: {{ $date }}</div>
     </div>
 
-    <!-- Section des filtres appliqués -->
-    {{-- <div class="filters">
-        <h3>Filtres appliqués:</h3>
-        <div class="filter-item"><span class="filter-label">Classe:</span> {{ $filters['classe'] }}</div>
-        <div class="filter-item"><span class="filter-label">Nom:</span> {{ $filters['nom'] }}</div>
-        <div class="filter-item"><span class="filter-label">Sexe:</span> {{ $filters['sexe'] }}</div>
-        <div class="filter-item"><span class="filter-label">Cantine:</span> {{ $filters['cantine'] }}</div>
-        <div class="filter-item"><span class="filter-label">Transport:</span> {{ $filters['transport'] }}</div>
-    </div> --}}
-    <!-- Section des filtres appliqués -->
+   
     <div class="filters">
         <h3>Filtres appliqués:</h3>
         <div class="filter-item"><span class="filter-label">Classe:</span> {{ $filters['classe'] }}</div>
@@ -95,34 +86,7 @@
 
 
     <table>
-        {{-- <thead>
-            <tr>
-                <th>Matricule</th>
-                <th>Nom Complet</th>
-                <th>Classe</th>
-                <th>Date Naissance</th>
-                <th>Sexe</th>
-                <th>Parent</th>
-                <th>Téléphone</th>
-                <th>Cantine</th>
-                <th>Transport</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($eleves as $inscription)
-            <tr>
-                <td>{{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</td>
-                <td>{{ $inscription->eleve->nom_complet }}</td>
-                <td>{{ $inscription->classe->nom }}</td>
-                <td>{{ $inscription->eleve->naissance_formattee }}</td>
-                <td>{{ $inscription->eleve->sexe }}</td>
-                <td>{{ $inscription->eleve->parent_nom }}</td>
-                <td>{{ $inscription->eleve->parent_telephone }} / {{ $inscription->eleve->parent_telephone02 }}</td>
-                <td>{{ $inscription->cantine_active ? 'Oui' : 'Non' }}</td>
-                <td>{{ $inscription->transport_active ? 'Oui' : 'Non' }}</td>
-            </tr>
-            @endforeach
-        </tbody> --}}
+       
 
         <thead>
             <tr>

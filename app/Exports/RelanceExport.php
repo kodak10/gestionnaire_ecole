@@ -36,32 +36,53 @@ class RelanceExport implements FromCollection, WithHeadings, WithMapping, WithSt
     }
 
     public function headings(): array
-    {
-        return [
-            'Élève',
-            'Classe',
-            'Niveau',
-            'Total Attendu',
-            'Total Payé',
-            'Reste à Payer',
-            'Statut',
-            'En Retard Depuis'
-        ];
+{
+    $headings = [
+        'Élève',
+        'Classe',
+        'Niveau',
+        'Total Attendu',
+        'Total Payé',
+        'Reste à Payer',
+    ];
+
+    if (isset($this->filters['cantine'])) {
+        array_splice($headings, 7, 0, 'Cantine');
+    }
+    if (isset($this->filters['transport'])) {
+        array_splice($headings, 8, 0, 'Transport');
     }
 
-    public function map($eleve): array
-    {
-        return [
-            $eleve['eleve'],
-            $eleve['classe'],
-            $eleve['niveau'],
-            $eleve['total_attendu'],
-            $eleve['total_paye'],
-            $eleve['reste_a_payer'],
-            $eleve['statut'],
-            $eleve['en_retard_depuis'] ?? 'N/A'
-        ];
+    return $headings;
+}
+
+public function map($eleve): array
+{
+    $row = [
+        $eleve['eleve'],
+        $eleve['classe'],
+        $eleve['niveau'],
+        $eleve['total_attendu'],       // montant attendu
+        $eleve['total_paye'],          // montant payé
+        $eleve['reste_total'],         // clé corrigée
+    ];
+
+    if (isset($this->filters['cantine'])) {
+        array_splice($row, 7, 0, $eleve['cantine'] ?? 'N/A');
     }
+    if (isset($this->filters['transport'])) {
+        array_splice($row, 8, 0, $eleve['transport'] ?? 'N/A');
+    }
+
+    // Format des montants avec séparateur de milliers
+    $row[3] = number_format($row[3], 0, ',', ' ') . ' FCFA';
+    $row[4] = number_format($row[4], 0, ',', ' ') . ' FCFA';
+    $row[5] = number_format($row[5], 0, ',', ' ') . ' FCFA';
+
+    return $row;
+}
+
+
 
     public function styles(Worksheet $sheet)
     {
@@ -98,32 +119,47 @@ class RelanceExport implements FromCollection, WithHeadings, WithMapping, WithSt
     }
 
     public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function(AfterSheet $event) {
-                // Ajouter les informations de filtres en en-tête
-                $event->sheet->insertNewRowBefore(1, 4);
-                
-                $event->sheet->setCellValue('A1', 'Relance des Paiements');
-                $event->sheet->setCellValue('A2', 'Généré le: ' . date('d/m/Y'));
-                
-                if (!empty($this->filters)) {
-                    $event->sheet->setCellValue('A3', 'Filtres appliqués:');
-                    $row = 4;
-                    
-                    foreach ($this->filters as $key => $value) {
-                        $event->sheet->setCellValue('A' . $row, ucfirst($key) . ': ' . $value);
-                        $row++;
-                    }
-                    
-                    // Déplacer le tableau vers le bas
-                    $event->sheet->getStyle('A' . ($row + 1) . ':H' . ($row + count($this->data) + 1))->applyFromArray([
-                        'borders' => [
-                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]
-                        ]
-                    ]);
+{
+    return [
+        AfterSheet::class => function(AfterSheet $event) {
+            // Nombre de lignes à insérer pour le titre et filtres
+            $offset = 4;
+            $event->sheet->insertNewRowBefore(1, $offset);
+
+            // Titre
+            $event->sheet->setCellValue('A1', 'Relance des Paiements');
+            $event->sheet->mergeCells("A1:H1");
+            $event->sheet->getStyle('A1')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $event->sheet->getStyle('A1')->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('3498DB');
+            $event->sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Date
+            $event->sheet->setCellValue('A2', 'Généré le: ' . date('d/m/Y'));
+            $event->sheet->mergeCells("A2:H2");
+
+            // Filtres appliqués
+            if (!empty($this->filters)) {
+                $event->sheet->setCellValue('A3', 'Filtres appliqués:');
+                $row = 4;
+                foreach ($this->filters as $key => $value) {
+                    $event->sheet->setCellValue('A' . $row, ucfirst($key) . ': ' . $value);
+                    $event->sheet->mergeCells("A{$row}:H{$row}");
+                    $row++;
                 }
-            },
-        ];
-    }
+            }
+
+            // Déplacer le tableau principal après les filtres
+            $startTableRow = $row ?? $offset; // si pas de filtres, on commence à la ligne 5
+            $endTableRow = $startTableRow + count($this->data);
+            $event->sheet->getStyle('A' . $startTableRow . ':H' . $endTableRow)->applyFromArray([
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]
+                ]
+            ]);
+        },
+    ];
+}
+
 }

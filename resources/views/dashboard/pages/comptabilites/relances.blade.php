@@ -73,11 +73,20 @@
 
                 <div class="mb-3">
                     <label class="form-label">Mois</label>
-                    <select class="form-select" id="date_reference" name="date_reference">
+                    {{-- <select class="form-select" id="date_reference" name="date_reference">
+                        <option value="">Tous les mois</option>
+
                         @foreach($moisScolaires as $mois)
                             <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
                         @endforeach
-                    </select>
+                    </select> --}}
+                    <select class="form-select" id="date_reference" name="date_reference" required>
+    <option value="" selected>-- Sélectionnez un mois --</option>
+    @foreach($moisScolaires as $mois)
+        <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+    @endforeach
+</select>
+
                 </div>
 
                 <button class="btn btn-primary w-100" id="filter-btn">
@@ -189,9 +198,15 @@ $(document).ready(function() {
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
         const typeFraisId = $('#type_frais_id').val(); // récupération du type de frais
+        
 
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
             return;
         }
 

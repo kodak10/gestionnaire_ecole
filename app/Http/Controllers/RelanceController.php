@@ -8,6 +8,7 @@ use App\Models\Inscription;
 use App\Models\MoisScolaire;
 use App\Models\PaiementDetail;
 use App\Models\Reduction;
+use App\Models\Tarif;
 use App\Models\TarifMensuel;
 use App\Models\TypeFrais;
 use Carbon\Carbon;
@@ -375,34 +376,188 @@ class RelanceController extends Controller
         return $pdf->stream('relance_paiements.pdf');
     }
 
-    public function export(Request $request)
-    {
-        $request->validate([
-            'classe_id' => 'required|exists:classes,id',
-            'date_reference' => 'nullable|exists:mois_scolaires,id',
-            'type_frais_id' => 'nullable|exists:type_frais,id'
-        ]);
+   
 
-        try {
-            $ecoleId = session('current_ecole_id'); 
-            $anneeScolaireId = session('current_annee_scolaire_id');
-            $userId = Auth::id();
 
-            $moisReference = $request->date_reference
-                ? MoisScolaire::find($request->date_reference)
-                : MoisScolaire::orderBy('numero', 'desc')->first();
+// public function export(Request $request)
+// {
+//     $request->validate([
+//         'classe_id' => 'required|exists:classes,id',
+//         'date_reference' => 'nullable|exists:mois_scolaires,id',
+//         'type_frais_id' => 'nullable|exists:type_frais,id',
+//         'format' => 'required|in:pdf,excel'
+//     ]);
 
-            if (!$moisReference) {
-                return redirect()->back()->with('error', 'Aucun mois scolaire trouvé pour cette année.');
-            }
+//     try {
+//         $ecoleId = session('current_ecole_id'); 
+//         $anneeScolaireId = session('current_annee_scolaire_id');
 
-            // Récupérer les données directement
-            // $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
-            //     ->where('classe_id', $request->classe_id)
-            //     ->where('annee_scolaire_id', $anneeScolaireId)
-            //     ->where('statut', 'active')
-            //     ->get();
-            $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
+//         $moisReference = $request->date_reference 
+//             ? MoisScolaire::find($request->date_reference) 
+//             : null;
+
+//         $typeFraisId = $request->type_frais_id;
+
+//         $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
+//             ->where('inscriptions.classe_id', $request->classe_id)
+//             ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+//             ->where('inscriptions.ecole_id', $ecoleId)
+//             ->where('inscriptions.statut', 'active')
+//             ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+//             ->orderBy('eleves.nom')
+//             ->orderBy('eleves.prenom')
+//             ->select('inscriptions.*')
+//             ->get();
+
+//         $moisScolaires = MoisScolaire::orderBy('numero')->get();
+
+//         $result = [];
+
+//         foreach ($inscriptions as $inscription) {
+//             $eleve = $inscription->eleve;
+//             $classe = $inscription->classe->nom;
+//             $niveau = $inscription->classe->niveau->nom;
+
+//             $typesFrais = TypeFrais::whereIn('nom', [
+//                 'Frais d\'inscription',
+//                 'Scolarité',
+//                 'Cantine',
+//                 'Transport'
+//             ])->get();
+
+//             $fraisData = [];
+
+//             foreach ($typesFrais as $type) {
+//                 if ($typeFraisId && $type->id != $typeFraisId) continue;
+//                 if ($type->nom == 'Cantine' && !$inscription->cantine_active) continue;
+//                 if ($type->nom == 'Transport' && !$inscription->transport_active) continue;
+
+//                 $detailsMois = [];
+//                 $cumulAttendu = 0;
+
+//                 foreach ($moisScolaires as $mois) {
+//                     if ($moisReference && $mois->id != $moisReference->id) continue;
+
+//                     $tarif = TarifMensuel::where([
+//                         'annee_scolaire_id' => $anneeScolaireId,
+//                         'ecole_id' => $ecoleId,
+//                         'niveau_id' => $inscription->classe->niveau->id,
+//                         'type_frais_id' => $type->id,
+//                         'mois_id' => $mois->id
+//                     ])->first();
+
+//                     $montantAttendu = $tarif ? $tarif->montant : 0;
+//                     $cumulAttendu += $montantAttendu;
+
+//                     // Appliquer réduction si Scolarité (id = 2 ou par type_frais_id)
+//                     if ($type->nom == 'Scolarité') {
+//                         $reduction = Reduction::where('inscription_id', $inscription->id)
+//                             ->where('annee_scolaire_id', $anneeScolaireId)
+//                             ->where('ecole_id', $ecoleId)
+//                             ->where(function($q) use ($type) {
+//                                 $q->whereNull('type_frais_id')
+//                                   ->orWhere('type_frais_id', $type->id);
+//                             })
+//                             ->sum('montant');
+
+//                         $montantAttendu = max(0, $montantAttendu - $reduction);
+//                     }
+
+//                     $cumulPaye = PaiementDetail::where('inscription_id', $inscription->id)
+//                         ->where('type_frais_id', $type->id)
+//                         ->sum('montant');
+
+//                     $resteMois = max(0, $montantAttendu - max(0, $cumulAttendu - $cumulPaye));
+//                     $montantPayeMois = $montantAttendu - $resteMois;
+
+//                     if ($resteMois > 0 || $montantPayeMois > 0) {
+//                         $detailsMois[] = [
+//                             'mois' => $mois->nom,
+//                             'montant_attendu' => $montantAttendu,
+//                             'montant_paye' => $montantPayeMois,
+//                             'reste_mois' => $resteMois
+//                         ];
+//                     }
+//                 }
+
+//                 $totalAttendu = collect($detailsMois)->sum('montant_attendu');
+//                 $totalPaye = collect($detailsMois)->sum('montant_paye');
+//                 $resteTotal = max(0, $totalAttendu - $totalPaye);
+
+//                 if ($totalAttendu > 0) {
+//                     $fraisData[$type->nom] = [
+//                         'details_mois' => $detailsMois,
+//                         'total_attendu' => $totalAttendu,
+//                         'total_paye' => $totalPaye,
+//                         'reste_total' => $resteTotal,
+//                         'statut' => $resteTotal > 0 ? 'En retard' : 'À jour'
+//                     ];
+//                 }
+//             }
+
+//             if (!empty($fraisData)) {
+//                 $result[] = [
+//                     'eleve' => $eleve->nom . ' ' . $eleve->prenom,
+//                     'classe' => $classe,
+//                     'niveau' => $niveau,
+//                     'type' => implode(', ', array_keys($fraisData)),
+//                     'details_mois' => collect($fraisData)->pluck('details_mois')->flatten(1),
+//                     'total_attendu' => collect($fraisData)->sum('total_attendu'),
+//                     'total_paye' => collect($fraisData)->sum('total_paye'),
+//                     'reste_total' => collect($fraisData)->sum('reste_total'),
+//                     'statut' => collect($fraisData)->pluck('statut')->contains('En retard') ? 'En retard' : 'À jour'
+//                 ];
+//             }
+//         }
+
+//         $filters = [
+//             'classe' => Classe::find($request->classe_id)->nom,
+//             'mois' => $moisReference ? $moisReference->nom : 'Tous',
+//             'type_frais' => $typeFraisId ? TypeFrais::find($typeFraisId)->nom : 'Tous'
+//         ];
+
+//         if ($request->format === 'excel') {
+//             return Excel::download(new RelanceExport($result, $filters), 
+//                 'relance_paiements_' . date('Y-m-d') . '.xlsx');
+//         }
+
+//         if ($request->format === 'pdf') {
+//             $pdf = PDF::loadView('dashboard.documents.liste-relance', [
+//                 'data' => $result,
+//                 'filters' => $filters,
+//                 'title' => 'Relance des Paiements',
+//                 'date' => date('d/m/Y')
+//             ])->setPaper('A4', 'landscape');
+
+//             return $pdf->download('relance_paiements_' . date('Y-m-d') . '.pdf');
+//         }
+
+//         return redirect()->back()->with('error', 'Format non supporté');
+
+//     } catch (\Exception $e) {
+//         Log::error("Erreur export relance: " . $e->getMessage());
+//         return redirect()->back()->with('error', 'Erreur lors de l\'exportation: ' . $e->getMessage());
+//     }
+// }
+
+public function export(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id',
+        'date_reference' => 'nullable|exists:mois_scolaires,id',
+        'type_frais_id' => 'nullable|exists:type_frais,id',
+        'format' => 'required|in:pdf,excel'
+    ]);
+
+    try {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $moisScolaires = MoisScolaire::orderBy('numero')->get();
+        $moisReference = $request->date_reference ? MoisScolaire::find($request->date_reference) : null;
+        $typeFraisId = $request->type_frais_id;
+
+        $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
             ->where('inscriptions.classe_id', $request->classe_id)
             ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
             ->where('inscriptions.ecole_id', $ecoleId)
@@ -413,126 +568,138 @@ class RelanceController extends Controller
             ->select('inscriptions.*')
             ->get();
 
-            $moisScolaires = MoisScolaire::orderByRaw("
-                CASE
-                    WHEN numero >= 8 THEN numero + 0
-                    ELSE numero + 12
-                END
-            ")->get();
+        $result = [];
 
-            $result = [];
+        foreach ($inscriptions as $inscription) {
+            $eleve = $inscription->eleve;
+            $classe = $inscription->classe->nom;
+            $niveau = $inscription->classe->niveau->nom;
 
-            foreach ($inscriptions as $inscription) {
-                $niveau = $inscription->classe->niveau;
+            $typesFrais = TypeFrais::whereIn('nom', [
+                'Frais d\'inscription',
+                'Scolarité',
+                'Cantine',
+                'Transport'
+            ])->get();
 
-                // Types de frais à gérer
-                $typesFrais = TypeFrais::whereIn('nom', [
-                    'Frais d\'inscription',
-                    'Scolarité',
-                    'Cantine',
-                    'Transport'
-                ])->get()->keyBy('nom');
+            foreach ($typesFrais as $type) {
+                if ($typeFraisId && $type->id != $typeFraisId) continue;
+                if ($type->nom == 'Cantine' && !$inscription->cantine_active) continue;
+                if ($type->nom == 'Transport' && !$inscription->transport_active) continue;
 
-                $fraisData = [];
+                $detailsMois = [];
+                $totalAttendu = 0;
+                $totalPaye = 0;
 
-                foreach ($typesFrais as $nom => $type) {
-                    // Si on filtre par type de frais
-                    if ($request->type_frais_id && $request->type_frais_id != $type->id) {
-                        continue;
+                foreach ($moisScolaires as $mois) {
+                    if ($moisReference && $mois->id != $moisReference->id) continue;
+
+                    $tarifMois = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
+                        ->where('ecole_id', $ecoleId)
+                        ->where('niveau_id', $inscription->classe->niveau->id)
+                        ->where('type_frais_id', $type->id)
+                        ->where('mois_id', $mois->id)
+                        ->first();
+
+                    $montantAttenduMois = $tarifMois ? $tarifMois->montant : 0;
+
+                    // Cumul attendu jusqu’au mois
+                    $cumulAttendu = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
+                        ->where('ecole_id', $ecoleId)
+                        ->where('niveau_id', $inscription->classe->niveau->id)
+                        ->where('type_frais_id', $type->id)
+                        ->where('mois_id', '<=', $mois->id)
+                        ->sum('montant');
+
+                    // Réduction scolarité
+                    $reduction = 0;
+                    if ($type->nom === 'Scolarité') {
+                        $reduction = Reduction::where('inscription_id', $inscription->id)
+                            ->where('annee_scolaire_id', $anneeScolaireId)
+                            ->where('ecole_id', $ecoleId)
+                            ->where(function($query) use ($type) {
+                                $query->whereNull('type_frais_id')
+                                      ->orWhere('type_frais_id', $type->id);
+                            })
+                            ->sum('montant');
+
+                        $cumulAttendu = max(0, $cumulAttendu - $reduction);
                     }
 
-                    // Tarifs mensuels pour le type de frais
-                    $tarifsQuery = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
-                        ->where('ecole_id', $ecoleId)
-                        ->where('niveau_id', $niveau->id)
-                        ->where('type_frais_id', $type->id);
-
-                    $tarifs = $tarifsQuery->get()->keyBy('mois_id');
-
-                    $totalAttendu = $tarifs->sum('montant');
-
-                    // Total payé via paiement_details
-                    $totalPaye = PaiementDetail::where('inscription_id', $inscription->id)
+                    $cumulPaye = PaiementDetail::where('inscription_id', $inscription->id)
                         ->where('type_frais_id', $type->id)
                         ->sum('montant');
 
-                    // Détail par mois
-                    $detailsMois = [];
-                    $cumulAttendu = 0;
-
-                    foreach ($moisScolaires as $mois) {
-                        $montantMois = $tarifs->has($mois->id) ? $tarifs[$mois->id]->montant : 0;
-                        $cumulAttendu += $montantMois;
-
-                        if ($mois->numero <= $moisReference->numero) {
-                            $statut = ($totalPaye >= $cumulAttendu) ? 'À jour' : 'En retard';
-                            $detailsMois[] = [
-                                'mois' => $mois->nom,
-                                'attendu_cumul' => $cumulAttendu,
-                                'statut' => $statut
-                            ];
-                        }
+                    if ($cumulPaye >= $cumulAttendu) {
+                        $montantPayeMois = $montantAttenduMois;
+                        $resteMois = 0;
+                    } else {
+                        $resteCumul = $cumulAttendu - $cumulPaye;
+                        $montantPayeMois = max(0, $montantAttenduMois - $resteCumul);
+                        $resteMois = $montantAttenduMois - $montantPayeMois;
                     }
 
-                    $statutGlobal = $this->determinerStatut($detailsMois);
-                    $moisRetard = $this->getMoisRetard($detailsMois);
-
-                    $fraisData[$nom] = [
-                        'total_attendu' => $totalAttendu,
-                        'total_paye' => $totalPaye,
-                        'reste_a_payer' => max(0, $totalAttendu - $totalPaye),
-                        'statut' => $statutGlobal,
-                        'details_mois' => $detailsMois,
-                        'en_retard_depuis' => $moisRetard
+                    $detailsMois[] = [
+                        'mois' => $mois->nom,
+                        'montant_attendu' => $montantAttenduMois,
+                        'montant_paye' => $montantPayeMois,
+                        'reste_mois' => $resteMois
                     ];
+
+                    $totalAttendu += $montantAttenduMois;
+                    $totalPaye += $montantPayeMois;
                 }
 
-                $result[] = [
-                    'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-                    'classe' => $inscription->classe->nom,
-                    'niveau' => $niveau->nom,
-                    'total_attendu' => collect($fraisData)->sum('total_attendu'),
-                    'total_paye' => collect($fraisData)->sum('total_paye'),
-                    'reste_a_payer' => collect($fraisData)->sum('reste_a_payer'),
-                    'statut' => collect($fraisData)->pluck('statut')->contains('En retard') ? 'En retard' : 'À jour',
-                    'details_mois' => collect($fraisData)->pluck('details_mois')->flatten(1),
-                    'en_retard_depuis' => collect($fraisData)->pluck('en_retard_depuis')->filter()->first() ?? null
-                ];
+                $resteTotal = max(0, $totalAttendu - $totalPaye);
+
+                if ($totalAttendu > 0) {
+                    $result[] = [
+                        'eleve' => $eleve->nom . ' ' . $eleve->prenom,
+                        'classe' => $classe,
+                        'niveau' => $niveau,
+                        'type' => $type->nom,
+                        'details_mois' => $detailsMois,
+                        'total_attendu' => $totalAttendu,
+                        'total_paye' => $totalPaye,
+                        'reste_total' => $resteTotal
+                    ];
+                }
             }
-
-            $filters = [
-                'classe' => Classe::find($request->classe_id)->nom,
-                'mois' => $moisReference->nom,
-                'type_frais' => $request->type_frais_id 
-                    ? TypeFrais::find($request->type_frais_id)->nom 
-                    : 'Tous'
-            ];
-
-            $format = $request->format;
-
-            if ($format === 'excel') {
-                return Excel::download(new RelanceExport($result, $filters), 
-                    'relance_paiements_' . date('Y-m-d') . '.xlsx');
-            }
-
-            if ($format === 'pdf') {
-                $pdf = PDF::loadView('dashboard.documents.liste-relance', [
-                    'data' => $result,
-                    'filters' => $filters,
-                    'title' => 'Relance des Paiements',
-                    'date' => date('d/m/Y')
-                ]);
-                
-                return $pdf->download('relance_paiements_' . date('Y-m-d') . '.pdf');
-            }
-
-            return redirect()->back()->with('error', 'Format non supporté');
-
-        } catch (\Exception $e) {
-            Log::error("Erreur export relance: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Erreur lors de l\'exportation: ' . $e->getMessage());
         }
+
+        $filters = [
+            'classe' => Classe::find($request->classe_id)->nom,
+            'mois' => $moisReference ? $moisReference->nom : 'Tous',
+            'type_frais' => $typeFraisId ? TypeFrais::find($typeFraisId)->nom : 'Tous'
+        ];
+
+        if ($request->format === 'excel') {
+            return Excel::download(new RelanceExport($result, $filters),
+                'relance_paiements_' . date('Y-m-d') . '.xlsx');
+        }
+
+        if ($request->format === 'pdf') {
+            $pdf = PDF::loadView('dashboard.documents.liste-relance', [
+                'data' => $result,
+                'filters' => $filters,
+                'title' => 'Relance des Paiements',
+                'date' => date('d/m/Y')
+            ])->setPaper('A4', 'landscape');
+
+            return $pdf->download('relance_paiements_' . date('Y-m-d') . '.pdf');
+        }
+
+        return redirect()->back()->with('error', 'Format non supporté');
+
+    } catch (\Exception $e) {
+        Log::error("Erreur export relance: " . $e->getMessage());
+        return redirect()->back()->with('error', 'Erreur lors de l\'exportation: ' . $e->getMessage());
     }
+}
+
+
+
+
 
     private function getRelanceDataInternal($request)
     {
@@ -647,11 +814,9 @@ class RelanceController extends Controller
                 'niveau' => $niveau->nom,
                 'total_attendu' => collect($fraisData)->sum('total_attendu'),
                 'total_paye' => collect($fraisData)->sum('total_paye'),
-                'reste_a_payer' => collect($fraisData)->sum('reste_a_payer'),
-                'statut' => collect($fraisData)->pluck('statut')->contains('En retard') ? 'En retard' : 'À jour',
-                'details_mois' => collect($fraisData)->pluck('details_mois')->flatten(1),
-                'en_retard_depuis' => collect($fraisData)->pluck('en_retard_depuis')->filter()->first() ?? null
-            ];
+                'reste_total' => max(0, collect($fraisData)->sum('total_attendu') - collect($fraisData)->sum('total_paye')),
+                ];
+
         }
 
         return [
