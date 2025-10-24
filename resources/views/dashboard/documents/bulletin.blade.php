@@ -238,7 +238,7 @@ table.general th { background: #ccc; }
             <tr style="background:#ccc; text-align:center;">
                 <td style="padding:5px;">
                     <b>MOYENNE :</b> {{ number_format($eleveData['moyenne'],2,',','') }} /20 &nbsp; | &nbsp;
-                    <b>RANG :</b> {{ $eleveData['rang_general'] }} / {{ $effectif }} &nbsp; | &nbsp;
+                    <b>RANG :</b> {{ $eleveData['rang_text'] }} / {{ $effectif }} &nbsp; | &nbsp;
                     <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
                 </td>
             </tr>
