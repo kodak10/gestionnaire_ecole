@@ -51,13 +51,30 @@
             margin-top: 40px;
             font-size: 10px;
         }
+
+        .personal-info {
+        width: 65%;
+        float: left;
+    }
+    .photo-eleve {
+        width: 30%;
+        float: right;
+        text-align: center;
+    }
+    .photo-eleve img {
+        width: 120px;
+        height: 150px;
+        object-fit: cover;
+        border: 1px solid #000;
+    }
+    .clear { clear: both; }
     </style>
 </head>
 <body>
     <!-- En-tête avec logo à gauche et infos au centre -->
     <div class="header">
         <div class="logo-section">
-            <img class="logo" src="{{ public_path('assets/img/logo_excelle.jpg') }}" alt="Logo école" style="height:60px; vertical-align:middle; margin-right:10px;">
+            <img class="logo" src="{{ public_path('assets/img/logo_excelle.jpg') }}" alt="Logo école" style="height:80px; vertical-align:middle; margin-right:10px;">
     </div>
 
         <div class="title-section">
@@ -71,12 +88,28 @@
     <div class="content">
         <div class="section">
             <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">INFORMATIONS PERSONNELLES</h4>
-            <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->matricule }}</div>
-            <div class="field"><span class="label">Nom:</span> {{ $inscription->eleve->nom }}</div>
-            <div class="field"><span class="label">Prénom:</span> {{ $inscription->eleve->prenom }}</div>
-            <div class="field"><span class="label">Sexe:</span> {{ $inscription->eleve->sexe }}</div>
-            <div class="field"><span class="label">Date Naissance:</span> {{ $inscription->eleve->naissance->format('d/m/Y') }}</div>
-            <div class="field"><span class="label">Lieu Naissance:</span> {{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</div>
+
+            <div class="personal-info">
+                <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->matricule }}</div>
+                <div class="field"><span class="label">Nom:</span> {{ $inscription->eleve->nom }}</div>
+                <div class="field"><span class="label">Prénom:</span> {{ $inscription->eleve->prenom }}</div>
+                <div class="field"><span class="label">Sexe:</span> {{ $inscription->eleve->sexe }}</div>
+                <div class="field"><span class="label">Date Naissance:</span> {{ $inscription->eleve->naissance->format('d/m/Y') }}</div>
+                <div class="field"><span class="label">Lieu Naissance:</span> {{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</div>
+            </div>
+
+            <div class="photo-eleve">
+                @if($inscription->eleve->photo_path)
+                    
+                    <img src="{{ public_path('storage/' . $inscription->eleve->photo_path) }}" alt="Photo {{ $inscription->eleve->nom }}">
+                @else
+                    <div style="width:120px; height:150px; border:1px solid #000; display:flex; align-items:center; justify-content:center;">
+                        Pas de photo
+                    </div>
+                @endif
+            </div>
+
+            <div class="clear"></div>
         </div>
 
         <div class="section">
