@@ -21,9 +21,9 @@ use Illuminate\Support\Facades\Auth;
 
 class EleveController extends Controller
 {
-   public function __construct()
+    public function __construct()
     {
-        $this->middleware('role:SuperAdministrateur|Administrateur')->except(['index', 'export']);
+        $this->middleware('role:SuperAdministrateur|Administrateur')->except(['index', 'export', 'edit', 'update']);
     }
 
     public function index(Request $request)
@@ -318,7 +318,7 @@ class EleveController extends Controller
 
     public function edit($id)
     {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
             abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
         }
 
@@ -337,7 +337,7 @@ class EleveController extends Controller
 
     public function update(Request $request, $id)
     {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
             abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
         }
 
@@ -377,6 +377,9 @@ class EleveController extends Controller
 
     public function destroy($id)
     {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
+            abort(403, 'Vous n\'avez pas la permission de supprimmer un  élève.');
+        }
         try {
             DB::beginTransaction();
 

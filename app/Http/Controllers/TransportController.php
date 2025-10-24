@@ -21,6 +21,11 @@ use PDF;
 
 class TransportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['role:SuperAdministrateur|Administrateur|Caissiere']);
+    }
+    
     public function index()
     {
         $ecoleId = session('current_ecole_id'); 

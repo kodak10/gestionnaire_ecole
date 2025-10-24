@@ -22,8 +22,15 @@ use PDF;
 
 class CantineController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['role:SuperAdministrateur|Administrateur|Caissiere']);
+    }
+    
     public function index()
     {
+        
+
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 

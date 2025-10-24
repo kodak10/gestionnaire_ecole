@@ -168,11 +168,11 @@
                                 <i class="ti ti-dots-vertical fs-14"></i>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end p-3">
-                                <li>
+                                {{-- <li>
                                     <a class="dropdown-item rounded-1" href="{{ route('eleves.show', $eleve->eleve->id) }}">
                                         <i class="ti ti-eye me-2"></i>Voir
                                     </a>
-                                </li>
+                                </li> --}}
                                 <li>
                                     <a class="dropdown-item rounded-1" href="{{ route('eleves.edit', $eleve->id) }}">
                                         <i class="ti ti-edit me-2"></i>Modifier
