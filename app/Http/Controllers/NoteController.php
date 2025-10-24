@@ -155,6 +155,8 @@ class NoteController extends Controller
                     'valeur' => $noteData['valeur'],
                     'coefficient' => $validated['coefficient'],
                     'user_id' => Auth::id(),
+                    'appreciation' => $this->generateAppreciation($noteData['valeur']),
+
                     // 'annee_scolaire_id' => $anneeScolaireId,
                     // 'ecole_id' => $ecoleId,
                 ]
@@ -163,6 +165,17 @@ class NoteController extends Controller
 
         return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
     }
+
+    private function generateAppreciation($valeur)
+{
+    if ($valeur < 8) return 'Très insuffisant';
+    if ($valeur < 10) return 'Insuffisant';
+    if ($valeur < 12) return 'Passable';
+    if ($valeur < 14) return 'Assez Bien';
+    if ($valeur < 16) return 'Bien';
+    if ($valeur < 18) return 'Très Bien';
+    return 'Excellent';
+}
 
     // je en gère pas ça
     public function edit(Note $note)
@@ -261,161 +274,7 @@ class NoteController extends Controller
         return response()->json($notes);
     }
 
-//     public function generateBulletin(Request $request)
-// {
-//     $request->validate([
-//         'classe_id' => 'required|exists:classes,id',
-//         'mois_id' => 'required|exists:mois_scolaires,id'
-//     ]);
 
-//     // Récupérer école et année scolaire en session
-//     $ecoleId = session('current_ecole_id');
-//     $anneeScolaireId = session('current_annee_scolaire_id');
-//     $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-
-//     // Classe et niveau avec matières (triées par ordre numérique)
-//     $classe = Classe::with(['niveau.matieres' => function($q) {
-//         $q->orderByPivot('ordre');
-//     }])->findOrFail($request->classe_id);
-
-//     $mois = MoisScolaire::findOrFail($request->mois_id);
-
-//     // Récupérer inscriptions avec élèves et notes pour le mois
-//     $inscriptions = Inscription::with(['eleve', 'notes' => function($q) use ($request) {
-//         $q->where('mois_id', $request->mois_id)->with('matiere');
-//     }])
-//     ->where('classe_id', $request->classe_id)
-//     ->where('statut', 'active')
-//     ->get();
-
-//     // Mentions de l'école
-//     $mentions = Mention::where('ecole_id', $ecoleId)
-//         ->orderBy('min_note')
-//         ->get();
-
-//     $elevesAvecMoyennes = [];
-//     foreach ($inscriptions as $inscription) {
-//         $notes = $inscription->notes ?? collect();
-//         $totalNotes = 0;
-//         $totalCoeffs = 0;
-
-//         foreach ($notes as $note) {
-//             $totalNotes += ($note->valeur * ($note->coefficient ?? 1));
-//             $totalCoeffs += ($note->coefficient ?? 1);
-//             $note->execo = ($note->valeur == 20);
-//         }
-
-//         $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
-//         $moyenneArrondie = round($moyenne, 2);
-
-//         // Mention
-//         $mention = $mentions->first(function($m) use ($moyenneArrondie) {
-//             return $moyenneArrondie >= $m->min_note && $moyenneArrondie <= $m->max_note;
-//         });
-
-//         // Distinctions et sanctions par élève
-//         $distinctions = $this->calculerDistinctions($moyenneArrondie);
-//         $sanctions = $this->calculerSanctions($moyenneArrondie);
-
-//         $elevesAvecMoyennes[] = [
-//             'inscription' => $inscription,
-//             'notes' => $notes,
-//             'moyenne' => $moyenneArrondie,
-//             'mention' => $mention ? $mention->nom : 'Non classé',
-//             'execo_count' => $notes->where('valeur', 20)->count(),
-//             'total_notes' => $totalNotes,
-//             'total_coeffs' => $totalCoeffs,
-//             'distinctions' => $distinctions,
-//             'sanctions' => $sanctions,
-//         ];
-//     }
-
-//     // Classement par matière (respect de l'ordre pivot)
-//     $matieres = $classe->niveau->matieres
-//         ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
-//         ->values();
-
-//     foreach ($matieres as $matiere) {
-//         $notesMatiere = [];
-//         foreach ($elevesAvecMoyennes as $index => &$eleve) {
-//             $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
-//             if ($note) {
-//                 $notesMatiere[] = [
-//                     'note_obj' => $note,
-//                     'eleve_index' => $index,
-//                 ];
-//             }
-//         }
-
-//         // Trier par valeur décroissante
-//         usort($notesMatiere, fn($a, $b) => $b['note_obj']->valeur <=> $a['note_obj']->valeur);
-
-//         // Attribuer les rangs en tenant compte des ex-aequo
-//         foreach ($notesMatiere as $idx => $data) {
-//             if ($idx === 0) {
-//                 $data['note_obj']->rang_matiere = 1;
-//             } else {
-//                 $prev = $notesMatiere[$idx - 1];
-//                 $data['note_obj']->rang_matiere = ($data['note_obj']->valeur == $prev['note_obj']->valeur)
-//                     ? $prev['note_obj']->rang_matiere
-//                     : $idx + 1;
-//             }
-//         }
-//     }
-
-//     // Classement général
-//     usort($elevesAvecMoyennes, function($a, $b) {
-//         if ($a['moyenne'] != $b['moyenne']) {
-//             return $b['moyenne'] <=> $a['moyenne'];
-//         }
-//         return $a['inscription']->eleve->nom <=> $b['inscription']->eleve->nom;
-//     });
-
-//     // Attribution rang général avec ex-aequo
-//     $moyKeys = array_map(fn($e) => sprintf('%.2f', $e['moyenne']), $elevesAvecMoyennes);
-//     $moyCounts = array_count_values($moyKeys);
-
-//     foreach ($elevesAvecMoyennes as $index => &$eleve) {
-//         $key = sprintf('%.2f', $eleve['moyenne']);
-//         $eleve['exaequo'] = ($moyCounts[$key] > 1);
-
-//         if ($index === 0) {
-//             $eleve['rang_general'] = 1;
-//         } else {
-//             $prev = $elevesAvecMoyennes[$index - 1];
-//             $eleve['rang_general'] = ($key == sprintf('%.2f', $prev['moyenne']))
-//                 ? $prev['rang_general']
-//                 : $index + 1;
-
-//             $eleve['rang_text'] = $this->formatRang($eleve['rang_general'], $eleve['exaequo']);
-
-//         }
-//     }
-//     unset($eleve);
-
-//     // Statistiques de classe
-//     $moyennes = array_column($elevesAvecMoyennes, 'moyenne');
-//     $moyClasse = count($moyennes) > 0 ? array_sum($moyennes) / count($moyennes) : 0;
-//     $moyPremier = count($moyennes) > 0 ? max($moyennes) : 0;
-//     $moyDernier = count($moyennes) > 0 ? min($moyennes) : 0;
-
-//     // Génération PDF
-//     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
-//         'classe' => $classe,
-//         'mois' => $mois,
-//         'elevesAvecMoyennes' => $elevesAvecMoyennes,
-//         'matieres' => $matieres,
-//         'moyClasse' => round($moyClasse, 2),
-//         'moyPremier' => round($moyPremier, 2),
-//         'moyDernier' => round($moyDernier, 2),
-//         'effectif' => count($elevesAvecMoyennes),
-//         'anneeScolaire' => $anneeScolaire,
-//     ]);
-
-//     $pdf->setOption('defaultFont', 'DejaVu Sans');
-
-//     return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
-// }
 public function generateBulletin(Request $request)
 {
     $request->validate([
