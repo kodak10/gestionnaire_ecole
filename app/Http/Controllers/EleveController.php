@@ -112,6 +112,8 @@ class EleveController extends Controller
         if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
             abort(403, 'Vous n\'avez pas la permission d\'exporter la liste des élèves.');
         }
+        //dd($request->all());
+
         $format = $request->format;
 
         $anneeScolaireId = session('current_annee_scolaire_id');

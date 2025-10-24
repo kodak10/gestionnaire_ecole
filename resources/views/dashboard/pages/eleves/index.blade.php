@@ -30,9 +30,11 @@
                     target="_blank"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
                 </li>
 
-                <li>
-                    <a href="{{ route('eleves.export', array_merge(request()->query(), ['format' => 'excel'])) }}" class="dropdown-item rounded-1"><i class="ti ti-file-type-xls me-2"></i>Excel</a>
-                </li>
+                <a href="{{ route('eleves.export') }}?{{ http_build_query(request()->query() + ['format' => 'excel']) }}"
+   class="dropdown-item rounded-1">
+   <i class="ti ti-file-type-xls me-2"></i>Excel
+</a>
+
             </ul>	
         </div>                  
         <div class="mb-2">
