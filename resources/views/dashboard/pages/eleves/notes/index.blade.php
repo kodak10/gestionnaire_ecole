@@ -3,11 +3,11 @@
 @section('content')
 <div class="d-md-flex d-block align-items-center justify-content-between mb-3">
     <div class="my-auto mb-2">
-        <h3 class="page-title mb-1">Gestion des Moyennes</h3>
+        <h3 class="page-title mb-1">Gestion des Notes</h3>
         <nav>
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Tableau de bord</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Moyennes</li>
+                <li class="breadcrumb-item active" aria-current="page">Notes</li>
             </ol>
         </nav>
     </div>
@@ -20,12 +20,12 @@
 
         <div class="pe-1 mb-2">
             <a href="{{ route('notes.create') }}" class="btn btn-outline-primary">
-                <i class="ti ti-file-spreadsheet me-2"></i>Saisie de Moyenne
+                <i class="ti ti-file-spreadsheet me-2"></i>Saisie de Notes
             </a>
         </div>
         <div class="pe-1 mb-2">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fichesMoyennesModal">
-                <i class="ti ti-file-spreadsheet me-2"></i>Imprimer Fiche de Moyennes
+                <i class="ti ti-file-spreadsheet me-2"></i>Imprimer Fiche de Notes
             </button>
         </div>
     </div>
@@ -33,7 +33,7 @@
 
 <!-- Filter -->
 <div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
-    <h4 class="mb-3">Liste des Moyennes</h4>
+    <h4 class="mb-3">Liste des Notes</h4>
     <div class="d-flex align-items-center flex-wrap">		
         <form method="GET" action="{{ route('notes.index') }}" class="d-flex flex-wrap">
             <div class="input-group mb-3 me-2" style="width: 200px;">
@@ -151,7 +151,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center">Aucune moyenne trouvée</td>
+                        <td colspan="7" class="text-center">Aucune note trouvée</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -208,7 +208,7 @@
         <form action="{{ route('notes.generateFichesMoyennes') }}" method="GET" target="_blank">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Générer la Fiche de Moyenne</h5>
+                    <h5 class="modal-title">Générer la Fiche de Notes</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

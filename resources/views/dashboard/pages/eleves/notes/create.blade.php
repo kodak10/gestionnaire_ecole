@@ -99,6 +99,8 @@ $(document).ready(function() {
         "positionClass": "toast-top-right",
         "timeOut": "4000"
     };
+    var matieresData = {}; // clé = id de la matière
+
 
     // Charger élèves et matières quand la classe change
     $('#classe_id').change(function() {
@@ -120,9 +122,14 @@ $(document).ready(function() {
                             html += '<td>'+e.nom_complet+'</td>';
                             html += '<td>';
                             html += '<input type="hidden" name="notes['+i+'][inscription_id]" value="'+e.id+'">';
-                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" max="20">';
+                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" style="width:70px; display:inline-block;">';
+
+                            // Champ base vide au départ, sera rempli après le choix de la matière
+                            html += ' / <input type="number" class="form-control note-base" readonly style="width:50px; display:inline-block;">';
+
                             html += '</td></tr>';
                         });
+
                         html += '</tbody></table></div>';
                         $('#eleves-container').html(html);
                         $('#submit-btn').prop('disabled', false);
@@ -137,6 +144,7 @@ $(document).ready(function() {
                 }
             });
 
+
             // Charger les matières
             $.ajax({
                 url: '{{ route("notes.matieres_by_classe") }}',
@@ -145,8 +153,13 @@ $(document).ready(function() {
                 success: function(matieres) {
                     var matSelect = $('select[name="matiere_id"]');
                     matSelect.empty().append('<option value="">Sélectionner une matière</option>');
+
                     matieres.forEach(function(m) {
-                        matSelect.append('<option value="'+m.id+'" data-coef="'+m.coefficient+'">'+m.nom+'</option>');
+                        matSelect.append('<option value="'+m.id+'" data-coef="'+m.coefficient+'" data-base="'+m.base+'">'+m.nom+'</option>');
+                        matieresData[m.id] = {
+                            coef: m.coefficient,
+                            base: m.base
+                        };
                     });
                 },
                 error: function() {
@@ -158,10 +171,80 @@ $(document).ready(function() {
 
     // Quand la matière change → maj du coef
     $('select[name="matiere_id"]').change(function() {
-        var coef = $(this).find(':selected').data('coef') || 1;
-        $('input[name="coefficient"]').val(coef);
-        chargerNotes();
+        var matId = $(this).val();
+        if(matId && matieresData[matId]) {
+            var coef = matieresData[matId].coef;
+            var base = matieresData[matId].base;
+
+            // Met à jour le coefficient
+            $('input[name="coefficient"]').val(coef);
+
+            // Met à jour les bases et max des notes
+            $('#eleves-container tr').each(function() {
+                var noteInput = $(this).find('input.note-input');
+                var baseInput = $(this).find('input.note-base');
+
+                // Update readonly display
+                baseInput.val(base);
+
+                // Update max de l’input note
+                noteInput.attr('max', base);
+            });
+
+            // Charger les notes existantes pour cette matière
+            chargerNotes();
+        }
     });
+
+    $('form').on('submit', function(e) {
+        var mois = $('select[name="mois_id"]').val();
+        if(!mois) {
+            e.preventDefault();
+            toastr.error("Veuillez sélectionner un mois ou trimestre avant d'enregistrer ⚠️");
+            return false;
+        }
+
+        var valid = true;
+
+        $('#eleves-container .note-input').each(function() {
+            var val = $(this).val();
+            var max = parseFloat($(this).attr('max')) || 20;
+
+            if(val === '' || val === null) {
+                valid = false;
+                toastr.warning("Toutes les notes doivent être saisies ⚠️");
+                return false; // sort de la boucle each
+            }
+
+            val = parseFloat(val);
+            if(val < 0 || val > max) {
+                valid = false;
+                toastr.warning("Chaque note doit être entre 0 et la base ("+max+") ⚠️");
+                return false; // sort de la boucle each
+            }
+        });
+
+        if(!valid) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+
+
+    $('#eleves-container').on('input', '.note-input', function() {
+        var max = parseFloat($(this).attr('max')) || 20; // récupère le max défini
+        var val = parseFloat($(this).val());
+
+        if(val > max) {
+            $(this).val(max); // remet au maximum si dépassé
+            toastr.warning("La note ne peut pas dépasser la base (" + max + ")");
+        } else if(val < 0) {
+            $(this).val(0); // empêche les valeurs négatives
+        }
+    });
+
+
 
     // Quand le mois change → charger les notes
     $('select[name="mois_id"]').change(function() {

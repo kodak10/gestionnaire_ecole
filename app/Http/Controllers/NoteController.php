@@ -131,7 +131,7 @@ class NoteController extends Controller
             'coefficient' => 'required|integer|min:1',
             'notes' => 'required|array',
             'notes.*.inscription_id' => 'required|exists:inscriptions,id',
-            'notes.*.valeur' => 'required|numeric|min:0|max:20'
+            'notes.*.valeur' => 'required|numeric',
         ]);
 
         $ecoleId = session('current_ecole_id'); 
@@ -244,8 +244,10 @@ class NoteController extends Controller
                 'id' => $matiere->id,
                 'nom' => $matiere->nom,
                 'coefficient' => $matiere->pivot->coefficient ?? 1,
+                'base' => $matiere->pivot->denominateur ?? 20,
             ];
         });
+
 
         return response()->json($matieres);
     }
