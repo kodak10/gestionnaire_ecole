@@ -317,21 +317,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Nom
             let colNom = document.createElement('div');
-            colNom.classList.add('col-md-4', 'fw-bold');
+            colNom.classList.add('col-md-3', 'fw-bold');
             colNom.textContent = matiere.nom;
 
             // Coefficient
             let colCoef = document.createElement('div');
-            colCoef.classList.add('col-md-4');
+            colCoef.classList.add('col-md-3');
             colCoef.innerHTML = `
                 <label class="form-label mb-1 small">Coefficient</label>
                 <input type="number" min="1" max="10" name="coefficients[${matiere.id}]" 
                     class="form-control form-control-sm" value="${coef}" required>
             `;
 
+            let colDenominateur = document.createElement('div');
+            colDenominateur.classList.add('col-md-3');
+            colDenominateur.innerHTML = `
+                <label class="form-label mb-1 small">Dénominateur</label>
+                <input type="number" min="1" name="denominateurs[${matiere.id}]" 
+                    class="form-control form-control-sm" value="${data[matiereId]?.denominateur ?? 20}" required>
+            `;
+
             // Ordre
             let colOrdre = document.createElement('div');
-            colOrdre.classList.add('col-md-4');
+            colOrdre.classList.add('col-md-3');
             colOrdre.innerHTML = `
                 <label class="form-label mb-1 small">Ordre</label>
                 <input type="number" min="1" name="ordres[${matiere.id}]" 
@@ -340,6 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             row.appendChild(colNom);
             row.appendChild(colCoef);
+            row.appendChild(colDenominateur);
             row.appendChild(colOrdre);
             container.appendChild(row);
         });
@@ -378,7 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(m => {
                     infos[m.id] = {
                         coefficient: m.coefficient,
-                        ordre: m.ordre
+                        ordre: m.ordre,
+                        denominateur: m.denominateur
                     };
                 });
 

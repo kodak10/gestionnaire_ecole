@@ -55,11 +55,11 @@
 
                          <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['notes*', 'tableaux-honneur.index']) ? 'active subdrop' : '' }}">
-                                <i class="ti ti-users"></i><span>Moyennes</span><span class="menu-arrow"></span>
+                                <i class="ti ti-users"></i><span>Notes</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
                                 @hasanyrole('SuperAdministrateur|Administrateur|Directeur|Enseignant')
-                                <li><a href="{{ route('notes.index') }}" class="{{ request()->routeIs('notes.index') ? 'active' : '' }}">Saisie de Moyenne</a></li>
+                                <li><a href="{{ route('notes.index') }}" class="{{ request()->routeIs('notes.index') ? 'active' : '' }}">Saisie de Note</a></li>
                                 @endhasanyrole
                                 @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                                 <li><a href="{{ route('tableaux-honneur.index') }}" class="{{ request()->routeIs('tableaux-honneur.index') ? 'active' : '' }}">Tableau d'honneur</a></li>
@@ -192,7 +192,7 @@
                             <ul>
                                 <li><a href="{{ route('classes.index') }}" class="{{ request()->routeIs('classes.index') ? 'active' : '' }}">Classes</a></li>
                                 <li><a href="{{ route('enseignants.index') }}" class="{{ request()->routeIs('enseignants.index') ? 'active' : '' }}">Enseignants</a></li>
-                                <li><a href="{{ route('matieres.index') }}" class="{{ request()->routeIs('matieres.index') ? 'active' : '' }}">Disciplines</a></li>
+                                <li><a href="{{ route('matieres.index') }}" class="{{ request()->routeIs('matieres.index') ? 'active' : '' }}">Matières</a></li>
                                 <li><a href="{{ route('mentions.index') }}" class="{{ request()->routeIs('mentions.index') ? 'active' : '' }}">Critères de Notation</a></li>
                             </ul>
                         </li>

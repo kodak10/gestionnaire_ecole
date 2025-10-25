@@ -5,8 +5,7 @@
 <title>Bulletin Scolaire</title>
 <style>
 body {
-    font-family: "Times New Roman", serif;
-    font-size: 12px;
+font-family: 'Georgia', Times, serif;    font-size: 12px;
     margin: 0;
     padding: 0;
     color: #000;
@@ -101,8 +100,8 @@ table.general th { background: #ccc; }
 
         <!-- Partie centrale (plus large) -->
         <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
-            MINISTÈRE DE L’ÉDUCATION NATIONALE<br>
-            DE L’ENSEIGNEMENT TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE<br>
+            <b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b><br>
+            MINISTÈRE DE L’ÉDUCATION NATIONALE ET L'ALPHABÉTISATION<br>
             <span>...........................</span><br>
             <b>{{ $ecole->nom }}</b>
         </div>
@@ -112,7 +111,8 @@ table.general th { background: #ccc; }
             Code : <b>{{ $ecole->code ?? '' }}</b><br>
             Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
             Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b><br>
-            <br><br>
+            Email : <b>{{ $ecole->email ?? '' }}</b><br>
+            <br>
         </div>
 
         <div style="clear:both;"></div>
@@ -209,29 +209,34 @@ table.general th { background: #ccc; }
 
         <!-- Matières -->
         <table class="general">
-            <thead>
-                <tr>
-                    <th>MATIÈRES</th>
-                    <th>Moy.</th>
-                    <th>Coeff.</th>
-                    <th>M. x C</th>
-                    <th>Rang</th>
-                    <th>Appréciation</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach($eleveData['notes'] as $note)
-                <tr>
-                    <td class="left">{{ $note->matiere->nom }}</td>
-                    <td>{{ number_format($note->valeur,2,',','') }}</td>
-                    <td>{{ $note->coefficient ?? 1 }}</td>
-                    <td>{{ number_format(($note->valeur * ($note->coefficient ?? 1)),2,',','') }}</td>
-                    <td>{{ $note->rang_matiere ?? '-' }}</td>
-                    <td>{{ $note->appreciation ?? '-' }}</td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
+    <thead>
+        <tr>
+            <th>MATIÈRES</th>
+            <th>Notes</th>
+            <th>Coeff.</th>
+            {{-- <th>M. x C</th> --}}
+            <th>Rang</th>
+            <th>Appréciation</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($matieres as $matiere)
+            @php
+                $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+            @endphp
+            <tr>
+                <td class="left">{{ $matiere->nom }}</td>
+                <td>{{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}</td>
+                <td>{{ $note->coefficient }}</td>
+                {{-- <td>{{ number_format(($note->valeur * ($note->coefficient)), 2, ',', '') }}</td> --}}
+                <td>{{ $note ? ($note->rang_matiere_text ?? '-') : '-' }}</td>
+
+                <td>{{ $note ? ($note->appreciation ?? '-') : '-' }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
 
         <!-- Totaux -->
         <table class="general" style="width:100%; border-collapse: collapse;">

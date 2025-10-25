@@ -28,7 +28,7 @@ class Niveau extends Model
     public function matieres()
     {
         return $this->belongsToMany(Matiere::class, 'niveau_matiere')
-                    ->withPivot('coefficient', 'ordre', 'ecole_id', 'annee_scolaire_id')
+                    ->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id', 'annee_scolaire_id')
                     ->withTimestamps();
     }
 

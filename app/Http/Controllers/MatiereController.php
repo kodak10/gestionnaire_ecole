@@ -51,6 +51,7 @@ class MatiereController extends Controller
                         'nom' => $matiere->nom,
                         'coefficient' => $matiere->pivot->coefficient,
                         'ordre' => $matiere->pivot->ordre,
+                        'denominateur' => $matiere->pivot->denominateur,
                     ];
                 });
     Log::info('Matières:', $matieres->toArray());
@@ -104,43 +105,6 @@ class MatiereController extends Controller
         return redirect()->route('matieres.index')->with('success', 'Matière supprimée avec succès');
     }
 
-   public function assignMatieres(Request $request)
-{
-    $request->validate([
-        'niveau_id' => 'required|exists:niveaux,id',
-        'matieres' => 'required|array',
-        'matieres.*' => 'exists:matieres,id',
-        'coefficients' => 'required|array',
-        'coefficients.*' => 'integer|min:1|max:10',
-        'ordres' => 'required|array',
-        'ordres.*' => 'integer|min:1',
-    ]);
-
-    $niveau = Niveau::findOrFail($request->niveau_id);
-
-    $ecoleId = session('current_ecole_id');
-    $anneeScolaireId = session('current_annee_scolaire_id');
-
-    $syncData = [];
-
-    foreach ($request->matieres as $matiereId) {
-        $coef = $request->coefficients[$matiereId];
-        $ordre = $request->ordres[$matiereId];
-
-        $syncData[$matiereId] = [
-            'coefficient' => $coef,
-            'ordre' => $ordre,
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-        ];
-    }
-
-    $niveau->matieres()->sync($syncData);
-
-    return redirect()->back()->with('success', 'Matières affectées avec succès au niveau.');
-}
-
-
     public function updateClasses(Request $request, $id)
     {
         $matiere = Matiere::findOrFail($id);
@@ -168,6 +132,43 @@ class MatiereController extends Controller
 
         return redirect()->route('matieres.index')->with('success', 'Classes associées mises à jour avec succès');
     }
+
+    public function assignMatieres(Request $request)
+{
+    $request->validate([
+        'niveau_id' => 'required|exists:niveaux,id',
+        'matieres' => 'required|array',
+        'matieres.*' => 'exists:matieres,id',
+        'coefficients' => 'required|array',
+        'coefficients.*' => 'integer|min:1|max:10',
+        'ordres' => 'required|array',
+        'ordres.*' => 'integer|min:1',
+        'denominateurs' => 'required|array',
+        'denominateurs.*' => 'integer|min:1',
+    ]);
+
+    $niveau = Niveau::findOrFail($request->niveau_id);
+
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
+
+    $syncData = [];
+
+    foreach ($request->matieres as $matiereId) {
+        $syncData[$matiereId] = [
+            'coefficient' => $request->coefficients[$matiereId],
+            'ordre' => $request->ordres[$matiereId],
+            'denominateur' => $request->denominateurs[$matiereId],
+            'ecole_id' => $ecoleId,
+            'annee_scolaire_id' => $anneeScolaireId,
+        ];
+    }
+
+    $niveau->matieres()->sync($syncData);
+
+    return redirect()->back()->with('success', 'Matières affectées avec succès au niveau.');
+}
+
 
     public function show($id)
     {

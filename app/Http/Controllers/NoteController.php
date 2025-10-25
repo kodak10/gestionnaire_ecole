@@ -14,6 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
 {
@@ -314,9 +315,19 @@ public function generateBulletin(Request $request)
         $totalCoeffs = 0;
 
         foreach ($notes as $note) {
-            $totalNotes += ($note->valeur * ($note->coefficient ?? 1));
-            $totalCoeffs += ($note->coefficient ?? 1);
-            $note->execo = ($note->valeur == 20);
+            // Récupérer base et coefficient depuis la matière du niveau
+            $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
+            $base = $matierePivot->denominateur ?? 20;
+            $coeff = $matierePivot->coefficient ?? 1;
+
+            $note->base = $base;
+            $note->coefficient = $coeff;
+
+            // Ajouter la note pondérée par rapport à la base
+            $totalNotes += ($note->valeur / $base) * 20 * $coeff;
+            $totalCoeffs += $coeff;
+
+            $note->execo = ($note->valeur == $base); // note maximale selon la base
         }
 
         $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
@@ -356,6 +367,26 @@ public function generateBulletin(Request $request)
         ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
         ->values();
 
+    foreach ($elevesAvecMoyennes as &$eleve) {
+        foreach ($matieres as $matiere) {
+            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+            if ($note) {
+                // Base et coefficient provenant du pivot niveau_matiere
+                $note->base = $matiere->pivot->denominateur;
+                $note->coefficient = $matiere->pivot->coefficient;
+
+                Log::info('Note affichage pivot', [
+                    'matiere' => $matiere->nom,
+                    'valeur' => $note->valeur,
+                    'base' => $note->base,
+                    'coefficient' => $note->coefficient
+                ]);
+            }
+        }
+    }
+    unset($eleve);
+
+
     foreach ($matieres as $matiere) {
         $notesMatiere = [];
         foreach ($elevesAvecMoyennes as $index => &$eleve) {
@@ -371,16 +402,19 @@ public function generateBulletin(Request $request)
         // Trier par valeur décroissante
         usort($notesMatiere, fn($a, $b) => $b['note_obj']->valeur <=> $a['note_obj']->valeur);
 
-        // Attribuer les rangs par matière avec ex-aequo
         foreach ($notesMatiere as $idx => $data) {
+            $note = $data['note_obj'];
             if ($idx === 0) {
-                $data['note_obj']->rang_matiere = 1;
+                $note->rang_matiere = 1;
             } else {
-                $prev = $notesMatiere[$idx - 1];
-                $data['note_obj']->rang_matiere = ($data['note_obj']->valeur == $prev['note_obj']->valeur)
-                    ? $prev['note_obj']->rang_matiere
+                $prev = $notesMatiere[$idx - 1]['note_obj'];
+                $note->rang_matiere = ($note->valeur == $prev->valeur)
+                    ? $prev->rang_matiere
                     : $idx + 1;
             }
+
+            // Ajouter le texte formaté
+            $note->rang_matiere_text = $this->formatRang($note->rang_matiere, ($idx > 0 && $note->valeur == $notesMatiere[$idx - 1]['note_obj']->valeur));
         }
     }
 
@@ -420,6 +454,16 @@ public function generateBulletin(Request $request)
     $moyPremier = count($moyennes) > 0 ? max($moyennes) : 0;
     $moyDernier = count($moyennes) > 0 ? min($moyennes) : 0;
 
+    foreach ($notes as $note) {
+    Log::info('Note trouvée', [
+        'matiere' => $note->matiere->nom ?? 'N/A',
+        'valeur' => $note->valeur,
+        'base' => $note->base,
+        'coefficient' => $note->coefficient ?? 1,
+    ]);
+}
+
+
     // Génération PDF
     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
         'classe' => $classe,
@@ -432,8 +476,6 @@ public function generateBulletin(Request $request)
         'effectif' => count($elevesAvecMoyennes),
         'anneeScolaire' => $anneeScolaire,
     ]);
-
-    $pdf->setOption('defaultFont', 'DejaVu Sans');
 
     return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
 }
@@ -477,6 +519,27 @@ private function calculerSanctions($moyenne)
     // tu pourras ajouter ici d’autres règles pour la conduite plus tard
     return $sanctions;
 }
+
+private function formatRangMatiere($rang, $exaequo = false)
+{
+    if (!$rang) {
+        return '-';
+    }
+
+    $suffix = match($rang) {
+        1 => 'er',
+        default => 'e',
+    };
+
+    $texte = $rang . $suffix;
+
+    if ($exaequo) {
+        $texte .= ' ex æquo';
+    }
+
+    return $texte;
+}
+
 
 private function formatRang($rang, $exaequo = false)
 {
