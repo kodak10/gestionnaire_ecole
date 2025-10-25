@@ -81,8 +81,8 @@ table.general th { background: #ccc; }
 
     <!-- En-tête supérieur : nom école à gauche, date d'édition à droite -->
     <div style="width:100%; overflow:hidden;">
-        <div style="float:left; width:50%; font-weight:bold;">
-            {{ $ecole->nom ?? 'Nom École' }}
+        <div style="float:left; width:50%; font-weight:bold;text-transform:uppercase;">
+            {{ $ecole->nom }}
         </div>
         <div style="float:right; width:50%; text-align:right;">
             Édition : {{ Carbon::now()->format('d/m/Y') }}
