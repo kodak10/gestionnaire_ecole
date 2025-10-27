@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
             colCoef.classList.add('col-md-3');
             colCoef.innerHTML = `
                 <label class="form-label mb-1 small">Coefficient</label>
-                <input type="number" min="1" max="10" name="coefficients[${matiere.id}]" 
+                <input type="number" min="0" max="10" name="coefficients[${matiere.id}]" 
                     class="form-control form-control-sm" value="${coef}" required>
             `;
 

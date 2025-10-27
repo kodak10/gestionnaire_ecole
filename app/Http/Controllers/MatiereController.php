@@ -140,7 +140,7 @@ class MatiereController extends Controller
         'matieres' => 'required|array',
         'matieres.*' => 'exists:matieres,id',
         'coefficients' => 'required|array',
-        'coefficients.*' => 'integer|min:1|max:10',
+        'coefficients.*' => 'integer|min:0|max:10',
         'ordres' => 'required|array',
         'ordres.*' => 'integer|min:1',
         'denominateurs' => 'required|array',
