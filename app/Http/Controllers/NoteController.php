@@ -305,6 +305,21 @@ public function generateBulletin(Request $request)
         ->where('statut', 'active')
         ->get();
 
+    // Vérifier que toutes les notes sont saisies
+$matieresIds = $classe->niveau->matieres->pluck('id')->toArray();
+foreach ($inscriptions as $inscription) {
+    $notes = $inscription->notes ?? collect();
+
+    // Vérifier qu'il y a une note pour chaque matière de la classe
+    foreach ($classe->niveau->matieres as $matiere) {
+        $note = $notes->firstWhere('matiere_id', $matiere->id);
+        if (!$note) {
+            return back()->with('error', "Veuillez saisir toutes les notes dans chaque matières avant de générer le bulletin.");
+        }
+    }
+}
+
+
     // Mentions de l'école
     $mentions = Mention::where('ecole_id', $ecoleId)
         ->orderBy('min_note')
