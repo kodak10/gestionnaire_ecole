@@ -137,7 +137,7 @@ table.general th { background: #ccc; }
     <div class="container">
 
         <!-- Informations élève -->
-        <table style="width:100%; border-collapse:collapse;">
+        <table style="width:100%; border-collapse:collapse;margin-bottom:8px;">
             <!-- Première ligne : Matricule + Nom et Prénoms -->
             <tr style="text-transform:uppercase;background:#ccc">
                 <td style="text-align:left; width:70%; padding:5px;text-transform:uppercase;">
@@ -152,7 +152,7 @@ table.general th { background: #ccc; }
             <!-- Deuxième ligne : infos + photo -->
             <tr>
                 <!-- Infos élève -->
-                <td style="vertical-align:top; padding:5px;">
+                <td style="vertical-align:top; padding:5px; width:70%;">
                     <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                         <tr>
                             <!-- Colonne gauche large -->
@@ -161,7 +161,7 @@ table.general th { background: #ccc; }
                             </td>
 
                             <!-- Colonne droite pour effectif -->
-                            <td style="padding:6px; width:30%; text-align:left;">
+                            <td style="padding:6px; width:40%; text-align:left;">
                                 <b>Effectif :</b> {{ $effectif }}
                             </td>
                         </tr>
@@ -170,7 +170,7 @@ table.general th { background: #ccc; }
                             <td style="padding:6px;">
                                 <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
                             </td>
-                            <td style="padding:6px; text-align:left;">
+                            <td style="padding:6px; text-align:left; white-space:nowrap;">
                                 <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
                                 @if(!empty($eleveData['inscription']->eleve->lieu_naissance))
                                     à {{ strtoupper($eleveData['inscription']->eleve->lieu_naissance) }}
@@ -193,13 +193,13 @@ table.general th { background: #ccc; }
                 </td>
 
                 <!-- Photo -->
-                <td style="text-align:center; vertical-align:middle; width:30%; padding:5px;">
-                    <div style="width:100%; height:80px; border:1px solid #000; padding:4px; display:inline-block;">
+                <td style="width:30%; padding:5px;">
+                    <div style="width:100px; height:80px; border:1px solid #000; padding:4px;float:right; box-sizing:border-box; text-align:center;">
                     <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
                             ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
                             : public_path('images/default.png') }}"
                     alt="Photo"
-                    style="width:100px; height:80px; object-fit:cover; border-radius:5px;">
+                    style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
 
                     </div>
                 </td>
