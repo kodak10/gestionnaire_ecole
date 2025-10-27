@@ -219,22 +219,28 @@ table.general th { background: #ccc; }
             <th>Appréciation</th>
         </tr>
     </thead>
-    <tbody>
-        @foreach($matieres as $matiere)
-            @php
-                $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
-            @endphp
-            <tr>
-                <td class="left">{{ $matiere->nom }}</td>
-                <td>{{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}</td>
-                <td>{{ $note->coefficient }}</td>
-                {{-- <td>{{ number_format(($note->valeur * ($note->coefficient)), 2, ',', '') }}</td> --}}
-                <td>{{ $note ? ($note->rang_matiere_text ?? '-') : '-' }}</td>
+    <tbody> 
+    @php
+        // Filtrer uniquement les matières où il existe une note pour cet élève
+        $matieresAvecNotes = $matieres->filter(function ($matiere) use ($eleveData) {
+            return $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+        });
+    @endphp
 
-                <td>{{ $note ? ($note->appreciation ?? '-') : '-' }}</td>
-            </tr>
-        @endforeach
-    </tbody>
+    @foreach($matieresAvecNotes as $matiere)
+        @php
+            $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+        @endphp
+        <tr>
+            <td class="left">{{ $matiere->nom }}</td>
+            <td>{{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}</td>
+            <td>{{ $note->coefficient }}</td>
+            <td>{{ $note->rang_matiere_text ?? '-' }}</td>
+            <td>{{ $note->appreciation ?? '-' }}</td>
+        </tr>
+    @endforeach
+</tbody>
+
 </table>
 
 

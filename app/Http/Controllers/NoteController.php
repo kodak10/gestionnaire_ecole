@@ -128,7 +128,7 @@ class NoteController extends Controller
             'classe_id' => 'required|exists:classes,id',
             'matiere_id' => 'required|exists:matieres,id',
             'mois_id' => 'required|exists:mois_scolaires,id',
-            'coefficient' => 'required|integer|min:1',
+            'coefficient' => 'required|integer',
             'notes' => 'required|array',
             'notes.*.inscription_id' => 'required|exists:inscriptions,id',
             'notes.*.valeur' => 'required|numeric',
@@ -305,19 +305,7 @@ public function generateBulletin(Request $request)
         ->where('statut', 'active')
         ->get();
 
-    // Vérifier que toutes les notes sont saisies
-$matieresIds = $classe->niveau->matieres->pluck('id')->toArray();
-foreach ($inscriptions as $inscription) {
-    $notes = $inscription->notes ?? collect();
-
-    // Vérifier qu'il y a une note pour chaque matière de la classe
-    foreach ($classe->niveau->matieres as $matiere) {
-        $note = $notes->firstWhere('matiere_id', $matiere->id);
-        if (!$note) {
-            return back()->with('error', "Veuillez saisir toutes les notes dans chaque matières avant de générer le bulletin.");
-        }
-    }
-}
+    
 
 
     // Mentions de l'école
