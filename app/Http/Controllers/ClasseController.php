@@ -65,6 +65,7 @@ class ClasseController extends Controller
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
+            'moy_base' => 'required|integer|min:10',
             'enseignant_id'=> 'required|exists:enseignants,id',
 
         ]);
@@ -92,6 +93,7 @@ class ClasseController extends Controller
             'niveau_id' => $request->niveau_id,
             'nom' => $nomComplet,
             'capacite' => $request->capacite,
+            'moy_base' => $request->moy_base,
             'enseignant_id'     => $request->enseignant_id,
         ]);
 
@@ -104,6 +106,7 @@ class ClasseController extends Controller
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
+            'moy_base' => 'required|integer|min:10',
             'enseignant_id'=> 'required|exists:enseignants,id',
 
         ]);
@@ -136,6 +139,7 @@ class ClasseController extends Controller
             'niveau_id' => $request->niveau_id,
             'nom' => $nomClasse,
             'capacite' => $request->capacite,
+            'moy_base' => $request->moy_base,
             'enseignant_id' => $request->enseignant_id,
         ]);
 

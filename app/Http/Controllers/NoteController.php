@@ -311,6 +311,7 @@ public function generateBulletin(Request $request)
         ->get();
 
     $elevesAvecMoyennes = [];
+    $moyBase = $classe->moy_base;
     foreach ($inscriptions as $inscription) {
         $notes = $inscription->notes ?? collect();
         $totalNotes = 0;
@@ -326,7 +327,9 @@ public function generateBulletin(Request $request)
             $note->coefficient = $coeff;
 
             // Ajouter la note pondérée par rapport à la base
-            $totalNotes += ($note->valeur / $base) * 20 * $coeff;
+            // $totalNotes += ($note->valeur / $base) * 20 * $coeff;
+            $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+
             $totalCoeffs += $coeff;
 
             $note->execo = ($note->valeur == $base); // note maximale selon la base
@@ -348,21 +351,29 @@ public function generateBulletin(Request $request)
 
 
         // Distinctions et sanctions par élève
-        $distinctions = $this->calculerDistinctions($moyenneArrondie);
-        $sanctions = $this->calculerSanctions($moyenneArrondie);
+// Distinctions et sanctions par élève (passer la base de la moyenne de la classe)
+$distinctions = $this->calculerDistinctions($moyenneArrondie, $moyBase);
+$sanctions = $this->calculerSanctions($moyenneArrondie, $moyBase);
 
-        $elevesAvecMoyennes[] = [
-            'inscription' => $inscription,
-            'notes' => $notes,
-            'moyenne' => $moyenneArrondie,
-            'mention' => $mention ? $mention->nom : 'Non classé',
-            'execo_count' => $notes->where('valeur', 20)->count(),
-            'total_notes' => $totalNotes,
-            'total_coeffs' => $totalCoeffs,
-            'distinctions' => $distinctions,
-            'sanctions' => $sanctions,
-        ];
+// Obtenir la mention adaptée à la base de la classe (via conversion sur 20)
+$mentionNom = $this->getMention($moyenneArrondie, $moyBase);
+
+// Compter les "execo" (notes au barème de la matière) — on a déjà positionné $note->execo lors du parcours
+$execoCount = $notes->filter(fn($n) => isset($n->execo) && $n->execo)->count();
+
+$elevesAvecMoyennes[] = [
+    'inscription' => $inscription,
+    'notes' => $notes,
+    'moyenne' => $moyenneArrondie,
+    'mention' => $mentionNom,
+    'execo_count' => $execoCount,
+    'total_notes' => $totalNotes,
+    'total_coeffs' => $totalCoeffs,
+    'distinctions' => $distinctions,
+    'sanctions' => $sanctions,
+];
     }
+
 
     // Classement par matière (respect de l'ordre pivot)
     $matieres = $classe->niveau->matieres
@@ -482,9 +493,45 @@ public function generateBulletin(Request $request)
     return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
 }
 
+private function getMention($moyenne, $moyBase)
+{
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
+
+    // Conversion de la moyenne de la classe sur 20
+    $moyenneSur20 = $moyBase > 0 ? ($moyenne / $moyBase) * 20 : $moyenne;
+
+    // Arrondir à l'entier le plus proche pour correspondre aux plages des mentions
+    $moyenneArrondie = round($moyenneSur20);
+
+    // Récupérer toutes les mentions de l'école et année scolaire
+    $mentions = Mention::where('ecole_id', $ecoleId)
+                       ->where('annee_scolaire_id', $anneeScolaireId)
+                       ->get();
+
+    // Chercher la mention dont la moyenne tombe dans la plage
+    $mention = $mentions->first(function ($m) use ($moyenneArrondie) {
+        return $moyenneArrondie >= $m->min_note && $moyenneArrondie <= $m->max_note;
+    });
+
+    Log::info('Mention trouvée', [
+        'moyenneOriginale' => $moyenne,
+        'moyenneSur20' => $moyenneSur20,
+        'moyenneArrondie' => $moyenneArrondie,
+        'mention' => $mention ? $mention->nom : 'Non classé'
+    ]);
+
+    return $mention ? $mention->nom : 'Non classé';
+}
 
 
-private function calculerDistinctions($moyenne)
+
+
+
+
+
+
+private function calculerDistinctions($moyenne, $moyBase)
 {
     $distinctions = [
         'tableau_honneur' => false,
@@ -492,18 +539,19 @@ private function calculerDistinctions($moyenne)
         'felicitation'    => false,
     ];
 
-    if ($moyenne >= 16) {
-        $distinctions['felicitation'] = true;
-    } elseif ($moyenne >= 14) {
-        $distinctions['encouragement'] = true;
-    } elseif ($moyenne >= 12) {
-        $distinctions['tableau_honneur'] = true;
-    }
+    if ($moyenne >= (0.8 * $moyBase)) { // 80% ou plus → félicitations
+    $distinctions['felicitation'] = true;
+} elseif ($moyenne >= (0.7 * $moyBase)) {
+    $distinctions['encouragement'] = true;
+} elseif ($moyenne >= (0.6 * $moyBase)) {
+    $distinctions['tableau_honneur'] = true;
+}
+
 
     return $distinctions;
 }
 
-private function calculerSanctions($moyenne)
+private function calculerSanctions($moyenne, $moyBase)
 {
     $sanctions = [
         'avertissement_travail' => false,
@@ -512,11 +560,12 @@ private function calculerSanctions($moyenne)
         'blame_conduite'         => false,
     ];
 
-    if ($moyenne < 8) {
-        $sanctions['blame_travail'] = true;
-    } elseif ($moyenne < 10) {
-        $sanctions['avertissement_travail'] = true;
-    }
+   if ($moyenne < (0.4 * $moyBase)) {
+    $sanctions['blame_travail'] = true;
+} elseif ($moyenne < (0.5 * $moyBase)) {
+    $sanctions['avertissement_travail'] = true;
+}
+
 
     // tu pourras ajouter ici d’autres règles pour la conduite plus tard
     return $sanctions;

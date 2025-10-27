@@ -151,11 +151,18 @@
                         </div>
                         <div class="row">
                             
-                            <div class="col-md-6">
+                            <div class="col-md-2">
                                 <div class="mb-3">
                                     <label class="form-label">Capacité</label>
                                     <input type="number" class="form-control" name="capacite" value="30" required>
                                 </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Moyenne de base</label>
+                                        <input type="number" class="form-control" name="moy_base" value="20" required>
+                                    </div>
                             </div>
 
                             <div class="col-md-6">
@@ -221,10 +228,16 @@
                             </div>
                             <div class="row">
                                 
-                                <div class="col-md-6">
+                                <div class="col-md-2">
                                     <div class="mb-3">
                                         <label class="form-label">Capacité</label>
                                         <input type="number" class="form-control" name="capacite" value="{{ $classe->capacite }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Moyenne de base</label>
+                                        <input type="number" class="form-control" name="moy_base" value="{{ $classe->moy_base }}" required>
                                     </div>
                                 </div>
 
