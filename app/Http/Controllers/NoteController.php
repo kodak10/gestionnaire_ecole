@@ -123,60 +123,74 @@ class NoteController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'classe_id' => 'required|exists:classes,id',
-            'matiere_id' => 'required|exists:matieres,id',
-            'mois_id' => 'required|exists:mois_scolaires,id',
-            'coefficient' => 'required|integer',
-            'notes' => 'required|array',
-            'notes.*.inscription_id' => 'required|exists:inscriptions,id',
-            'notes.*.valeur' => 'required|numeric',
-        ]);
+{
+    $validated = $request->validate([
+        'classe_id' => 'required|exists:classes,id',
+        'matiere_id' => 'required|exists:matieres,id',
+        'mois_id' => 'required|exists:mois_scolaires,id',
+        'coefficient' => 'required|integer',
+        'notes' => 'required|array',
+        'notes.*.inscription_id' => 'required|exists:inscriptions,id',
+        'notes.*.valeur' => 'required|numeric',
+    ]);
 
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        foreach ($validated['notes'] as $noteData) {
-            // Récupérer l'inscription pour obtenir l'élève_id
-            $inscription = Inscription::findOrFail($noteData['inscription_id']);
-            
-            Note::updateOrCreate(
-                [
-                    'inscription_id' => $noteData['inscription_id'],
-                    'matiere_id' => $validated['matiere_id'],
-                    'mois_id' => $validated['mois_id'],
-                    'annee_scolaire_id' => $anneeScolaireId,
-                    'ecole_id' => $ecoleId,
+    // Récupération du niveau_matiere pour connaître la base (denominateur)
+    $classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
+    $matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
+    $base = $matierePivot->denominateur; // base par défaut 20
 
-                ],
-                [
-                    'eleve_id' => $inscription->eleve_id,
-                    'classe_id' => $validated['classe_id'],
-                    'valeur' => $noteData['valeur'],
-                    'coefficient' => $validated['coefficient'],
-                    'user_id' => Auth::id(),
-                    'appreciation' => $this->generateAppreciation($noteData['valeur']),
+    foreach ($validated['notes'] as $noteData) {
+        $inscription = Inscription::findOrFail($noteData['inscription_id']);
+        $valeur = $noteData['valeur'];
 
-                    // 'annee_scolaire_id' => $anneeScolaireId,
-                    // 'ecole_id' => $ecoleId,
-                ]
-            );
+        // Ne pas dépasser la base
+        if ($valeur > $base) {
+            return back()->with('error', "La note de {$inscription->eleve->nom} dépasse la base autorisée ({$base}).");
         }
 
-        return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
+        Note::updateOrCreate(
+            [
+                'inscription_id' => $noteData['inscription_id'],
+                'matiere_id' => $validated['matiere_id'],
+                'mois_id' => $validated['mois_id'],
+                'annee_scolaire_id' => $anneeScolaireId,
+                'ecole_id' => $ecoleId,
+            ],
+            [
+                'eleve_id' => $inscription->eleve_id,
+                'classe_id' => $validated['classe_id'],
+                'valeur' => $valeur,
+                'coefficient' => $validated['coefficient'],
+                'user_id' => Auth::id(),
+                // Appréciation adaptée à la base réelle
+                'appreciation' => $this->generateAppreciation($valeur, $base),
+            ]
+        );
     }
 
-    private function generateAppreciation($valeur)
+    return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
+}
+
+/**
+ * Génère une appréciation en fonction de la note et de la base de la matière.
+ */
+private function generateAppreciation($valeur, $base)
 {
-    if ($valeur < 8) return 'Très insuffisant';
-    if ($valeur < 10) return 'Insuffisant';
-    if ($valeur < 12) return 'Passable';
-    if ($valeur < 14) return 'Assez Bien';
-    if ($valeur < 16) return 'Bien';
-    if ($valeur < 18) return 'Très Bien';
+    // Conversion proportionnelle sur 20
+    $noteSur20 = ($base > 0) ? ($valeur / $base) * 20 : $valeur;
+
+    if ($noteSur20 < 8) return 'Très insuffisant';
+    if ($noteSur20 < 10) return 'Insuffisant';
+    if ($noteSur20 < 12) return 'Passable';
+    if ($noteSur20 < 14) return 'Assez Bien';
+    if ($noteSur20 < 16) return 'Bien';
+    if ($noteSur20 < 18) return 'Très Bien';
     return 'Excellent';
 }
+
 
     // je en gère pas ça
     public function edit(Note $note)
