@@ -335,22 +335,23 @@ public function generateBulletin(Request $request)
         $totalCoeffs = 0;
 
         foreach ($notes as $note) {
-            // Récupérer base et coefficient depuis la matière du niveau
-            $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
-            $base = $matierePivot->denominateur ?? 20;
-            $coeff = $matierePivot->coefficient ?? 1;
+    // Récupérer base et coefficient depuis la matière du niveau
+    $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
+    $base = $matierePivot->denominateur ?? 20;
+    $coeff = $matierePivot->coefficient ?? 1;
 
-            $note->base = $base;
-            $note->coefficient = $coeff;
+    $note->base = $base;
+    $note->coefficient = $coeff;
 
-            // Ajouter la note pondérée par rapport à la base
-            // $totalNotes += ($note->valeur / $base) * 20 * $coeff;
-            $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+    // ✅ Ignorer les notes nulles ou égales à zéro dans le calcul
+    if ($note->valeur > 0) {
+        $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+        $totalCoeffs += $coeff;
+    }
 
-            $totalCoeffs += $coeff;
+    $note->execo = ($note->valeur == $base);
+}
 
-            $note->execo = ($note->valeur == $base); // note maximale selon la base
-        }
 
         $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
         $moyenneArrondie = round($moyenne, 2);
@@ -480,7 +481,10 @@ $elevesAvecMoyennes[] = [
 
     // Statistiques de classe
     $moyennes = array_column($elevesAvecMoyennes, 'moyenne');
-    $moyClasse = count($moyennes) > 0 ? array_sum($moyennes) / count($moyennes) : 0;
+    // ✅ On ignore les moyennes nulles (issues de notes à 0)
+$moyennesFiltrees = array_filter($moyennes, fn($m) => $m > 0);
+$moyClasse = count($moyennesFiltrees) > 0 ? array_sum($moyennesFiltrees) / count($moyennesFiltrees) : 0;
+
     $moyPremier = count($moyennes) > 0 ? max($moyennes) : 0;
     $moyDernier = count($moyennes) > 0 ? min($moyennes) : 0;
 

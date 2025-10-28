@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!matiere) return;
 
             // <-- ici on utilise bien "data" et pas "matieresDataById"
-            let coef = data[matiereId]?.coefficient ?? matiere.coefficient ?? 1;
+            let coef = data[matiereId]?.coefficient;
             let ordre = data[matiereId]?.ordre ?? matiere.ordre ?? 1;
 
             let row = document.createElement('div');
@@ -325,8 +325,11 @@ document.addEventListener('DOMContentLoaded', function() {
             colCoef.classList.add('col-md-3');
             colCoef.innerHTML = `
                 <label class="form-label mb-1 small">Coefficient</label>
-                <input type="number" min="0" max="10" name="coefficients[${matiere.id}]" 
-                    class="form-control form-control-sm" value="${coef}" required>
+                    <input type="text" min="0" max="10" 
+                    name="coefficients[${matiere.id}]"
+                    class="form-control form-control-sm"
+                    value="${coef}" required>
+
             `;
 
             let colDenominateur = document.createElement('div');

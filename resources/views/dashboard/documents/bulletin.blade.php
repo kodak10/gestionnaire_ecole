@@ -233,12 +233,23 @@ table.general th { background: #ccc; }
         @endphp
         <tr>
             <td class="left">{{ $matiere->nom }}</td>
-            <td>{{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}</td>
+            
+            {{-- ✅ Afficher vide si la note est 0 --}}
+            <td>
+                @if($note->valeur > 0)
+                    {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
+                @else
+                    &nbsp;
+                @endif
+            </td>
+
             <td>{{ $note->coefficient }}</td>
             <td>{{ $note->rang_matiere_text ?? '-' }}</td>
             <td>{{ $note->appreciation ?? '-' }}</td>
         </tr>
     @endforeach
+</tbody>
+
 </tbody>
 
 </table>
