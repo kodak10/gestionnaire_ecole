@@ -310,7 +310,7 @@ table.general th { background: #ccc; }
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
                         <br> <br> <br>
-                        {{ strtoupper($ecole->directeur ?? '...') }}
+                        {{ $ecole->directeur ?? '...' }}
                     </td>
                 </tr>
             </tbody>
