@@ -59,7 +59,7 @@ class ClasseController extends Controller
         ]);
     }
 
-   public function store(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'niveau_id' => 'required|exists:niveaux,id',

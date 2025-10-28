@@ -128,7 +128,7 @@ class NoteController extends Controller
         'classe_id' => 'required|exists:classes,id',
         'matiere_id' => 'required|exists:matieres,id',
         'mois_id' => 'required|exists:mois_scolaires,id',
-        'coefficient' => 'required|integer',
+        'coefficient' => 'required|numeric',
         'notes' => 'required|array',
         'notes.*.inscription_id' => 'required|exists:inscriptions,id',
         'notes.*.valeur' => 'required|numeric',
