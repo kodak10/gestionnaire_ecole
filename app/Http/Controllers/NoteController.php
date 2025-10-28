@@ -329,6 +329,8 @@ public function generateBulletin(Request $request)
 
     $elevesAvecMoyennes = [];
     $moyBase = $classe->moy_base;
+    Log::info('Base de moyenne de la classe', ['moy_base' => $moyBase]);
+
     foreach ($inscriptions as $inscription) {
         $notes = $inscription->notes ?? collect();
         $totalNotes = 0;
@@ -337,17 +339,18 @@ public function generateBulletin(Request $request)
         foreach ($notes as $note) {
     // Récupérer base et coefficient depuis la matière du niveau
     $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
-    $base = $matierePivot->denominateur ?? 20;
-    $coeff = $matierePivot->coefficient ?? 1;
+    $base = $matierePivot->denominateur;
+    $coeff = $matierePivot->coefficient;
 
     $note->base = $base;
     $note->coefficient = $coeff;
 
     // ✅ Ignorer les notes nulles ou égales à zéro dans le calcul
-    if ($note->valeur > 0) {
+    if ($note->valeur > 0 && $coeff > 0) {
         $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
         $totalCoeffs += $coeff;
     }
+
 
     $note->execo = ($note->valeur == $base);
 }

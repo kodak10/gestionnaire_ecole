@@ -159,11 +159,21 @@
                             </div>
 
                             <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Moyenne de base</label>
-                                        <input type="number" class="form-control" name="moy_base" value="20" required>
-                                    </div>
+                                <div class="mb-3">
+                                    <label for="moy_base" class="form-label">Moyenne de base</label>
+                                    <input 
+                                        type="number" 
+                                        id="moy_base" 
+                                        name="moy_base" 
+                                        class="form-control" 
+                                        value="20" 
+                                        step="0.01" 
+                                        min="1" 
+                                        required
+                                    >
+                                </div>
                             </div>
+
 
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -234,12 +244,23 @@
                                         <input type="number" class="form-control" name="capacite" value="{{ $classe->capacite }}" required>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Moyenne de base</label>
-                                        <input type="number" class="form-control" name="moy_base" value="{{ $classe->moy_base }}" required>
-                                    </div>
-                                </div>
+                               <div class="col-md-4">
+    <div class="mb-3">
+        <label for="moy_base" class="form-label">Moyenne de base</label>
+        <input 
+            type="number" 
+            id="moy_base" 
+            name="moy_base" 
+            class="form-control" 
+            value="{{ intval($classe->moy_base) }}" 
+            min="1" 
+            step="1" 
+            required
+        >
+    </div>
+</div>
+
+
 
                                 <div class="col-md-6">
                                     <div class="mb-3">
