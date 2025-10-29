@@ -317,7 +317,7 @@ table.general th { background: #ccc; }
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
                     <td>
-                        {{ $ecole->ville ?? 'Korogho' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                        {{ $ecole->ville ?? 'Korhogo' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
                         <br> <br> <br>
