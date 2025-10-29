@@ -102,6 +102,7 @@ class ClasseController extends Controller
 
     public function update(Request $request, $id)
     {
+        //dd($request->all());
         $request->validate([
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
