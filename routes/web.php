@@ -137,7 +137,9 @@ use Illuminate\Support\Facades\Route;
 
 
         Route::get('/notes/generate-fiches-moyennes', [NoteController::class, 'generateFichesMoyennes'])->name('notes.generateFichesMoyennes');
-        
+        Route::get('/notes/recap/pdf', [NoteController::class, 'generateRecapMoyennes'])->name('notes.recap.pdf');
+
+
         Route::resource('notes', NoteController::class);
 
 

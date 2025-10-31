@@ -665,4 +665,75 @@ public function generateFichesMoyennes(Request $request)
     return $pdf->stream('fiche-notes-' . $classe->nom . '-' . $mois->nom . '.pdf');
 }
 
+
+public function generateRecapMoyennes()
+{
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
+
+    // Charger toutes les classes avec enseignants, inscriptions, élèves et matières
+    $classes = Classe::with([
+        'enseignant',
+        'inscriptions.eleve',
+        'niveau.matieres'
+    ])
+    ->where('ecole_id', $ecoleId)
+    ->where('annee_scolaire_id', $anneeScolaireId)
+    ->get();
+
+    $data = [];
+
+    foreach ($classes as $classe) {
+        $matieres = $classe->niveau->matieres;
+        $inscriptions = $classe->inscriptions;
+
+        $eleves = [];
+
+        foreach ($inscriptions as $inscription) {
+            $notes = Note::where('inscription_id', $inscription->id)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->get();
+
+            $totalNotes = 0;
+            $totalCoeffs = 0;
+            $notesParMatiere = [];
+
+            foreach ($matieres as $matiere) {
+                $note = $notes->firstWhere('matiere_id', $matiere->id);
+                $valeur = ($note && $note->valeur > 0) ? $note->valeur : '';
+                $notesParMatiere[$matiere->nom] = [
+                    'valeur' => $valeur,
+                    'base' => $matiere->pivot->denominateur,
+                    'coefficient' => $matiere->pivot->coefficient
+                ];
+
+                if ($note && $note->valeur > 0) {
+                    $totalNotes += ($note->valeur / $matiere->pivot->denominateur) * $classe->moy_base * $matiere->pivot->coefficient;
+                    $totalCoeffs += $matiere->pivot->coefficient;
+                }
+            }
+
+            $moyenne = $totalCoeffs > 0 ? $totalNotes / $totalCoeffs : 0;
+
+            $eleves[] = [
+                'nom' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenoms,
+                'notes' => $notesParMatiere,
+                'moyenne' => $moyenne ? number_format($moyenne, 2, ',', '') : ''
+            ];
+        }
+
+        $data[] = [
+            'classe' => $classe,
+            'matieres' => $matieres,
+            'eleves' => $eleves,
+            'enseignant' => $classe->enseignant?->name ?? '—'
+        ];
+    }
+
+    $pdf = Pdf::loadView('dashboard.documents.recap_moyennes', compact('data'))
+        ->setPaper('a4', 'landscape');
+
+    return $pdf->stream('recap_moyennes_classes.pdf');
+}
+
 }

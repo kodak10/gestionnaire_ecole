@@ -25,8 +25,14 @@
         </div>
         <div class="pe-1 mb-2">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fichesMoyennesModal">
-                <i class="ti ti-file-spreadsheet me-2"></i>Imprimer Fiche de Notes
+                <i class="ti ti-file-spreadsheet me-2"></i>Impr. fiche de Notes
             </button>
+        </div>
+        <div class="pe-1 mb-2">
+            <a href="{{ route('notes.recap.pdf') }}" target="_blank" class="btn btn-outline-primary">
+                <i class="ti ti-file-spreadsheet me-2"></i>Impr. récap des moyennes
+            </a>
+
         </div>
     </div>
 </div>
