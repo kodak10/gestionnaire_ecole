@@ -100,9 +100,6 @@
 <main>
 @foreach($data as $index => $classeData)
     <h2>{{ strtoupper($classeData['classe']->nom) }} — {{ strtoupper($classeData['mois_nom']) }}</h2>
-    <div class="info-classe">
-        <strong>Enseignant :</strong> {{ strtoupper($classeData['enseignant']) }}
-    </div>
 
    <table>
     <thead>
