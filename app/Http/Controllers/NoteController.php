@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use \DB;
 use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Eleve;
@@ -666,16 +667,20 @@ public function generateFichesMoyennes(Request $request)
 }
 
 
-public function generateRecapMoyennes()
+public function generateRecapMoyennes(Request $request)
 {
+    $request->validate([
+        'mois_id' => 'required|exists:mois_scolaires,id',
+    ]);
+
     $ecoleId = session('current_ecole_id');
     $anneeScolaireId = session('current_annee_scolaire_id');
+    $mois = MoisScolaire::findOrFail($request->mois_id);
 
-    // Charger toutes les classes avec enseignants, inscriptions, élèves et matières
     $classes = Classe::with([
         'enseignant',
-        'inscriptions.eleve',
-        'niveau.matieres'
+        'niveau.matieres',
+        'inscriptions.eleve'
     ])
     ->where('ecole_id', $ecoleId)
     ->where('annee_scolaire_id', $anneeScolaireId)
@@ -686,54 +691,96 @@ public function generateRecapMoyennes()
     foreach ($classes as $classe) {
         $matieres = $classe->niveau->matieres;
         $inscriptions = $classe->inscriptions;
-
         $eleves = [];
+        $matieresAvecNotes = collect();
 
         foreach ($inscriptions as $inscription) {
-            $notes = Note::where('inscription_id', $inscription->id)
+            $notes = Note::with('matiere')
+                ->where('inscription_id', $inscription->id)
                 ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('mois_id', $mois->id)
                 ->get();
 
             $totalNotes = 0;
             $totalCoeffs = 0;
             $notesParMatiere = [];
 
-            foreach ($matieres as $matiere) {
-                $note = $notes->firstWhere('matiere_id', $matiere->id);
-                $valeur = ($note && $note->valeur > 0) ? $note->valeur : '';
-                $notesParMatiere[$matiere->nom] = [
-                    'valeur' => $valeur,
-                    'base' => $matiere->pivot->denominateur,
-                    'coefficient' => $matiere->pivot->coefficient
+            foreach ($notes as $note) {
+                $matierePivot = $matieres->firstWhere('id', $note->matiere_id)?->pivot;
+                if (!$matierePivot) continue;
+
+                $base = $matierePivot->denominateur ?? 20;
+                $coeff = $matierePivot->coefficient ?? 1;
+
+                $notesParMatiere[$note->matiere->nom] = [
+                    'valeur' => $note->valeur,
+                    'base' => $base,
+                    'coefficient' => $coeff,
                 ];
 
-                if ($note && $note->valeur > 0) {
-                    $totalNotes += ($note->valeur / $matiere->pivot->denominateur) * $classe->moy_base * $matiere->pivot->coefficient;
-                    $totalCoeffs += $matiere->pivot->coefficient;
+                if ($note->valeur > 0) {
+                    $matieresAvecNotes->put($note->matiere->id, $note->matiere);
+                    $totalNotes += ($note->valeur / $base) * $classe->moy_base * $coeff;
+                    $totalCoeffs += $coeff;
                 }
             }
 
             $moyenne = $totalCoeffs > 0 ? $totalNotes / $totalCoeffs : 0;
 
             $eleves[] = [
-                'nom' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenoms,
+                'nom' => $inscription->eleve->nom,
+                'prenom' => $inscription->eleve->prenom,
                 'notes' => $notesParMatiere,
-                'moyenne' => $moyenne ? number_format($moyenne, 2, ',', '') : ''
+                'moyenne' => $moyenne ? number_format($moyenne, 2, ',', '') : '',
             ];
         }
 
+        // Ignorer classe si aucune note
+        if ($matieresAvecNotes->isEmpty()) continue;
+
+        // Trier les élèves par Nom puis Prénom
+        usort($eleves, function ($a, $b) {
+            $cmpNom = strcmp(strtoupper($a['nom']), strtoupper($b['nom']));
+            return $cmpNom === 0 ? strcmp(strtoupper($a['prenom']), strtoupper($b['prenom'])) : $cmpNom;
+        });
+
+        // Calcul des rangs généraux
+        $moyennes = array_column($eleves, 'moyenne');
+        $moyKeys = array_map(fn($m) => floatval(str_replace(',', '.', $m)), $moyennes);
+        $sortedMoy = $moyKeys;
+        rsort($sortedMoy); // décroissant
+
+        foreach ($eleves as &$eleve) {
+            $rang = array_search(floatval(str_replace(',', '.', $eleve['moyenne'])), $sortedMoy) + 1;
+            $eleve['rang'] = $this->formatRang($rang);
+        }
+        unset($eleve);
+
+        $matieresFiltrees = $matieres
+            ->whereIn('id', $matieresAvecNotes->keys())
+            ->sortBy(fn($matiere) => (int)($matiere->pivot->ordre ?? 0))
+            ->values();
+
         $data[] = [
             'classe' => $classe,
-            'matieres' => $matieres,
+            'enseignant' => $classe->enseignant?->name ?? '—',
             'eleves' => $eleves,
-            'enseignant' => $classe->enseignant?->name ?? '—'
+            'matieres' => $matieresFiltrees,
+            'mois_nom' => $mois->nom,
         ];
+    }
+
+    if (empty($data)) {
+        return back()->with('error', "Aucune note trouvée pour le mois de {$mois->nom}.");
     }
 
     $pdf = Pdf::loadView('dashboard.documents.recap_moyennes', compact('data'))
         ->setPaper('a4', 'landscape');
 
-    return $pdf->stream('recap_moyennes_classes.pdf');
+    return $pdf->stream('recap_moyennes_' . $mois->nom . '.pdf');
 }
+
+
+
 
 }

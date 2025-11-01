@@ -29,10 +29,9 @@
             </button>
         </div>
         <div class="pe-1 mb-2">
-            <a href="{{ route('notes.recap.pdf') }}" target="_blank" class="btn btn-outline-primary">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalRecapMoyenne">
                 <i class="ti ti-file-spreadsheet me-2"></i>Impr. récap des moyennes
-            </a>
-
+            </button>
         </div>
     </div>
 </div>
@@ -243,6 +242,37 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Modal pour générer les fiches de recap -->
+<div class="modal fade" id="modalRecapMoyenne" tabindex="-1" aria-labelledby="modalRecapMoyenneLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalRecapMoyenneLabel">Impression du récapitulatif des moyennes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formRecapMoyenne" action="{{ route('notes.recap.pdf') }}" method="GET" target="_blank">
+                    <div class="mb-3">
+                        <label for="mois_id" class="form-label">Choisir le mois</label>
+                        <select name="mois_id" class="form-select" required>
+                            <option value="">Sélectionner un mois</option>
+                            @foreach($moisScolaire as $mois)
+                                <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" form="formRecapMoyenne" class="btn btn-primary">
+                    <i class="ti ti-printer me-2"></i>Imprimer
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

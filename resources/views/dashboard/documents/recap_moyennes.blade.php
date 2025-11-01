@@ -5,7 +5,7 @@
     <title>Récapitulatif des moyennes</title>
     <style>
         @page {
-            margin: 90px 25px 50px 25px; /* marge pour header et footer */
+            margin: 90px 25px 50px 25px;
         }
 
         body {
@@ -45,7 +45,7 @@
             border-top: 1px solid #000;
         }
 
-        h2, h3 {
+        h2 {
             text-align: center;
             margin: 0;
             padding: 0;
@@ -94,45 +94,46 @@
 </header>
 
 <footer>
-    <span>Imprimé le {{ now()->format('d/m/Y') }}</span> — <span>Page : {PAGE_NUM} / {PAGE_COUNT}</span>
+    <span>Imprimé le {{ now()->format('d/m/Y') }}</span> — <span>Page {PAGE_NUM} / {PAGE_COUNT}</span>
 </footer>
 
 <main>
 @foreach($data as $index => $classeData)
-    <h2>{{ strtoupper($classeData['classe']->nom) }}</h2>
+    <h2>{{ strtoupper($classeData['classe']->nom) }} — {{ strtoupper($classeData['mois_nom']) }}</h2>
     <div class="info-classe">
         <strong>Enseignant :</strong> {{ strtoupper($classeData['enseignant']) }}
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width:3%">N°</th>
-                <th style="width:20%">Nom & Prénoms</th>
-                @foreach($classeData['matieres'] as $matiere)
-                    <th>
-                        {{ strtoupper($matiere->nom) }}<br>
-                        <small>(Coeff {{ $matiere->pivot->coefficient }})</small>
-                    </th>
-                @endforeach
-                <th style="width:8%">Moyenne / {{ $classeData['classe']->moy_base }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($classeData['eleves'] as $key => $eleve)
-                <tr>
-                    <td>{{ $key + 1 }}</td>
-                    <td class="left">{{ strtoupper($eleve['nom']) }}</td>
-                    @foreach($classeData['matieres'] as $matiere)
-                        <td>
-                            {{ $eleve['notes'][$matiere->nom]['valeur'] ?? '' }}
-                        </td>
-                    @endforeach
-                    <td><strong>{{ $eleve['moyenne'] }}</strong></td>
-                </tr>
+   <table>
+    <thead>
+        <tr>
+            <th style="width:20%">Nom & Prénom</th>
+            @foreach($classeData['matieres'] as $matiere)
+                <th>
+                    {{ strtoupper($matiere->nom) }}<br>
+                    <small>(Coeff {{ $matiere->pivot->coefficient ?? 1 }})</small>
+                </th>
             @endforeach
-        </tbody>
-    </table>
+            <th style="width:8%">Moyenne / {{ $classeData['classe']->moy_base }}</th>
+            <th style="width:3%">Rang</th>
+
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($classeData['eleves'] as $key => $eleve)
+            <tr>
+                <td class="left">{{ strtoupper($eleve['nom']) }} {{ ucfirst($eleve['prenom']) }}</td>
+                @foreach($classeData['matieres'] as $matiere)
+                    <td>{{ $eleve['notes'][$matiere->nom]['valeur'] ?? '' }}</td>
+                @endforeach
+                <td><strong>{{ $eleve['moyenne'] }}</strong></td>
+                <td>{{ $eleve['rang'] }}</td>
+
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
 
     @if(!$loop->last)
         <div class="page-break"></div>
