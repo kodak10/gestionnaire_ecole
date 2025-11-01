@@ -104,14 +104,14 @@
    <table>
     <thead>
         <tr>
-            <th style="width:20%">Nom & Prénom</th>
+            <th style="width:20%">Nom & Prénoms</th>
             @foreach($classeData['matieres'] as $matiere)
                 <th>
                     {{ strtoupper($matiere->nom) }}<br>
                     <small>(Coeff {{ $matiere->pivot->coefficient ?? 1 }})</small>
                 </th>
             @endforeach
-            <th style="width:8%">Moyenne / {{ $classeData['classe']->moy_base }}</th>
+            <th style="width:8%">Moy / {{ $classeData['classe']->moy_base }}</th>
             <th style="width:3%">Rang</th>
 
         </tr>
