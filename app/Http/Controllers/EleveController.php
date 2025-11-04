@@ -354,6 +354,7 @@ class EleveController extends Controller
             'parent_nom' => 'required|string|max:255',
             'parent_telephone' => 'required|string|max:11',
             'parent_telephone02' => 'nullable|string|max:11',
+            'code_national' => 'nullable|string|max:10',
         ]);
 
         $inscription = Inscription::with('eleve')->findOrFail($id);
@@ -361,8 +362,13 @@ class EleveController extends Controller
 
         // Upload photo si nécessaire
         if ($request->hasFile('photo_path')) {
-            $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
+        if ($eleve->photo_path && \Storage::disk('public')->exists($eleve->photo_path)) {
+            \Storage::disk('public')->delete($eleve->photo_path);
         }
+
+        // Upload nouvelle photo
+        $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
+    }
 
         // Mettre à jour l'élève
         $eleve->update($validatedData);

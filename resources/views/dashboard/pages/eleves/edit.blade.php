@@ -70,7 +70,7 @@
                             <div class="row mb-4">
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center flex-wrap row-gap-3 mb-3">
-                                        <div class="avatar-upload">
+                                        {{-- <div class="avatar-upload">
                                             <div class="avatar-edit">
                                                 <input type='file' id="avatarUpload" name="photo_path" capture="environment" accept=".png, .jpg, .jpeg"/>
                                                 <label for="avatarUpload">
@@ -81,7 +81,26 @@
                                                 <div id="avatarPreview" style="background-image: url({{ $eleve->eleve->photo_path ? asset('storage/'.$eleve->eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div> --}}
+                                        <div class="avatar-upload">
+  <div class="avatar-edit">
+    <input 
+      type="file"
+      id="avatarUpload"
+      name="photo_path"
+      accept="image/*"
+    />
+    <label for="avatarUpload">
+      <i class="ti ti-file fs-16"></i>
+    </label>
+  </div>
+  <div class="avatar-preview">
+    <div id="avatarPreview"
+      style="background-image: url({{ $eleve->eleve->photo_path ? asset('storage/'.$eleve->eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
+    </div>
+  </div>
+</div>
+
                                         <p class="fs-12 ms-3">Format JPG, PNG - Max 4MB</p>
                                     </div>
                                 </div>
@@ -153,15 +172,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Matricule</label>
+                                        <label class="form-label">Matricule National</label>
                                         <input 
                                             type="text" 
                                             name="code_national"
                                             class="form-control" 
-                                            value="{{ $eleve->eleve->code_national ?? $eleve->eleve->matricule }}" 
-                                            @if(!$eleve->eleve->code_national) readonly @endif
-                                        >
-
+                                            value="{{ $eleve->eleve->code_national}}">
                                     </div>
                                 </div>
                             </div>
@@ -348,22 +364,157 @@
 @endsection
 
 @section('scripts')
+<style>
+/* Fenêtre caméra */
+.camera-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.camera-box {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.camera-box video {
+  width: 320px;
+  height: 240px;
+  border-radius: 10px;
+  background: #000;
+  object-fit: cover;
+}
+.camera-actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+}
+.camera-actions button {
+  flex: 1;
+  margin: 0 5px;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const avatarEdit = document.querySelector('.avatar-edit');
+  const avatarInput = document.getElementById('avatarUpload');
+  const avatarPreview = document.getElementById('avatarPreview');
+
+  // === Supprime ancienne caméra s'il y en a déjà (évite les doublons)
+  const existingBtn = avatarEdit.querySelector('.camera-btn');
+  if (existingBtn) existingBtn.remove();
+
+  // === Créer le bouton caméra unique ===
+  const cameraBtn = document.createElement('button');
+  cameraBtn.type = 'button';
+  cameraBtn.className = 'btn btn-light p-2 ms-2 camera-btn';
+  cameraBtn.innerHTML = '<i class="ti ti-camera fs-16"></i>';
+
+  avatarEdit.appendChild(cameraBtn);
+
+  cameraBtn.addEventListener('click', async () => {
+    // === Créer la fenêtre modale ===
+    const modal = document.createElement('div');
+    modal.className = 'camera-modal';
+
+    const box = document.createElement('div');
+    box.className = 'camera-box';
+
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.playsInline = true;
+
+    const switchBtn = document.createElement('button');
+    switchBtn.className = 'btn btn-warning mt-2';
+    switchBtn.textContent = '🔄 Changer de caméra';
+
+    const captureBtn = document.createElement('button');
+    captureBtn.className = 'btn btn-primary mt-3';
+    captureBtn.textContent = '📸 Capturer';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-secondary mt-2';
+    closeBtn.textContent = 'Fermer';
+
+    const actions = document.createElement('div');
+    actions.className = 'camera-actions';
+    actions.appendChild(switchBtn);
+    actions.appendChild(captureBtn);
+    actions.appendChild(closeBtn);
+
+    box.appendChild(video);
+    box.appendChild(actions);
+    modal.appendChild(box);
+    document.body.appendChild(modal);
+
+    // === Gestion des caméras ===
+    let stream = null;
+    let devices = await navigator.mediaDevices.enumerateDevices();
+    let cameras = devices.filter(d => d.kind === 'videoinput');
+    let currentCam = 0;
+
+    async function startCamera(index = 0) {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      const deviceId = cameras[index]?.deviceId;
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+      });
+      video.srcObject = stream;
+    }
+
+    // Démarre la première caméra
+    await startCamera(0);
+
+    switchBtn.addEventListener('click', async () => {
+      currentCam = (currentCam + 1) % cameras.length;
+      await startCamera(currentCam);
+    });
+
+    // === Capture de la photo ===
+    captureBtn.addEventListener('click', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        avatarInput.files = dt.files;
+
+        avatarPreview.style.backgroundImage = `url(${canvas.toDataURL('image/jpeg')})`;
+      }, 'image/jpeg', 0.8);
+
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      modal.remove();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      modal.remove();
+    });
+  });
+});
+</script>
+
+
+
 <script>
     $(document).ready(function() {
-        // Gestion de l'upload de photo
-        function readURL(input) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    $('#avatarPreview').css('background-image', 'url('+e.target.result +')');
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        $("#avatarUpload").change(function() {
-            readURL(this);
-        });
 
         // Gestion des frais dynamiques
         function updateFrais() {
