@@ -144,7 +144,7 @@ table.general th { background: #ccc; }
                     <b>{{ strtoupper($eleveData['inscription']->eleve->nom_complet) }}</b> 
                 </td>
                 <td style="text-align:right; width:30%; padding:5px;">
-                    <b>Matricule :</b> {{ $eleveData['inscription']->eleve->matricule }}
+                    <b>Matricule :</b> {{ $eleveData['inscription']->eleve->code_national ?? $eleveData['inscription']->eleve->matricule }}
                 </td>
                 
             </tr>

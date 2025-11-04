@@ -153,7 +153,7 @@
         <tr>
           <td>
             <span class="label">Matricule :</span>
-            <span class="value">{{ $eleve->matricule ?? '' }}</span>
+            <span class="value">{{ $eleve->code_national ?? $eleve->matricule }}</span>
           </td>
           <td>
             <span class="label">Nom & Prénoms :</span>
@@ -262,7 +262,7 @@
         <tr>
           <td>
             <span class="label">Matricule :</span>
-            <span class="value">{{ $eleve->matricule ?? '' }}</span>
+            <span class="value">{{ $eleve->code_national ?? $eleve->matricule }}</span>
           </td>
           <td>
             <span class="label">Nom & Prénoms :</span>

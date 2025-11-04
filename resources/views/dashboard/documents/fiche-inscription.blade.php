@@ -90,7 +90,7 @@
             <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">INFORMATIONS PERSONNELLES</h4>
 
             <div class="personal-info">
-                <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->matricule }}</div>
+                <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</div>
                 <div class="field"><span class="label">Nom:</span> {{ $inscription->eleve->nom }}</div>
                 <div class="field"><span class="label">Prénom:</span> {{ $inscription->eleve->prenom }}</div>
                 <div class="field"><span class="label">Sexe:</span> {{ $inscription->eleve->sexe }}</div>

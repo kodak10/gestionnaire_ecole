@@ -96,7 +96,7 @@
         <!-- Informations de l'élève -->
         <div class="section">
             <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">INFORMATIONS DE L'ÉLÈVE</h4>
-            <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->matricule }}</div>
+            <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</div>
             <div class="field"><span class="label">Nom et Prénom:</span> {{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</div>
             <div class="field"><span class="label">Classe:</span> {{ $inscription->classe->nom }}</div>
             <div class="field"><span class="label">Date de Naissance:</span> {{ $inscription->eleve->naissance->format('d/m/Y') }}</div>

@@ -62,7 +62,7 @@
             <p><strong>Prénom :</strong> {{ $inscription->eleve->prenom }}</p>
             <p><strong>Date de naissance :</strong> {{ $inscription->eleve->naissance->format('d/m/Y') }}</p>
             <p><strong>Lieu de naissance :</strong> {{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</p>
-            <p><strong>Matricule :</strong> {{ $inscription->eleve->matricule }}</p>
+            <p><strong>Matricule :</strong> {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</p>
 
             <p>Est régulièrement inscrit(e) en classe de <strong>{{ $inscription->classe->nom }}</strong> pour l'année scolaire <strong>{{ $inscription->anneeScolaire->annee }}</strong>.</p>
         </div>

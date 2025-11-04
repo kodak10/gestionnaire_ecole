@@ -93,7 +93,7 @@
                 <td><strong>Classe :</strong> {{ $paiement->eleve->classe->nom }}</td>
             </tr>
             <tr>
-                <td><strong>Matricule :</strong> {{ $paiement->eleve->matricule }}</td>
+                <td><strong>Matricule :</strong> {{ $paiement->eleve->code_national ?? $paiement->eleve->matricule }}</td>
                 <td><strong>Année Scolaire :</strong> {{ $paiement->anneeScolaire->annee }}</td>
             </tr>
             <tr>

@@ -511,6 +511,25 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+<script>
+// === Prévisualisation de l'image choisie (depuis fichier) ===
+document.addEventListener('DOMContentLoaded', () => {
+  const avatarInput = document.getElementById('avatarUpload');
+  const avatarPreview = document.getElementById('avatarPreview');
+
+  avatarInput.addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Compression simple avant affichage (optionnelle)
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      avatarPreview.style.backgroundImage = `url(${ev.target.result})`;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+</script>
 
 
 <script>

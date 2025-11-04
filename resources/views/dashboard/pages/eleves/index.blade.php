@@ -162,7 +162,12 @@
         <div class="col-xxl-3 col-xl-4 col-md-6 d-flex">
             <div class="card flex-fill">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="link-primary">{{ $eleve->eleve->code_national ?? $eleve->eleve->matricule }}</a>
+                    <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="link-primary">{{ 
+                        $eleve->eleve->code_national && $eleve->eleve->matricule
+                            ? $eleve->eleve->code_national . ' | ' . $eleve->eleve->matricule
+                            : ($eleve->eleve->code_national ?? $eleve->eleve->matricule)
+                    }}
+                    </a>
                     <div class="d-flex align-items-center">
                         
                         <div class="dropdown">
