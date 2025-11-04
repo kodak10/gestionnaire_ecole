@@ -145,29 +145,29 @@
                             <ul>
                                 <li>
                                     <a class="{{ request()->routeIs('documents.inscriptions*') ? 'active' : '' }}" href="{{ route('documents.inscriptions') }}">
-                                        <i class="ti ti-file-text"></i>
+                                        
                                         <span>Fiches Inscription</span>
                                     </a>
                                 </li>
                                 <li>
                                     <a class="{{ request()->routeIs('documents.certificats-scolarite*') ? 'active' : '' }}" href="{{ route('documents.certificats-scolarite') }}">
-                                        <i class="ti ti-certificate"></i>
+                                        
                                         <span>Certificats Scolarité</span>
                                     </a>
                                 </li>
-                                {{-- <li>
-                                    <a href="#">
-                                        <i class="ti ti-calendar"></i>
-                                        <span>Certificats de Frequentation</span>
+                                <li>
+                                    <a class="{{ request()->routeIs('documents.fiches-frequentation*') ? 'active' : '' }}" href="{{ route('documents.fiches-frequentation') }}">
+                                        
+                                        <span>Attestaion de Frequentation</span>
                                     </a>
-                                </li> --}}
+                                </li>
                                 <li>
                                     <a class="{{ request()->routeIs('documents.fiches-presence*') ? 'active' : '' }}" href="{{ route('documents.fiches-presence') }}">
-                                        <i class="ti ti-calendar"></i>
+                                        
                                         <span>Fiches de Présence</span>
                                     </a>
                                 </li>
-                                {{-- <li><a href="#" class="">Carte d'Eleves</a></li> --}}
+                                <li><a href="#" class=""><span>Carte d'Eleves</span></a></li>
                             </ul>
                         </li>
                         @endhasanyrole

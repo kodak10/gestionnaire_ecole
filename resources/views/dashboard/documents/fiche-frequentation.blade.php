@@ -1,224 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Fiche de Fréquentation - {{ $inscription->eleve->nom }}</title>
-    <style>
-        @page { margin: 2cm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
-        .header { 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 10px; 
-            overflow: hidden;
-        }
-        .logo-section {
-            width: 20%;
-            float: left;
-            text-align: center;
-        }
-        .title-section {
-            width: 60%;
-            float: left;
-            text-align: center;
-        }
-        .logo {
-            max-width: 80px;
-            max-height: 80px;
-        }
-        .content { margin: 20px 0; }
-        .section { margin-bottom: 15px; }
-        .field { margin-bottom: 8px; }
-        .label { font-weight: bold; display: inline-block; width: 180px; }
-        .signatures-row {
-            margin-top: 50px;
-            overflow: hidden;
-        }
-        .signature-box { 
-            width: 45%; 
-            text-align: center; 
-            border-top: 1px solid #000; 
-            padding-top: 5px;
-        }
-        .signature-left {
-            float: left;
-        }
-        .signature-right {
-            float: right;
-        }
-        .cachet-section {
-            text-align: right;
-            margin-top: 40px;
-            font-size: 10px;
-        }
-        .table-frequentation {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 10px;
-        }
-        .table-frequentation, .table-frequentation th, .table-frequentation td {
-            border: 1px solid #000;
-        }
-        .table-frequentation th, .table-frequentation td {
-            padding: 4px;
-            text-align: center;
-        }
-        .table-frequentation th {
-            background: #f0f0f0;
-        }
-        .mois-section {
-            margin: 10px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+
+<style>
+/* --- POLICE COMIC SANS POUR DOMPDF --- */
+/* @font-face {
+    font-family: 'comic';
+    src: url("{{ public_path('storage/fonts/COMIC.ttf') }}") format('truetype');
+} */
+
+body {
+    font-family: 'comic', sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* TABLE HEADER GAUCHE / DROITE */
+.header-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.header-table td {
+    width: 50%;
+    vertical-align: top;
+    font-size: 12px;
+}
+
+/* TITRE PRINCIPAL */
+.title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    margin: 10px 0;
+    text-decoration: underline;
+}
+
+/* CONTENU TEXTE */
+.content {
+    margin-top: 10px;
+    font-size: 13px;
+    text-align: justify;
+}
+
+/* SIGNATURE GAUCHE */
+.signature-block {
+    margin-top: 60px;
+    text-align: right;
+    font-size: 13px;
+}
+
+.bold { font-weight: bold; }
+.underline { text-decoration: underline; }
+
+.logo-ecole {
+    margin-top: 5px;
+    width: 80px;
+}
+.line-wrapper {
+    display: inline-block;
+    width: 100%;
+}
+
+.label-text {
+    display: inline-block;
+}
+
+.dotted-fill {
+    display: inline-block;
+    width: 80%;
+    border-bottom: 1px dotted #000;
+}
+
+
+</style>
 </head>
+
 <body>
-    <!-- En-tête avec logo à gauche et infos au centre -->
-    <div class="header">
-        <div class="logo-section">
-            @if(auth()->user()->ecole && auth()->user()->ecole->logo)
-                <img src="{{ storage_path('app/public/' . auth()->user()->ecole->logo) }}" class="logo" alt="Logo École">
-            @else
-                <div style="width: 80px; height: 80px; border: 1px solid #000; margin: 0 auto; display: table-cell; vertical-align: middle; text-align: center;">
-                    LOGO
-                </div>
+
+<table class="header-table">
+    <tr>
+        <!-- GAUCHE -->
+        <td>
+            <span  style="text-align:center" class="bold">MINISTERE DE L’EDUCATION NATIONALE<br>
+            ET DE L’ALPHABETISATION</span><br>
+            --------------------<br>
+            DIRECTION REGIONALE DE {{ $inscription->ecole->ville ?? '' }}<br>
+            I.E.P.P : {{ $inscription->ecole->nom ?? '' }}<br>
+            Secteur pédagogique : {{ $inscription->ecole->secteur ?? '' }}<br>
+            E.PV : {{ $inscription->ecole->nom ?? '' }}
+
+            <br><br>
+            <!-- LOGO ECOLE -->
+            @if(isset($inscription->ecole->logo))
+                <img src="{{ public_path('storage/'.$inscription->ecole->logo) }}" class="logo-ecole">
             @endif
-        </div>
-        <div class="title-section">
-            <h2 style="margin: 0; font-size: 18px;">FICHE DE FRÉQUENTATION</h2>
-            <h3 style="margin: 5px 0; font-size: 16px;">{{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}</h3>
-            <p style="margin: 0; font-size: 12px;">Année Scolaire: {{ $inscription->anneeScolaire->annee }}</p>
-        </div>
-        <div style="clear: both;"></div>
-    </div>
+        </td>
 
-    <div class="content">
-        <!-- Informations de l'élève -->
-        <div class="section">
-            <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">INFORMATIONS DE L'ÉLÈVE</h4>
-            <div class="field"><span class="label">Matricule:</span> {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</div>
-            <div class="field"><span class="label">Nom et Prénom:</span> {{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</div>
-            <div class="field"><span class="label">Classe:</span> {{ $inscription->classe->nom }}</div>
-            <div class="field"><span class="label">Date de Naissance:</span> {{ $inscription->eleve->naissance->format('d/m/Y') }}</div>
-        </div>
+        <!-- DROITE -->
+        <td style="text-align:right;">
+            <span class="bold">REPUBLIQUE DE COTE D'IVOIRE</span><br>
+            Union - Discipline - Travail<br><br>
+            Année scolaire : {{ $inscription->anneeScolaire->debut }} / {{ $inscription->anneeScolaire->fin }}
+        </td>
+    </tr>
+</table>
 
-        <!-- Tableau de fréquentation par mois -->
-        <div class="section">
-            <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">SUIVI DE FRÉQUENTATION</h4>
-            
-            <!-- Mois 1 -->
-            <div class="mois-section">
-                <h5 style="margin: 10px 0 5px 0;">Mois: ____________________</h5>
-                <table class="table-frequentation">
-                    <thead>
-                        <tr>
-                            <th>Semaine</th>
-                            <th>Lundi</th>
-                            <th>Mardi</th>
-                            <th>Mercredi</th>
-                            <th>Jeudi</th>
-                            <th>Vendredi</th>
-                            <th>Samedi</th>
-                            <th>Total Présences</th>
-                            <th>Total Absences</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for($semaine = 1; $semaine <= 4; $semaine++)
-                        <tr>
-                            <td>Semaine {{ $semaine }}</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        @endfor
-                        <tr style="font-weight: bold;">
-                            <td>TOTAL MOIS</td>
-                            <td colspan="6"></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+<div class="title">CERTIFICAT DE FREQUENTATION</div>
 
-            <!-- Mois 2 -->
-            <div class="mois-section">
-                <h5 style="margin: 10px 0 5px 0;">Mois: ____________________</h5>
-                <table class="table-frequentation">
-                    <thead>
-                        <tr>
-                            <th>Semaine</th>
-                            <th>Lundi</th>
-                            <th>Mardi</th>
-                            <th>Mercredi</th>
-                            <th>Jeudi</th>
-                            <th>Vendredi</th>
-                            <th>Samedi</th>
-                            <th>Total Présences</th>
-                            <th>Total Absences</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for($semaine = 1; $semaine <= 4; $semaine++)
-                        <tr>
-                            <td>Semaine {{ $semaine }}</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td>□</td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        @endfor
-                        <tr style="font-weight: bold;">
-                            <td>TOTAL MOIS</td>
-                            <td colspan="6"></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="content">
+    Je soussigné,<br><br>
 
-        <!-- Légende -->
-        <div class="section">
-            <h4 style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">LÉGENDE</h4>
-            <div class="field"><span class="label">□ Présent:</span> Cocher la case</div>
-            <div class="field"><span class="label">■ Absent:</span> Rayer la case ou laisser vide</div>
-            <div class="field"><span class="label">R Retard:</span> Indiquer "R" dans la case</div>
-            <div class="field"><span class="label">E Exclu:</span> Indiquer "E" pour exclusion temporaire</div>
-        </div>
-    </div>
+    <span class="bold">{{ $inscription->ecole->directeur ?? '' }}</span>,
+    Directeur des Etudes de l’E.PV <span class="bold">{{ $inscription->ecole->nom }}</span>,<br><br>
 
-    <!-- Signatures sur la même ligne avec float -->
-    <div class="signatures-row">
-        <div class="signature-box signature-left">
-            Le Professeur Principal<br><br>
-            _________________________<br>
-            <small>Nom, Prénom et Signature</small>
-        </div>
-        <div class="signature-box signature-right">
-            Le Directeur<br><br>
-            _________________________<br>
-            <small>Nom, Prénom et Signature</small>
-        </div>
-        <div style="clear: both;"></div>
-    </div>
+    Atteste que l’élève 
+    <span class="bold underline">{{ strtoupper($inscription->eleve->nom) }} {{ ucfirst($inscription->eleve->prenom) }}</span><br><br>
 
-    <!-- Cachet et date en bas à droite -->
-    <div class="cachet-section">
-        <p>Cachet de l'établissement</p>
-        <div style="width: 80px; height: 80px; border: 2px dashed #000; display: inline-block; margin-bottom: 5px;"></div>
-        <p>Fait à ____________________, le {{ date('d/m/Y') }}</p>
-    </div>
+    Matricule : {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }} /
+    Acte de naissance N° {{ $inscription->eleve->num_extrait ?? '...........' }}<br><br>
+
+    Né(e) le {{ $inscription->eleve->naissance->format('d/m/Y') }} 
+    à {{ $inscription->eleve->lieu_naissance ?? '.........................' }}<br><br>
+
+    Cours suivi : <span class="bold">{{ $inscription->classe->nom }}</span><br><br>
+
+<div >
+    <span >Fils/Fille de :</span>
+    <span >{{ $inscription->eleve->parent_nom }}</span>
+</div><br>
+
+<div class="line-wrapper">
+    <span class="label-text">Et de :</span>
+    <span class="dotted-fill">{{ $inscription->eleve->parent_nom2 ?? '' }}</span>
+</div><br><br>
+
+
+    Est effectivement inscrit à l’E.PV <span class="bold">{{ $inscription->ecole->nom }}</span>.<br><br>
+
+    Depuis le {{ $inscription->eleve->created_at->format('d/m/Y') }} 
+    à ce jour {{ now()->format('d/m/Y') }}.<br><br>
+
+    En foi de quoi, cette attestation lui est délivrée pour servir et valoir ce que de droit.
+</div>
+
+<div class="signature-block">
+    Fait à {{ $inscription->ecole->ville ?? 'Korogho' }}, le {{ now()->format('d/m/Y') }}<br><br><br>
+
+    <span class="bold underline">LE DIRECTEUR DES ETUDES</span><br><br><br>
+
+    <span class="bold ">{{ $inscription->ecole->directeur ?? '' }}</span><br>
+    
+</div>
+
 </body>
 </html>
