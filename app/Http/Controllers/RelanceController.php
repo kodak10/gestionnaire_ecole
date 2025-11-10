@@ -550,7 +550,8 @@ public function imprimerRelance(Request $request)
 
     $pdf = Pdf::loadView('dashboard.documents.scolarite.relance-form', [
         'recus'      => $recus,
-        'mois'       => $moisPrecedent->nom, // ⚠️ relance sur le mois précédent
+        'mois'       => $moisReference->nom,
+        //'mois'       => $moisPrecedent->nom, // ⚠️ relance sur le mois précédent
         'type_frais' => $typeFraisId ? TypeFrais::find($typeFraisId)->nom : 'Tous types'
     ])->setPaper('A4', 'portrait');
 
