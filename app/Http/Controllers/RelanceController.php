@@ -388,28 +388,43 @@ public function imprimerRelance(Request $request)
     $anneeScolaireId = session('current_annee_scolaire_id');
     $userId = Auth::id();
 
+    // Mois sélectionné par l'utilisateur
     $moisReference = MoisScolaire::find($request->date_reference);
-    $typeFraisId   = $request->type_frais_id;
+    if (!$moisReference) {
+        return back()->with('error', 'Mois de référence invalide.');
+    }
+
+    // ✅ Nouveau : on détermine le mois précédent pour la relance
+    $moisPrecedent = MoisScolaire::where('numero', '<', $moisReference->numero)
+        ->orderByDesc('numero')
+        ->first();
+
+    if (!$moisPrecedent) {
+        return back()->with('error', 'Aucun mois précédent trouvé pour la relance.');
+    }
+
+    $typeFraisId = $request->type_frais_id;
 
     Log::info("=== Début impression relance ===", [
         'classe_id' => $request->classe_id,
-        'mois_reference' => $moisReference->nom ?? 'inconnu',
+        'mois_reference' => $moisReference->nom,
+        'mois_cible' => $moisPrecedent->nom,
         'type_frais_id' => $typeFraisId,
         'annee_scolaire_id' => $anneeScolaireId,
         'ecole_id' => $ecoleId
     ]);
 
+    // Récupérer les inscriptions actives
     $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
-    ->where('inscriptions.classe_id', $request->classe_id)
-    ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)  // <-- ici
-    ->where('inscriptions.ecole_id', $ecoleId)
-    ->where('inscriptions.statut', 'active')
-    ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-    ->orderBy('eleves.nom')
-    ->orderBy('eleves.prenom')
-    ->select('inscriptions.*')
-    ->get();
-
+        ->where('inscriptions.classe_id', $request->classe_id)
+        ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+        ->where('inscriptions.ecole_id', $ecoleId)
+        ->where('inscriptions.statut', 'active')
+        ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+        ->orderBy('eleves.nom')
+        ->orderBy('eleves.prenom')
+        ->select('inscriptions.*')
+        ->get();
 
     $recus = [];
 
@@ -418,91 +433,85 @@ public function imprimerRelance(Request $request)
         $classe = $inscription->classe->nom;
         $niveau = $inscription->classe->niveau->nom;
 
-        // ✅ Déterminer le mois d’inscription via created_at
-        $moisInscriptionNumero = $inscription->created_at->format('n'); // ex: 9 pour septembre
+        // Mois d'inscription
+        $moisInscriptionNumero = $inscription->created_at->format('n');
         $moisInscription = MoisScolaire::where('numero', $moisInscriptionNumero)->first();
         $moisInscriptionId = $moisInscription ? $moisInscription->id : 1;
 
         $typesFrais = TypeFrais::whereIn('nom', [
-            'Frais d\'inscription',
-            'Scolarité',
-            'Cantine',
-            'Transport'
+            'Frais d\'inscription', 'Scolarité', 'Cantine', 'Transport'
         ])->get();
 
         foreach ($typesFrais as $type) {
             if ($typeFraisId && $type->id != $typeFraisId) continue;
             if ($type->nom == 'Cantine' && !$inscription->cantine_active) continue;
             if ($type->nom == 'Transport' && !$inscription->transport_active) continue;
+            if ($type->id != 2 && $moisPrecedent->id < $moisInscriptionId) continue;
 
-            // --- MONTANT ATTENDU DU MOIS ---
+            // --- Montant attendu du mois précédent ---
             $tarifMois = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
                 ->where('ecole_id', $ecoleId)
                 ->where('niveau_id', $inscription->classe->niveau->id)
-                ->where('mois_id', $moisReference->id)
+                ->where('mois_id', $moisPrecedent->id) // ⚠️ remplacé par le mois précédent
                 ->where('type_frais_id', $type->id)
                 ->first();
 
             $montantAttenduMois = $tarifMois ? $tarifMois->montant : 0;
+            if ($montantAttenduMois <= 0) continue;
 
-            // --- CUMUL ATTENDU (à partir du mois d'inscription) ---
+            // --- Cumul attendu jusqu'au mois précédent ---
+            $debutPeriode = ($type->id == 2) ? 1 : $moisInscriptionId;
+
             $cumulAttendu = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
                 ->where('ecole_id', $ecoleId)
                 ->where('niveau_id', $inscription->classe->niveau->id)
                 ->where('type_frais_id', $type->id)
-                ->whereBetween('mois_id', [$moisInscriptionId, $moisReference->id])
+                ->whereBetween('mois_id', [$debutPeriode, $moisPrecedent->id]) // ⚠️ ici aussi
                 ->sum('montant');
 
-            // --- RÉDUCTION ---
+            // --- Réduction scolarité ---
             $reduction = 0;
             if ($type->id == 2) {
                 $reduction = Reduction::where('inscription_id', $inscription->id)
                     ->where('annee_scolaire_id', $anneeScolaireId)
                     ->where('ecole_id', $ecoleId)
-                    ->where(function ($query) use ($type) {
-                        $query->whereNull('type_frais_id')
-                            ->orWhere('type_frais_id', $type->id);
+                    ->where(function ($q) use ($type) {
+                        $q->whereNull('type_frais_id')->orWhere('type_frais_id', $type->id);
                     })
                     ->sum('montant');
-            }
-
-            if ($type->id == 2) {
                 $cumulAttendu = max(0, $cumulAttendu - $reduction);
             }
 
-            // --- CUMUL PAYÉ ---
+            // --- Cumul payé ---
             $cumulPaye = PaiementDetail::where('inscription_id', $inscription->id)
                 ->where('type_frais_id', $type->id)
                 ->sum('montant');
 
-            // --- LOG INTERMÉDIAIRE ---
-            Log::info("Calcul pour {$eleve->nom} {$eleve->prenom} ({$type->nom})", [
-                'mois_inscription_numero' => $moisInscriptionNumero,
-                'cumul_attendu' => $cumulAttendu,
-                'cumul_paye' => $cumulPaye,
-                'reduction' => $reduction,
-                'montant_attendu_mois' => $montantAttenduMois,
-            ]);
+            $resteMois = 0;
+            $montantPayeMois = 0;
 
-            // --- MONTANT PAYÉ ET RESTE DU MOIS ---
-            if ($cumulPaye >= $cumulAttendu) {
-                $montantPayeMois = $montantAttenduMois;
-                $resteMois = 0;
-            } else {
-                $resteCumul = $cumulAttendu - $cumulPaye;
-                $montantPayeMois = max(0, $montantAttenduMois - $resteCumul);
-                $resteMois = $montantAttenduMois - $montantPayeMois;
-            }
-
-            // --- TOTAL ANNUEL (depuis mois d'inscription) ---
-            $tarifsAnnee = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
+            // --- Montant dû uniquement si pas encore payé le mois précédent ---
+            $cumulAttenduAvant = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
                 ->where('ecole_id', $ecoleId)
                 ->where('niveau_id', $inscription->classe->niveau->id)
                 ->where('type_frais_id', $type->id)
-                ->where('mois_id', '>=', $moisInscriptionId)
-                ->get();
+                ->whereBetween('mois_id', [$debutPeriode, $moisPrecedent->id - 1])
+                ->sum('montant');
 
-            $totalAttenduAnnee = $tarifsAnnee->sum('montant');
+            if ($cumulPaye <= $cumulAttenduAvant) {
+                $resteMois = $montantAttenduMois;
+            } else {
+                $montantPayeMois = $cumulPaye - $cumulAttenduAvant;
+                $resteMois = max(0, $montantAttenduMois - $montantPayeMois);
+            }
+
+            // --- Total annuel ---
+            $totalAttenduAnnee = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId)
+                ->where('niveau_id', $inscription->classe->niveau->id)
+                ->where('type_frais_id', $type->id)
+                ->sum('montant');
+
             if ($type->id == 2) {
                 $totalAttenduAnnee = max(0, $totalAttenduAnnee - $reduction);
             }
@@ -510,13 +519,21 @@ public function imprimerRelance(Request $request)
             $totalPayeAnnee = $cumulPaye;
             $resteTotal = max(0, $totalAttenduAnnee - $totalPayeAnnee);
 
+            Log::info("Calcul pour {$eleve->nom} {$eleve->prenom} ({$type->nom})", [
+                'mois_cible' => $moisPrecedent->nom,
+                'cumul_attendu' => $cumulAttendu,
+                'cumul_paye' => $cumulPaye,
+                'reste_mois' => $resteMois,
+                'reste_total' => $resteTotal
+            ]);
+
             if ($resteMois > 0) {
                 $recus[] = [
                     'parent'          => $eleve->parent_nom ?? '-',
                     'eleve'           => $eleve->nom . ' ' . $eleve->prenom,
                     'classe'          => $classe,
                     'niveau'          => $niveau,
-                    'mois'            => $moisReference->nom,
+                    'mois'            => $moisPrecedent->nom, // ⚠️ corrigé ici aussi
                     'type'            => $type->nom,
                     'montant_attendu' => $montantAttenduMois,
                     'montant_paye'    => $montantPayeMois,
@@ -527,14 +544,19 @@ public function imprimerRelance(Request $request)
         }
     }
 
+    if (empty($recus)) {
+        return back()->with('info', 'Aucune relance à générer pour le mois précédent.');
+    }
+
     $pdf = Pdf::loadView('dashboard.documents.scolarite.relance-form', [
         'recus'      => $recus,
-        'mois'       => $moisReference ? $moisReference->nom : 'Tous mois',
+        'mois'       => $moisPrecedent->nom, // ⚠️ relance sur le mois précédent
         'type_frais' => $typeFraisId ? TypeFrais::find($typeFraisId)->nom : 'Tous types'
     ])->setPaper('A4', 'portrait');
 
-    return $pdf->stream('relance_paiements.pdf');
+    return $pdf->stream('relance_paiements_'.$moisPrecedent->nom.'.pdf');
 }
+
 
 
 
