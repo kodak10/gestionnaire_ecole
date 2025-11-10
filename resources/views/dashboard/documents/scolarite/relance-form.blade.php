@@ -51,7 +51,7 @@
             </p>
         </div>
 
-        <p>Nous vous prions de bien vouloir régulariser le paiement avant le 05 du mois.</p>
+        <p>Nous vous prions de bien vouloir régulariser le paiement.</p>
         <p>La Direction</p>
     </div>
 

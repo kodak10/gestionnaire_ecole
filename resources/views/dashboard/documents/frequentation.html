@@ -13,33 +13,9 @@ body {
 }
 
 /* --- HEADER SANS TABLE --- */
-.header {
-    width: 100%;
-    display: inline-block;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-}
 
 /* Bloc gauche */
-.header-left {
-    display: inline-block;
-    width: 49%;
-    vertical-align: top;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-}
 
-/* Bloc droit */
-.header-right {
-    display: inline-block;
-    width: 49%;
-    vertical-align: top;
-    text-align: right;
-    margin: 0;
-    padding: 0;
-}
 
 /* TITRE PRINCIPAL */
 .title {
@@ -91,7 +67,12 @@ body {
 
 <body>
 
-<!-- EN-TÊTE -->
+
+
+<!-- CONTENU -->
+<div class="content">
+
+    <!-- EN-TÊTE -->
 <div class="header">
     <!-- GAUCHE -->
     <div class="header-left">
@@ -119,8 +100,6 @@ body {
 <!-- TITRE -->
 <div class="title">CERTIFICAT DE FREQUENTATION</div>
 
-<!-- CONTENU -->
-<div class="content">
     Je soussigné,<br><br>
 
     <span class="bold">{{ $inscription->ecole->directeur ?? '' }}</span>,
