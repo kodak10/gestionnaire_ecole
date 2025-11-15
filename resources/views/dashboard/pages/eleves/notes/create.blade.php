@@ -196,39 +196,39 @@ $(document).ready(function() {
         }
     });
 
-    $('form').on('submit', function(e) {
-        var mois = $('select[name="mois_id"]').val();
-        if(!mois) {
-            e.preventDefault();
-            toastr.error("Veuillez sélectionner un mois ou trimestre avant d'enregistrer ⚠️");
-            return false;
+   $('form').on('submit', function(e) {
+    var mois = $('select[name="mois_id"]').val();
+    if(!mois) {
+        e.preventDefault();
+        toastr.error("Veuillez sélectionner un mois ou trimestre avant d'enregistrer ⚠️");
+        return false;
+    }
+
+    var valid = true;
+
+    $('#eleves-container .note-input').each(function() {
+        var val = $(this).val();
+        var max = parseFloat($(this).attr('max')) || 20;
+
+        // Si la note est vide, on l'ignore (pas d'erreur)
+        if(val === '' || val === null) {
+            return true; // continue la boucle each
         }
 
-        var valid = true;
-
-        $('#eleves-container .note-input').each(function() {
-            var val = $(this).val();
-            var max = parseFloat($(this).attr('max')) || 20;
-
-            if(val === '' || val === null) {
-                valid = false;
-                toastr.warning("Toutes les notes doivent être saisies ⚠️");
-                return false; // sort de la boucle each
-            }
-
-            val = parseFloat(val);
-            if(val < 0 || val > max) {
-                valid = false;
-                toastr.warning("Chaque note doit être entre 0 et la base ("+max+") ⚠️");
-                return false; // sort de la boucle each
-            }
-        });
-
-        if(!valid) {
-            e.preventDefault();
-            return false;
+        val = parseFloat(val);
+        if(val < 0 || val > max) {
+            valid = false;
+            toastr.warning("Chaque note doit être entre 0 et la base ("+max+") ⚠️");
+            return false; // sort de la boucle each
         }
     });
+
+    if(!valid) {
+        e.preventDefault();
+        return false;
+    }
+});
+
 
 
 

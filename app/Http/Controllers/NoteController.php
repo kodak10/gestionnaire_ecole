@@ -126,53 +126,57 @@ class NoteController extends Controller
     public function store(Request $request)
 {
     $validated = $request->validate([
-        'classe_id' => 'required|exists:classes,id',
-        'matiere_id' => 'required|exists:matieres,id',
-        'mois_id' => 'required|exists:mois_scolaires,id',
-        'coefficient' => 'required|numeric',
-        'notes' => 'required|array',
-        'notes.*.inscription_id' => 'required|exists:inscriptions,id',
-        'notes.*.valeur' => 'required|numeric',
-    ]);
+    'classe_id' => 'required|exists:classes,id',
+    'matiere_id' => 'required|exists:matieres,id',
+    'mois_id' => 'required|exists:mois_scolaires,id',
+    'coefficient' => 'required|numeric',
+    'notes' => 'array', // plus 'required'
+    'notes.*.inscription_id' => 'required|exists:inscriptions,id',
+    'notes.*.valeur' => 'nullable|numeric', // nullable au lieu de required
+]);
 
-    $ecoleId = session('current_ecole_id');
-    $anneeScolaireId = session('current_annee_scolaire_id');
+$ecoleId = session('current_ecole_id');
+$anneeScolaireId = session('current_annee_scolaire_id');
 
-    // Récupération du niveau_matiere pour connaître la base (denominateur)
-    $classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
-    $matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
-    $base = $matierePivot->denominateur; // base par défaut 20
+$classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
+$matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
+$base = $matierePivot->denominateur;
 
-    foreach ($validated['notes'] as $noteData) {
-        $inscription = Inscription::findOrFail($noteData['inscription_id']);
-        $valeur = $noteData['valeur'];
+foreach ($validated['notes'] as $noteData) {
+    $valeur = $noteData['valeur'];
 
-        // Ne pas dépasser la base
-        if ($valeur > $base) {
-            return back()->with('error', "La note de {$inscription->eleve->nom} dépasse la base autorisée ({$base}).");
-        }
-
-        Note::updateOrCreate(
-            [
-                'inscription_id' => $noteData['inscription_id'],
-                'matiere_id' => $validated['matiere_id'],
-                'mois_id' => $validated['mois_id'],
-                'annee_scolaire_id' => $anneeScolaireId,
-                'ecole_id' => $ecoleId,
-            ],
-            [
-                'eleve_id' => $inscription->eleve_id,
-                'classe_id' => $validated['classe_id'],
-                'valeur' => $valeur,
-                'coefficient' => $validated['coefficient'],
-                'user_id' => Auth::id(),
-                // Appréciation adaptée à la base réelle
-                'appreciation' => $this->generateAppreciation($valeur, $base),
-            ]
-        );
+    // Ignorer les notes vides
+    if ($valeur === null || $valeur === '') {
+        continue;
     }
 
-    return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
+    $inscription = Inscription::findOrFail($noteData['inscription_id']);
+
+    if ($valeur > $base) {
+        return back()->with('error', "La note de {$inscription->eleve->nom} dépasse la base autorisée ({$base}).");
+    }
+
+    Note::updateOrCreate(
+        [
+            'inscription_id' => $noteData['inscription_id'],
+            'matiere_id' => $validated['matiere_id'],
+            'mois_id' => $validated['mois_id'],
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+        ],
+        [
+            'eleve_id' => $inscription->eleve_id,
+            'classe_id' => $validated['classe_id'],
+            'valeur' => $valeur,
+            'coefficient' => $validated['coefficient'],
+            'user_id' => Auth::id(),
+            'appreciation' => $this->generateAppreciation($valeur, $base),
+        ]
+    );
+}
+
+return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
+
 }
 
 /**
