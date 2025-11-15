@@ -207,11 +207,23 @@ use Illuminate\Support\Facades\Route;
 
             Route::get('/', [CantineController::class, 'index'])->name('cantine.index');
 
-            // Récupérer les élèves d'une classe
+
+
+// Routes pour la gestion des cantines par mois
+Route::get('/gestion', [CantineController::class, 'gestion'])->name('cantine.gestion');
+Route::get('/eleves-by-classe-gestion', [CantineController::class, 'elevesByClasseGestion'])->name('cantine.eleves_by_classe_gestion');
+Route::get('/eleve-mois-data', [CantineController::class, 'getEleveCantineMois'])->name('cantine.eleve_mois_data');
+Route::post('/save-configuration', [CantineController::class, 'saveConfigurationCantine'])->name('cantine.save_configuration');
+
+
+
+Route::get('/mois-a-payer', [CantineController::class, 'getMoisAPayer'])->name('cantine.mois_a_payer');
+Route::post('/store-paiement-mensuel', [CantineController::class, 'storePaiementMensuel'])->name('cantine.store_paiement_mensuel');
+// Récupérer les élèves d'une classe
             // Route::get('/eleves/by-classe', [CantineController::class, 'getElevesByClasse'])->name('cantine.eleves.by_classe');
 
             // Récupérer les données de scolarité d'un élève
-            Route::get('/eleve_data', [CantineController::class, 'getEleveScolarite'])->name('cantine.eleve_data');
+            // Route::get('/eleve_data', [CantineController::class, 'getEleveScolarite'])->name('cantine.eleve_data'); kodak
 
             // Enregistrer un paiement
             Route::post('/store_paiement', [CantineController::class, 'storePaiement'])->name('cantine.store_paiement');

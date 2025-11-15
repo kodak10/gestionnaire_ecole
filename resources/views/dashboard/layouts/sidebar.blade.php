@@ -87,6 +87,8 @@
                                 <i class="ti ti-coffee"></i><span>Cantine</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
+                                <li><a href="{{ route('cantine.gestion') }}" class="{{ request()->routeIs('cantine.gestion') ? 'active' : '' }}">Gestion</a></li>
+
                                 <li><a href="{{ route('cantine.index') }}" class="{{ request()->routeIs('cantine.index') ? 'active' : '' }}">Règlements</a></li>
                             </ul>
                         </li>

@@ -286,6 +286,37 @@ table.general th { background: #ccc; }
                         
                     </td>
                     <td>
+    <span class="checkbox">
+        {{ isset($eleveData['distinctions']['tableau_honneur']) && $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}
+    </span> Tableau d'Honneur<br>
+
+    <span class="checkbox">
+        {{ isset($eleveData['distinctions']['encouragement']) && $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}
+    </span> Tableau d'Honneur + Encouragement<br>
+
+    <span class="checkbox">
+        {{ isset($eleveData['distinctions']['felicitation']) && $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}
+    </span> Tableau d'Honneur + Félicitation
+</td>
+
+<td>
+    <span class="checkbox">
+        {{ isset($eleveData['sanctions']['avertissement_travail']) && $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}
+    </span> Avertissement pour travail insuffisant<br>
+
+    <span class="checkbox">
+        {{ isset($eleveData['sanctions']['blame_travail']) && $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}
+    </span> Blâme pour travail insuffisant<br>
+
+    <span class="checkbox">
+        {{ isset($eleveData['sanctions']['avertissement_conduite']) && $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}
+    </span> Avertissement pour mauvaise conduite<br>
+
+    <span class="checkbox">
+        {{ isset($eleveData['sanctions']['blame_conduite']) && $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}
+    </span> Blâme pour mauvaise conduite
+</td>
+                    {{-- <td>
                         <span class="checkbox">{{ $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}</span> Tableau d'Honneur<br>
                         <span class="checkbox">{{ $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}</span> Tableau d'Honneur + Encouragement<br>
                         <span class="checkbox">{{ $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}</span> Tableau d'Honneur + Félicitation
@@ -295,7 +326,7 @@ table.general th { background: #ccc; }
                         <span class="checkbox">{{ $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}</span> Blâme pour travail insuffisant<br>
                         <span class="checkbox">{{ $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}</span> Avertissement pour mauvaise conduite<br>
                         <span class="checkbox">{{ $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}</span> Blâme pour mauvaise conduite
-                    </td>
+                    </td> --}}
                 </tr>
             </tbody>
         </table>
