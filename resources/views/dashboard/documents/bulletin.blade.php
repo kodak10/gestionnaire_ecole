@@ -101,7 +101,7 @@ table.general th { background: #ccc; }
         <!-- Partie centrale (plus large) -->
         <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
             <b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b><br>
-            MINISTÈRE DE L’ÉDUCATION NATIONALE ET L'ALPHABÉTISATION<br>
+            MINISTÈRE DE L’ÉDUCATION NATIONALE ET DE L'ALPHABÉTISATION<br>
             <span>...........................</span><br>
             <b>{{ $ecole->nom }}</b>
         </div>

@@ -75,7 +75,13 @@ use Illuminate\Support\Facades\Route;
             Route::resource('enseignants', EnseignantController::class);
 
 
+            Route::get('/documents/inscriptions/model', [DocumentController::class, 'inscriptionsModel'])->name('documents.inscriptions.model');
+            Route::post('/documents/inscriptions/save', [DocumentController::class, 'inscriptionsModelSave'])->name('documents.inscriptions.save');
+            Route::post('/documents/upload-image', [DocumentController::class, 'uploadImage'])->name('documents.upload-image');
+
         });
+
+        
 
         // Pour récupérer les élèves d'une classe via AJAX
         Route::get('/eleves/by-classe', [ScolariteController::class, 'getElevesByClasse'])->name('eleves.by_classe');

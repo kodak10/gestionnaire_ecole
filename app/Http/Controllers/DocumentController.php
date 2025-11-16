@@ -4,15 +4,115 @@ namespace App\Http\Controllers;
 
 use App\Models\AnneeScolaire;
 use App\Models\Classe;
+use App\Models\Document;
 use App\Models\Eleve;
 use App\Models\Inscription;
 use App\Models\MoisScolaire;
 use App\Models\Niveau;
 use Illuminate\Http\Request;
 use PDF;
+use Illuminate\Support\Str;
+
 
 class DocumentController extends Controller
 {
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'upload' => 'required|image|max:2048', // max 2MB
+        ]);
+
+        $path = $request->file('upload')->store('public/uploads');
+
+        $url = asset(str_replace('public/', 'storage/', $path));
+
+        // CKEditor attend ce format JSON
+        return response()->json([
+            'url' => $url
+        ]);
+    }
+
+
+    public function inscriptionsModel()
+    {
+        $document = Document::where('type', 'fiche_inscription')->first();
+
+        return view('dashboard.pages.parametrage.documents.inscriptions-model', compact('document'));
+    }
+
+    public function inscriptionsModelSave(Request $request)
+    {
+        $request->validate([
+            'content' => 'required|string'
+        ]);
+
+        Document::updateOrCreate(
+            ['id' => $request->document_id ?? null],
+            [
+                'type' => 'fiche_inscription',
+                'content' => $request->content
+            ]
+        );
+
+        return back()->with('success', 'Document enregistré avec succès !');
+    }
+
+public function genererFicheInscription(Eleve $eleve)
+{
+    // Récupérer l'inscription active
+    $inscription = Inscription::with(['eleve', 'classe.niveau'])
+        ->where('eleve_id', $eleve->id)
+        ->where('annee_scolaire_id', session('current_annee_scolaire_id'))
+        ->where('ecole_id', session('current_ecole_id'))
+        ->where('statut', 'active')
+        ->firstOrFail();
+
+    // Récupérer le modèle de document
+    $document = Document::where('type', 'fiche_inscription')->firstOrFail();
+    $content = $document->content;
+
+    // Remplacer les placeholders
+    $content = str_replace('%NOM%', $eleve->nom, $content);
+    $content = str_replace('%PRENOM%', $eleve->prenom, $content);
+    $content = str_replace('%CLASSE%', $inscription->classe->libelle, $content);
+    $content = str_replace('%ANNEE%', session('current_annee_scolaire_id'), $content);
+    $content = str_replace('%DATE_INSCRIPTION%', now()->format('d/m/Y'), $content);
+
+    // Nettoyer le HTML CKEditor
+    // 1. Supprimer les <p> vides
+    $content = preg_replace('/<p>(&nbsp;|\s)*<\/p>/', '', $content);
+    // 2. Remplacer les &nbsp; par des espaces normaux
+    $content = str_replace('&nbsp;', ' ', $content);
+    // 3. Supprimer toutes les classes CKEditor inutiles
+    $content = preg_replace('/class="[^"]*"/', '', $content);
+
+    // Ajouter un style global pour supprimer les marges et padding
+    $content = '<style>
+        body, html, div, p, h1, h2, h3, h4, h5, h6, table, tr, td {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box;
+        }
+        body { width: 100%; font-family: Arial, sans-serif; }
+    </style>' . $content;
+
+    // Générer le PDF
+    $pdf = Pdf::loadHTML($content);
+    $pdf->setPaper('A4', 'portrait'); // ou 'landscape' si besoin
+    $pdf->setOption('margin-top', 0);
+    $pdf->setOption('margin-bottom', 0);
+    $pdf->setOption('margin-left', 0);
+    $pdf->setOption('margin-right', 0);
+
+    // Retourner le PDF en stream
+    return $pdf->stream('fiche-inscription-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
+}
+
+
+
+
+
+
     // Page des fiches d'inscription avec recherche
     public function inscriptions(Request $request)
     {
@@ -189,28 +289,28 @@ class DocumentController extends Controller
     }
 
     // Générer fiche d'inscription
-    public function genererFicheInscription(Eleve $eleve)
-    {
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    // public function genererFicheInscription(Eleve $eleve)
+    // {
+    //     $ecoleId = session('current_ecole_id'); 
+    //     $anneeScolaireId = session('current_annee_scolaire_id');
         
-        $inscription = Inscription::with(['eleve', 'classe.niveau'])
-            ->where('eleve_id', $eleve->id)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->where('ecole_id', $ecoleId)
-            ->where('statut', 'active')
-            ->first();
+    //     $inscription = Inscription::with(['eleve', 'classe.niveau'])
+    //         ->where('eleve_id', $eleve->id)
+    //         ->where('annee_scolaire_id', $anneeScolaireId)
+    //         ->where('ecole_id', $ecoleId)
+    //         ->where('statut', 'active')
+    //         ->first();
 
-        if (!$inscription) {
-            abort(404, 'Inscription non trouvée');
-        }
+    //     if (!$inscription) {
+    //         abort(404, 'Inscription non trouvée');
+    //     }
 
-        $pdf = PDF::loadView('dashboard.documents.fiche-inscription', [
-            'inscription' => $inscription
-        ]);
+    //     $pdf = PDF::loadView('dashboard.documents.fiche-inscription', [
+    //         'inscription' => $inscription
+    //     ]);
 
-        return $pdf->stream('fiche-inscription-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
-    }
+    //     return $pdf->stream('fiche-inscription-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
+    // }
 
     public function genererCertificatScolarite(Eleve $eleve)
     {

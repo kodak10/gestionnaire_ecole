@@ -211,6 +211,21 @@
                             </ul>
                         </li>
                         @endhasanyrole
+
+                        <li class="submenu">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['profile', 'users*']) ? 'active subdrop' : '' }}">
+                                <i class="ti ti-user"></i><span>Documents</span><span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li>
+                                    <a href="{{ route('documents.inscriptions.model') }}" class="{{ request()->routeIs('documents.inscriptions.model') ? 'active' : '' }}">Fiche d'Inscription</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="">Mon Activité</a>
+                                </li>
+                                
+                            </ul>
+                        </li>
                         
                         <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['profile', 'users*']) ? 'active subdrop' : '' }}">
