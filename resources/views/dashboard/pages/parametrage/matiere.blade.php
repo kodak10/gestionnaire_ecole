@@ -280,7 +280,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
     // Initialisation Select2
     $('#matieres_select').select2({
         placeholder: 'Sélectionnez les matières',
@@ -289,28 +288,43 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     let allMatieres = @json($matieres->map(function($m) {
-        return ['id' => $m->id, 'nom' => $m->nom, 'coefficient' => $m->coefficient];
+        return [
+            'id' => $m->id, 
+            'nom' => $m->nom
+        ];
     }));
+
+    // Variable pour stocker les données de pivot actuelles
+    let currentPivotData = {};
 
     /**
      * Met à jour les champs coefficient + ordre
      */
-   function updateCoefficientsInputs(selectedMatiereIds, allMatieres, data = {}) {
+    function updateCoefficientsInputs(selectedMatiereIds, allMatieres, pivotData = null) {
         let container = document.getElementById('coefficients_inputs');
         container.innerHTML = '';
+        
         if (selectedMatiereIds.length === 0) {
             document.getElementById('coefficients_container').style.display = 'none';
             return;
         }
+        
         document.getElementById('coefficients_container').style.display = 'block';
+
+        // Si pivotData est fourni, mettre à jour currentPivotData
+        if (pivotData) {
+            currentPivotData = pivotData;
+        }
 
         selectedMatiereIds.forEach(function(matiereId) {
             let matiere = allMatieres.find(m => m.id == matiereId);
             if (!matiere) return;
 
-            // <-- ici on utilise bien "data" et pas "matieresDataById"
-            let coef = data[matiereId]?.coefficient;
-            let ordre = data[matiereId]?.ordre ?? matiere.ordre ?? 1;
+            // Utiliser currentPivotData pour les valeurs
+            let pivotInfo = currentPivotData[matiereId] || {};
+            let coefficient = pivotInfo.coefficient || '1.00';
+            let ordre = pivotInfo.ordre || 1;
+            let denominateur = pivotInfo.denominateur || 20;
 
             let row = document.createElement('div');
             row.classList.add('row', 'mb-2', 'align-items-center');
@@ -325,19 +339,25 @@ document.addEventListener('DOMContentLoaded', function() {
             colCoef.classList.add('col-md-3');
             colCoef.innerHTML = `
                 <label class="form-label mb-1 small">Coefficient</label>
-                    <input type="text" min="0" max="10" 
+                <input type="text" 
                     name="coefficients[${matiere.id}]"
-                    class="form-control form-control-sm"
-                    value="${coef}" required>
-
+                    class="form-control form-control-sm coefficient-input"
+                    value="${coefficient}" 
+                    pattern="^\\d{1,2}([.,]\\d{1,2})?$"
+                    title="Format: 5,5 ou 5.5 ou 10"
+                    required>
             `;
 
+            // Dénominateur
             let colDenominateur = document.createElement('div');
             colDenominateur.classList.add('col-md-3');
             colDenominateur.innerHTML = `
                 <label class="form-label mb-1 small">Dénominateur</label>
-                <input type="number" min="1" name="denominateurs[${matiere.id}]" 
-                    class="form-control form-control-sm" value="${data[matiereId]?.denominateur ?? 20}" required>
+                <input type="number" min="1" 
+                    name="denominateurs[${matiere.id}]" 
+                    class="form-control form-control-sm"
+                    value="${denominateur}" 
+                    required>
             `;
 
             // Ordre
@@ -345,8 +365,11 @@ document.addEventListener('DOMContentLoaded', function() {
             colOrdre.classList.add('col-md-3');
             colOrdre.innerHTML = `
                 <label class="form-label mb-1 small">Ordre</label>
-                <input type="number" min="1" name="ordres[${matiere.id}]" 
-                    class="form-control form-control-sm" value="${ordre}" required>
+                <input type="number" min="1" 
+                    name="ordres[${matiere.id}]" 
+                    class="form-control form-control-sm"
+                    value="${ordre}" 
+                    required>
             `;
 
             row.appendChild(colNom);
@@ -357,13 +380,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
     // Initialisation
-    updateCoefficientsInputs($('#matieres_select').val() || [], allMatieres);
+    let initialSelected = $('#matieres_select').val() || [];
+    updateCoefficientsInputs(initialSelected, allMatieres);
 
-    // Changement matières → MAJ inputs
+    // Changement matières → MAJ inputs en conservant les données existantes
     $('#matieres_select').on('change', function() {
-        updateCoefficientsInputs($(this).val() || [], allMatieres);
+        let selectedIds = $(this).val() || [];
+        
+        // Pour les nouvelles matières ajoutées, initialiser avec des valeurs par défaut
+        selectedIds.forEach(function(matiereId) {
+            if (!currentPivotData[matiereId]) {
+                currentPivotData[matiereId] = {
+                    coefficient: '1.00',
+                    ordre: Object.keys(currentPivotData).length + 1,
+                    denominateur: 20
+                };
+            }
+        });
+
+        // Mettre à jour l'affichage avec les données actuelles
+        updateCoefficientsInputs(selectedIds, allMatieres);
     });
 
     // Changement niveau → chargement via AJAX
@@ -373,6 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!niveauId) {
             $('#matieres_select').val(null).trigger('change');
+            currentPivotData = {};
             updateCoefficientsInputs([], allMatieres);
             $('#loadingSpinner').hide();
             return;
@@ -383,29 +421,73 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'GET',
             dataType: 'json',
             success: function(data) {
+                // Convertir les IDs en string pour la compatibilité avec Select2
                 let matieresIds = data.map(m => m.id.toString());
+                
+                // Mettre à jour la sélection
                 $('#matieres_select').val(matieresIds).trigger('change');
 
-                let infos = {};
+                // Préparer les données de pivot
+                let pivotData = {};
                 data.forEach(m => {
-                    infos[m.id] = {
+                    pivotData[m.id] = {
                         coefficient: m.coefficient,
                         ordre: m.ordre,
                         denominateur: m.denominateur
                     };
                 });
 
-                updateCoefficientsInputs(matieresIds, allMatieres, infos);
+                // Mettre à jour les données de pivot actuelles
+                currentPivotData = pivotData;
+
+                // Mettre à jour les inputs avec les données de pivot
+                updateCoefficientsInputs(matieresIds, allMatieres, pivotData);
                 $('#loadingSpinner').hide();
             },
             error: function(xhr) {
-                alert('Erreur lors du chargement des matières.');
-                console.error(xhr.responseText);
+                console.error('Erreur AJAX:', xhr.responseText);
+                alert('Erreur lors du chargement des matières pour ce niveau.');
                 $('#loadingSpinner').hide();
             }
         });
     });
 
+    // Sauvegarder les modifications en temps réel dans currentPivotData
+    $(document).on('change', '.coefficient-input, input[name^="denominateurs"], input[name^="ordres"]', function() {
+        let name = $(this).attr('name');
+        let value = $(this).val();
+        let matiereId = null;
+
+        // Extraire l'ID de la matière du nom du champ
+        if (name.startsWith('coefficients[')) {
+            matiereId = name.match(/coefficients\[(\d+)\]/)[1];
+            if (matiereId && currentPivotData[matiereId]) {
+                currentPivotData[matiereId].coefficient = value;
+            }
+        } else if (name.startsWith('denominateurs[')) {
+            matiereId = name.match(/denominateurs\[(\d+)\]/)[1];
+            if (matiereId && currentPivotData[matiereId]) {
+                currentPivotData[matiereId].denominateur = parseInt(value);
+            }
+        } else if (name.startsWith('ordres[')) {
+            matiereId = name.match(/ordres\[(\d+)\]/)[1];
+            if (matiereId && currentPivotData[matiereId]) {
+                currentPivotData[matiereId].ordre = parseInt(value);
+            }
+        }
+    });
+
+    // Validation en temps réel des coefficients
+    $(document).on('input', '.coefficient-input', function() {
+        let value = $(this).val();
+        let regex = /^\d{1,2}([.,]\d{1,2})?$/;
+        
+        if (value === '' || regex.test(value)) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
 });
 </script>
 <script>
