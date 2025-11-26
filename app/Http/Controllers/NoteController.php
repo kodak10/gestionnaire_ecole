@@ -123,60 +123,63 @@ class NoteController extends Controller
         return view('dashboard.pages.eleves.notes.create', compact('moisScolaire', 'classes'));
     }
 
-    public function store(Request $request)
+   public function store(Request $request)
 {
     $validated = $request->validate([
-    'classe_id' => 'required|exists:classes,id',
-    'matiere_id' => 'required|exists:matieres,id',
-    'mois_id' => 'required|exists:mois_scolaires,id',
-    'coefficient' => 'required|numeric',
-    'notes' => 'array', // plus 'required'
-    'notes.*.inscription_id' => 'required|exists:inscriptions,id',
-    'notes.*.valeur' => 'nullable|numeric', // nullable au lieu de required
-]);
+        'classe_id' => 'required|exists:classes,id',
+        'matiere_id' => 'required|exists:matieres,id',
+        'mois_id' => 'required|exists:mois_scolaires,id',
+        'coefficient' => 'required|numeric',
+        'notes' => 'array',
+        'notes.*.inscription_id' => 'required|exists:inscriptions,id',
+        'notes.*.valeur' => 'nullable|numeric',
+    ]);
 
-$ecoleId = session('current_ecole_id');
-$anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-$classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
-$matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
-$base = $matierePivot->denominateur;
+    $classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
+    $matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
+    $base = $matierePivot->denominateur;
 
-foreach ($validated['notes'] as $noteData) {
-    $valeur = $noteData['valeur'];
+    foreach ($validated['notes'] as $noteData) {
+        $valeur = $noteData['valeur'];
 
-    // Ignorer les notes vides
-    if ($valeur === null || $valeur === '') {
-        continue;
+        if ($valeur === null || $valeur === '') {
+            continue;
+        }
+
+        $inscription = Inscription::findOrFail($noteData['inscription_id']);
+
+        if ($valeur > $base) {
+            // Retourner avec les anciennes valeurs
+            return back()
+                ->withInput()
+                ->with('error', "La note de {$inscription->eleve->nom} dépasse la base autorisée ({$base}).");
+        }
+
+        Note::updateOrCreate(
+            [
+                'inscription_id' => $noteData['inscription_id'],
+                'matiere_id' => $validated['matiere_id'],
+                'mois_id' => $validated['mois_id'],
+                'annee_scolaire_id' => $anneeScolaireId,
+                'ecole_id' => $ecoleId,
+            ],
+            [
+                'eleve_id' => $inscription->eleve_id,
+                'classe_id' => $validated['classe_id'],
+                'valeur' => $valeur,
+                'coefficient' => $validated['coefficient'],
+                'user_id' => Auth::id(),
+                'appreciation' => $this->generateAppreciation($valeur, $base),
+            ]
+        );
     }
 
-    $inscription = Inscription::findOrFail($noteData['inscription_id']);
-
-    if ($valeur > $base) {
-        return back()->with('error', "La note de {$inscription->eleve->nom} dépasse la base autorisée ({$base}).");
-    }
-
-    Note::updateOrCreate(
-        [
-            'inscription_id' => $noteData['inscription_id'],
-            'matiere_id' => $validated['matiere_id'],
-            'mois_id' => $validated['mois_id'],
-            'annee_scolaire_id' => $anneeScolaireId,
-            'ecole_id' => $ecoleId,
-        ],
-        [
-            'eleve_id' => $inscription->eleve_id,
-            'classe_id' => $validated['classe_id'],
-            'valeur' => $valeur,
-            'coefficient' => $validated['coefficient'],
-            'user_id' => Auth::id(),
-            'appreciation' => $this->generateAppreciation($valeur, $base),
-        ]
-    );
-}
-
-return redirect()->route('notes.create')->with('success', 'Notes enregistrées avec succès');
-
+    return redirect()->route('notes.create')
+        ->with('success', 'Notes enregistrées avec succès')
+        ->withInput(); // ← Ajoutez cette ligne pour conserver les valeurs
 }
 
 /**

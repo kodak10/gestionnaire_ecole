@@ -28,47 +28,47 @@
                                 <select name="classe_id" id="classe_id" class="form-select" required>
                                     <option value="">Sélectionner une classe</option>
                                     @foreach($classes as $classe)
-                                        <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+                                        <option value="{{ $classe->id }}" 
+                                            {{ old('classe_id') == $classe->id ? 'selected' : '' }}>
+                                            {{ $classe->nom }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
 
-                        
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label class="form-label">Matière <span class="text-danger">*</span></label>
-                                <select name="matiere_id" class="form-select" required>
+                                <select name="matiere_id" id="matiere_id" class="form-select" required>
                                     <option value="">Sélectionner une matière</option>
                                     <!-- Les options seront ajoutées dynamiquement via AJAX -->
                                 </select>
                             </div>
                         </div>
 
-
                         <div class="col-md-2">
                             <div class="mb-3">
                                 <label class="form-label">Coefficient <span class="text-danger">*</span></label>
-                                <input type="number" name="coefficient" class="form-control" min="1" value="1" readonly required>
+                                <input type="number" name="coefficient" class="form-control" min="1" 
+                                    value="{{ old('coefficient', 1) }}" readonly required>
                             </div>
                         </div>
 
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label class="form-label">Mois / Trimestre <span class="text-danger">*</span></label>
-                                <select name="mois_id" class="form-select" required>
+                                <select name="mois_id" id="mois_id" class="form-select" required>
                                     <option value="">Sélectionner un mois</option>
                                     @foreach($moisScolaire as $mois)
-                                        <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                                        <option value="{{ $mois->id }}"
+                                            {{ old('mois_id') == $mois->id ? 'selected' : '' }}>
+                                            {{ $mois->nom }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-
-                        
-                        
-                        
-                        
                     </div>
                     
                     <div id="eleves-container">
@@ -99,15 +99,52 @@ $(document).ready(function() {
         "positionClass": "toast-top-right",
         "timeOut": "4000"
     };
-    var matieresData = {}; // clé = id de la matière
+    
+    var matieresData = {};
+    var oldValues = {
+        classe_id: "{{ old('classe_id') }}",
+        matiere_id: "{{ old('matiere_id') }}",
+        mois_id: "{{ old('mois_id') }}",
+        coefficient: "{{ old('coefficient', 1) }}"
+    };
 
-
-    // Charger élèves et matières quand la classe change
-    $('#classe_id').change(function() {
-        var classeId = $(this).val();
-
+    // Fonction pour charger les matières
+    function chargerMatieres(classeId, matiereId = null) {
         if(classeId) {
-            // Charger les élèves
+            $.ajax({
+                url: '{{ route("notes.matieres_by_classe") }}',
+                type: 'GET',
+                data: { classe_id: classeId },
+                success: function(matieres) {
+                    var matSelect = $('#matiere_id');
+                    matSelect.empty().append('<option value="">Sélectionner une matière</option>');
+
+                    matieres.forEach(function(m) {
+                        var selected = (matiereId && m.id == matiereId) ? 'selected' : '';
+                        matSelect.append('<option value="'+m.id+'" data-coef="'+m.coefficient+'" data-base="'+m.base+'" '+selected+'>'+m.nom+'</option>');
+                        matieresData[m.id] = {
+                            coef: m.coefficient,
+                            base: m.base
+                        };
+                    });
+
+                    // Si une matière était sélectionnée, mettre à jour le coefficient
+                    if (matiereId && matieresData[matiereId]) {
+                        var coef = matieresData[matiereId].coef;
+                        var base = matieresData[matiereId].base;
+                        $('input[name="coefficient"]').val(coef);
+                    }
+                },
+                error: function() {
+                    toastr.error("Erreur lors du chargement des matières ❌");
+                }
+            });
+        }
+    }
+
+    // Fonction pour charger les élèves
+    function chargerEleves(classeId) {
+        if(classeId) {
             $.ajax({
                 url: '{{ route("notes.inscriptions_by_classe") }}',
                 type: 'GET',
@@ -122,17 +159,28 @@ $(document).ready(function() {
                             html += '<td>'+e.nom_complet+'</td>';
                             html += '<td>';
                             html += '<input type="hidden" name="notes['+i+'][inscription_id]" value="'+e.id+'">';
-                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" style="width:70px; display:inline-block;">';
+                            
+                            // Récupérer l'ancienne valeur si elle existe
+                            var oldNote = getOldNoteValue(e.id);
+                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" value="'+oldNote+'" style="width:70px; display:inline-block;">';
 
-                            // Champ base vide au départ, sera rempli après le choix de la matière
                             html += ' / <input type="number" class="form-control note-base" readonly style="width:50px; display:inline-block;">';
-
                             html += '</td></tr>';
                         });
 
                         html += '</tbody></table></div>';
                         $('#eleves-container').html(html);
                         $('#submit-btn').prop('disabled', false);
+                        
+                        // Mettre à jour les bases si une matière est sélectionnée
+                        var matiereId = $('#matiere_id').val();
+                        if(matiereId && matieresData[matiereId]) {
+                            var base = matieresData[matiereId].base;
+                            $('#eleves-container tr').each(function() {
+                                var baseInput = $(this).find('input.note-base');
+                                baseInput.val(base);
+                            });
+                        }
                     } else {
                         $('#eleves-container').html('<div class="alert alert-warning">Aucun élève trouvé</div>');
                         $('#submit-btn').prop('disabled', true);
@@ -143,29 +191,68 @@ $(document).ready(function() {
                     toastr.error("Erreur lors du chargement des élèves ❌");
                 }
             });
+        }
+    }
 
+    // Fonction pour récupérer les anciennes valeurs de notes
+    function getOldNoteValue(inscriptionId) {
+        var oldNotes = {!! json_encode(old('notes', [])) !!};
+        for (var i in oldNotes) {
+            if (oldNotes[i].inscription_id == inscriptionId) {
+                return oldNotes[i].valeur || '';
+            }
+        }
+        return '';
+    }
 
-            // Charger les matières
-            $.ajax({
-                url: '{{ route("notes.matieres_by_classe") }}',
-                type: 'GET',
-                data: { classe_id: classeId },
-                success: function(matieres) {
-                    var matSelect = $('select[name="matiere_id"]');
-                    matSelect.empty().append('<option value="">Sélectionner une matière</option>');
+    // Initialisation au chargement de la page
+    if (oldValues.classe_id) {
+        $('#classe_id').val(oldValues.classe_id);
+        chargerMatieres(oldValues.classe_id, oldValues.matiere_id);
+        chargerEleves(oldValues.classe_id);
+        
+        if (oldValues.mois_id) {
+            $('#mois_id').val(oldValues.mois_id);
+        }
+        
+        // Charger les notes existantes après un délai pour laisser le temps au chargement
+        setTimeout(function() {
+            if (oldValues.matiere_id && oldValues.mois_id) {
+                chargerNotes();
+            }
+        }, 500);
+    }
 
-                    matieres.forEach(function(m) {
-                        matSelect.append('<option value="'+m.id+'" data-coef="'+m.coefficient+'" data-base="'+m.base+'">'+m.nom+'</option>');
-                        matieresData[m.id] = {
-                            coef: m.coefficient,
-                            base: m.base
-                        };
-                    });
-                },
-                error: function() {
-                    toastr.error("Erreur lors du chargement des matières ❌");
-                }
+    // Événement changement de classe
+    $('#classe_id').change(function() {
+        var classeId = $(this).val();
+        if(classeId) {
+            chargerMatieres(classeId);
+            chargerEleves(classeId);
+        } else {
+            $('#eleves-container').html('<div class="alert alert-info">Veuillez sélectionner une classe pour afficher la liste des élèves</div>');
+            $('#submit-btn').prop('disabled', true);
+        }
+    });
+
+    // Quand la matière change → maj du coef
+    $('#matiere_id').change(function() {
+        var matId = $(this).val();
+        if(matId && matieresData[matId]) {
+            var coef = matieresData[matId].coef;
+            var base = matieresData[matId].base;
+
+            $('input[name="coefficient"]').val(coef);
+
+            $('#eleves-container tr').each(function() {
+                var noteInput = $(this).find('input.note-input');
+                var baseInput = $(this).find('input.note-base');
+
+                baseInput.val(base);
+                noteInput.attr('max', base);
             });
+
+            chargerNotes();
         }
     });
 
