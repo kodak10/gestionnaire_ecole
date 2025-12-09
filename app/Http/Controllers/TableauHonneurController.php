@@ -112,157 +112,159 @@ class TableauHonneurController extends Controller
     return $pdf->stream($filename);
 }
 
-    public function genererAnnuel(Request $request)
-    {
-        $request->validate([
-            'classe_id' => 'nullable|exists:classes,id',
-            'nombre_eleves' => 'required|integer|min:1|max:20'
-        ]);
+   public function genererAnnuel(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'nullable|exists:classes,id',
+        'nombre_eleves' => 'required|integer|min:1|max:20'
+    ]);
 
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
-        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-        $ecole = Ecole::find($ecoleId);
+    $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
+    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+    $ecole = Ecole::find($ecoleId);
 
-        // Récupérer les meilleurs élèves sur l'année
-        $query = Inscription::with(['eleve', 'classe'])
-            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
-            ->where('inscriptions.ecole_id', $ecoleId)
-            ->where('inscriptions.statut', 'active');
+    $query = Inscription::with(['eleve', 'classe'])
+        ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+        ->where('inscriptions.ecole_id', $ecoleId)
+        ->where('inscriptions.statut', 'active');
 
-        if ($classe) {
-            $query->where('inscriptions.classe_id', $classe->id);
-        }
-
-        $inscriptions = $query->get();
-
-        $elevesAvecMoyennes = [];
-
-        foreach ($inscriptions as $inscription) {
-            $currentClasse = $classe ?: $inscription->classe;
-            $moyBase = $currentClasse->moy_base ?? 20;
-
-            // Calculer la moyenne annuelle
-            $moyenneData = $this->calculerMoyenneEleve($inscription->id, null, $moyBase);
-
-            if ($moyenneData['moyenne'] > 0) {
-                $elevesAvecMoyennes[] = [
-                    'inscription' => $inscription,
-                    'moyenne' => $moyenneData['moyenne'],
-                    'moyenne_sur_20' => $moyenneData['moyenne_sur_20'],
-                    'moy_base' => $moyBase,
-                    'total_notes' => $moyenneData['total_notes'],
-                    'total_coeffs' => $moyenneData['total_coeffs']
-                ];
-            }
-        }
-
-        // Trier par moyenne décroissante
-        usort($elevesAvecMoyennes, function($a, $b) {
-            return $b['moyenne'] <=> $a['moyenne'];
-        });
-
-        // Prendre les N premiers
-        $meilleursEleves = array_slice($elevesAvecMoyennes, 0, $request->nombre_eleves);
-
-        $pdf = PDF::loadView('dashboard.documents.tableau-honneur-annuel', [
-            'meilleursEleves' => $meilleursEleves,
-            'anneeScolaire' => $anneeScolaire,
-            'classe' => $classe,
-            'nombreEleves' => $request->nombre_eleves,
-            'ecole' => $ecole
-        ])->setPaper('a4', 'landscape');
-
-        $filename = $classe ? 
-            "tableau-honneur-annuel-{$classe->nom}.pdf" : 
-            "tableau-honneur-annuel-general.pdf";
-
-        return $pdf->stream($filename);
+    if ($classe) {
+        $query->where('inscriptions.classe_id', $classe->id);
     }
 
-    public function genererMajor(Request $request)
-    {
-        $request->validate([
-            'type' => 'required|in:classe,general',
-            'classe_id' => 'required_if:type,classe|exists:classes,id',
-            'periode' => 'required|in:mois,annee',
-            'mois_id' => 'required_if:periode,mois|exists:mois_scolaires,id'
-        ]);
+    $inscriptions = $query->get();
+    $elevesAvecMoyennes = [];
 
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    foreach ($inscriptions as $inscription) {
+        $currentClasse = $classe ?: $inscription->classe;
 
-        $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
-        $mois = $request->mois_id ? MoisScolaire::find($request->mois_id) : null;
-        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-        $ecole = Ecole::find($ecoleId);
+        $classeBase = 20; // Base uniforme pour classement
+        $moyenneClassement = $this->calculerMoyenneEleve($inscription->id, null, $classeBase);
 
-        // Trouver le major
-        $query = Inscription::with(['eleve', 'classe'])
-            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
-            ->where('inscriptions.ecole_id', $ecoleId)
-            ->where('inscriptions.statut', 'active');
+        $moyBaseReelle = $currentClasse->moy_base ?? 20;
+        $moyenneReelle = $this->calculerMoyenneEleve($inscription->id, null, $moyBaseReelle);
 
-        if ($classe) {
-            $query->where('inscriptions.classe_id', $classe->id);
+        if ($moyenneClassement['moyenne'] > 0) {
+            $elevesAvecMoyennes[] = [
+                'inscription' => $inscription,
+                'moyenne' => $moyenneClassement['moyenne'],
+                'moyenne_sur_20' => $moyenneClassement['moyenne_sur_20'],
+                'moy_base' => $moyBaseReelle,
+                'moyenne_reelle' => $moyenneReelle['moyenne'],
+                'total_notes' => $moyenneClassement['total_notes'],
+                'total_coeffs' => $moyenneClassement['total_coeffs']
+            ];
         }
-
-        $inscriptions = $query->get();
-
-        $elevesAvecMoyennes = [];
-
-        foreach ($inscriptions as $inscription) {
-            $currentClasse = $classe ?: $inscription->classe;
-            $moyBase = $currentClasse->moy_base ?? 20;
-
-            // Calculer la moyenne selon la période
-            $moyenneData = $this->calculerMoyenneEleve(
-                $inscription->id, 
-                $request->periode == 'mois' ? $request->mois_id : null, 
-                $moyBase
-            );
-
-            if ($moyenneData['moyenne'] > 0) {
-                $elevesAvecMoyennes[] = [
-                    'inscription' => $inscription,
-                    'moyenne' => $moyenneData['moyenne'],
-                    'moyenne_sur_20' => $moyenneData['moyenne_sur_20'],
-                    'moy_base' => $moyBase,
-                    'total_notes' => $moyenneData['total_notes'],
-                    'total_coeffs' => $moyenneData['total_coeffs']
-                ];
-            }
-        }
-
-        // Trier par moyenne décroissante et prendre le premier
-        usort($elevesAvecMoyennes, function($a, $b) {
-            return $b['moyenne'] <=> $a['moyenne'];
-        });
-
-        $major = count($elevesAvecMoyennes) > 0 ? $elevesAvecMoyennes[0] : null;
-
-        if (!$major) {
-            return back()->with('error', 'Aucun major trouvé pour les critères sélectionnés.');
-        }
-
-        $pdf = PDF::loadView('dashboard.documents.certificat-major', [
-            'eleve' => $major,
-            'periode' => $request->periode,
-            'mois' => $mois,
-            'anneeScolaire' => $anneeScolaire,
-            'classe' => $classe,
-            'type' => $request->type,
-            'ecole' => $ecole
-        ])->setPaper('a4', 'landscape');
-
-        $filename = $request->type == 'classe' ? 
-            "major-{$classe->nom}-{$request->periode}.pdf" : 
-            "major-general-{$request->periode}.pdf";
-
-        return $pdf->stream($filename);
     }
+
+    // Trier décroissant
+    usort($elevesAvecMoyennes, fn($a, $b) => $b['moyenne'] <=> $a['moyenne']);
+
+    // Prendre N meilleurs
+    $meilleursEleves = array_slice($elevesAvecMoyennes, 0, $request->nombre_eleves);
+
+    $pdf = PDF::loadView('dashboard.documents.tableau-honneur-annuel', [
+        'meilleursEleves' => $meilleursEleves,
+        'anneeScolaire' => $anneeScolaire,
+        'classe' => $classe,
+        'nombreEleves' => $request->nombre_eleves,
+        'ecole' => $ecole
+    ])->setPaper('a4', 'landscape');
+
+    $filename = $classe ? 
+        "tableau-honneur-annuel-{$classe->nom}.pdf" : 
+        "tableau-honneur-annuel-general.pdf";
+
+    return $pdf->stream($filename);
+}
+
+public function genererMajor(Request $request)
+{
+    $request->validate([
+        'type' => 'required|in:classe,general',
+        'classe_id' => 'required_if:type,classe|exists:classes,id',
+        'periode' => 'required|in:mois,annee',
+        'mois_id' => 'required_if:periode,mois|exists:mois_scolaires,id'
+    ]);
+
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
+
+    $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
+    $mois = $request->mois_id ? MoisScolaire::find($request->mois_id) : null;
+    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+    $ecole = Ecole::find($ecoleId);
+
+    $query = Inscription::with(['eleve', 'classe'])
+        ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+        ->where('inscriptions.ecole_id', $ecoleId)
+        ->where('inscriptions.statut', 'active');
+
+    if ($classe) {
+        $query->where('inscriptions.classe_id', $classe->id);
+    }
+
+    $inscriptions = $query->get();
+    $elevesAvecMoyennes = [];
+
+    foreach ($inscriptions as $inscription) {
+        $currentClasse = $classe ?: $inscription->classe;
+
+        $classeBase = 20; // Base uniforme pour classement
+        $moyenneClassement = $this->calculerMoyenneEleve(
+            $inscription->id, 
+            $request->periode == 'mois' ? $request->mois_id : null, 
+            $classeBase
+        );
+
+        $moyBaseReelle = $currentClasse->moy_base ?? 20;
+        $moyenneReelle = $this->calculerMoyenneEleve(
+            $inscription->id, 
+            $request->periode == 'mois' ? $request->mois_id : null, 
+            $moyBaseReelle
+        );
+
+        if ($moyenneClassement['moyenne'] > 0) {
+            $elevesAvecMoyennes[] = [
+                'inscription' => $inscription,
+                'moyenne' => $moyenneClassement['moyenne'],
+                'moyenne_sur_20' => $moyenneClassement['moyenne_sur_20'],
+                'moy_base' => $moyBaseReelle,
+                'moyenne_reelle' => $moyenneReelle['moyenne'],
+                'total_notes' => $moyenneClassement['total_notes'],
+                'total_coeffs' => $moyenneClassement['total_coeffs']
+            ];
+        }
+    }
+
+    // Trier décroissant et prendre le premier (major)
+    usort($elevesAvecMoyennes, fn($a, $b) => $b['moyenne'] <=> $a['moyenne']);
+    $major = $elevesAvecMoyennes[0] ?? null;
+
+    if (!$major) {
+        return back()->with('error', 'Aucun major trouvé pour les critères sélectionnés.');
+    }
+
+    $pdf = PDF::loadView('dashboard.documents.certificat-major', [
+        'eleve' => $major,
+        'periode' => $request->periode,
+        'mois' => $mois,
+        'anneeScolaire' => $anneeScolaire,
+        'classe' => $classe,
+        'type' => $request->type,
+        'ecole' => $ecole
+    ])->setPaper('a4', 'landscape');
+
+    $filename = $request->type == 'classe' ? 
+        "major-{$classe->nom}-{$request->periode}.pdf" : 
+        "major-general-{$request->periode}.pdf";
+
+    return $pdf->stream($filename);
+}
+
 
     public function genererDiplome(Request $request)
     {
