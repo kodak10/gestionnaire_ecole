@@ -32,77 +32,85 @@ class TableauHonneurController extends Controller
     }
 
     public function genererMensuel(Request $request)
-    {
-        $request->validate([
-            'classe_id' => 'nullable|exists:classes,id',
-            'mois_id' => 'required|exists:mois_scolaires,id',
-            'nombre_eleves' => 'required|integer|min:1|max:20'
-        ]);
+{
+    $request->validate([
+        'classe_id' => 'nullable|exists:classes,id',
+        'mois_id' => 'required|exists:mois_scolaires,id',
+        'nombre_eleves' => 'required|integer|min:1|max:20'
+    ]);
 
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $mois = MoisScolaire::findOrFail($request->mois_id);
-        $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
-        $ecole = Ecole::find($ecoleId);
-        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+    $mois = MoisScolaire::findOrFail($request->mois_id);
+    $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
+    $ecole = Ecole::find($ecoleId);
+    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
-        // Récupérer les meilleurs élèves
-        $query = Inscription::with(['eleve', 'classe'])
-            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
-            ->where('inscriptions.ecole_id', $ecoleId)
-            ->where('inscriptions.statut', 'active');
+    // Récupérer les inscriptions actives
+    $query = Inscription::with(['eleve', 'classe'])
+        ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+        ->where('inscriptions.ecole_id', $ecoleId)
+        ->where('inscriptions.statut', 'active');
 
-        if ($classe) {
-            $query->where('inscriptions.classe_id', $classe->id);
-        }
-
-        $inscriptions = $query->get();
-
-        $elevesAvecMoyennes = [];
-
-        foreach ($inscriptions as $inscription) {
-            $currentClasse = $classe ?: $inscription->classe;
-            $moyBase = $currentClasse->moy_base ?? 20;
-
-            // Calculer la moyenne mensuelle
-            $moyenneData = $this->calculerMoyenneEleve($inscription->id, $request->mois_id, $moyBase);
-
-            if ($moyenneData['moyenne'] > 0) {
-                $elevesAvecMoyennes[] = [
-                    'inscription' => $inscription,
-                    'moyenne' => $moyenneData['moyenne'],
-                    'moyenne_sur_20' => $moyenneData['moyenne_sur_20'],
-                    'moy_base' => $moyBase,
-                    'total_notes' => $moyenneData['total_notes'],
-                    'total_coeffs' => $moyenneData['total_coeffs']
-                ];
-            }
-        }
-
-        // Trier par moyenne décroissante
-        usort($elevesAvecMoyennes, function($a, $b) {
-            return $b['moyenne'] <=> $a['moyenne'];
-        });
-
-        // Prendre les N premiers
-        $meilleursEleves = array_slice($elevesAvecMoyennes, 0, $request->nombre_eleves);
-
-        $pdf = PDF::loadView('dashboard.documents.tableau-honneur-mensuel', [
-            'meilleursEleves' => $meilleursEleves,
-            'mois' => $mois,
-            'classe' => $classe,
-            'nombreEleves' => $request->nombre_eleves,
-            'ecole' => $ecole,
-            'anneeScolaire' => $anneeScolaire
-        ])->setPaper('a4', 'landscape');
-
-        $filename = $classe ? 
-            "tableau-honneur-{$classe->nom}-{$mois->nom}.pdf" : 
-            "tableau-honneur-general-{$mois->nom}.pdf";
-
-        return $pdf->stream($filename);
+    if ($classe) {
+        $query->where('inscriptions.classe_id', $classe->id);
     }
+
+    $inscriptions = $query->get();
+
+    $elevesAvecMoyennes = [];
+
+    foreach ($inscriptions as $inscription) {
+        $currentClasse = $classe ?: $inscription->classe;
+
+        // Base uniforme pour le classement (ex: 20)
+        $classeBase = 20;
+
+        // Moyenne pour le classement
+        $moyenneClassement = $this->calculerMoyenneEleve($inscription->id, $request->mois_id, $classeBase);
+
+        // Moyenne réelle selon la base de la classe (pour affichage)
+        $moyBaseReelle = $currentClasse->moy_base ?? 20;
+        $moyenneReelle = $this->calculerMoyenneEleve($inscription->id, $request->mois_id, $moyBaseReelle);
+
+        if ($moyenneClassement['moyenne'] > 0) {
+            $elevesAvecMoyennes[] = [
+                'inscription' => $inscription,
+                'moyenne' => $moyenneClassement['moyenne'], // pour classement
+                'moyenne_sur_20' => $moyenneClassement['moyenne_sur_20'],
+                'moy_base' => $moyBaseReelle,               // base réelle pour affichage
+                'moyenne_reelle' => $moyenneReelle['moyenne'], // moyenne réelle pour affichage
+                'total_notes' => $moyenneClassement['total_notes'],
+                'total_coeffs' => $moyenneClassement['total_coeffs']
+            ];
+        }
+    }
+
+    // Trier par moyenne décroissante (classement)
+    usort($elevesAvecMoyennes, function($a, $b) {
+        return $b['moyenne'] <=> $a['moyenne'];
+    });
+
+    // Prendre les N meilleurs
+    $meilleursEleves = array_slice($elevesAvecMoyennes, 0, $request->nombre_eleves);
+
+    // Générer le PDF
+    $pdf = PDF::loadView('dashboard.documents.tableau-honneur-mensuel', [
+        'meilleursEleves' => $meilleursEleves,
+        'mois' => $mois,
+        'classe' => $classe,
+        'nombreEleves' => $request->nombre_eleves,
+        'ecole' => $ecole,
+        'anneeScolaire' => $anneeScolaire
+    ])->setPaper('a4', 'landscape');
+
+    $filename = $classe ? 
+        "tableau-honneur-{$classe->nom}-{$mois->nom}.pdf" : 
+        "tableau-honneur-general-{$mois->nom}.pdf";
+
+    return $pdf->stream($filename);
+}
 
     public function genererAnnuel(Request $request)
     {
@@ -307,48 +315,47 @@ class TableauHonneurController extends Controller
      * Calcule la moyenne d'un élève
      */
     private function calculerMoyenneEleve($inscriptionId, $moisId = null, $moyBase = 20)
-    {
-        $query = Note::where('inscription_id', $inscriptionId)
-            ->with(['matiere']);
+{
+    $query = Note::where('inscription_id', $inscriptionId)->with(['matiere']);
 
-        if ($moisId) {
-            $query->where('mois_id', $moisId);
-        }
-
-        $notes = $query->get();
-
-        $totalNotes = 0;
-        $totalCoeffs = 0;
-
-        foreach ($notes as $note) {
-            // Récupérer la classe de l'inscription pour avoir les coefficients
-            $inscription = Inscription::with(['classe.niveau.matieres'])->find($inscriptionId);
-            $currentClasse = $inscription->classe;
-
-            $matierePivot = $currentClasse->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
-            $base = $matierePivot->denominateur ?? 20;
-            $coeff = $matierePivot->coefficient ?? 1;
-
-            if ($note->valeur !== null && $coeff > 0) {
-                // Calcul selon la base de la matière et conversion vers la base de la classe
-                $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
-                $totalCoeffs += $coeff;
-            }
-        }
-
-        $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
-        $moyenneArrondie = round($moyenne, 2);
-        
-        // Calcul de la moyenne sur 20 pour les mentions
-        $moyenneSur20 = $moyBase > 0 ? round(($moyenne / $moyBase) * 20, 2) : 0;
-
-        return [
-            'moyenne' => $moyenneArrondie,
-            'moyenne_sur_20' => $moyenneSur20,
-            'total_notes' => $totalNotes,
-            'total_coeffs' => $totalCoeffs
-        ];
+    if ($moisId) {
+        $query->where('mois_id', $moisId);
     }
+
+    $notes = $query->get();
+
+    $totalNotes = 0;
+    $totalCoeffs = 0;
+
+    foreach ($notes as $note) {
+        // Récupérer la classe et ses matières
+        $inscription = Inscription::with(['classe.niveau.matieres'])->find($inscriptionId);
+        $currentClasse = $inscription->classe;
+
+        $matierePivot = $currentClasse->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
+        $base = $matierePivot->denominateur ?? 20;
+        $coeff = $matierePivot->coefficient ?? 1;
+
+        if ($note->valeur !== null && $coeff > 0) {
+            // Conversion de la note selon la base de la classe
+            $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+            $totalCoeffs += $coeff;
+        }
+    }
+
+    $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : 0;
+    $moyenneArrondie = round($moyenne, 2);
+
+    // Moyenne sur 20 pour les mentions
+    $moyenneSur20 = $moyBase > 0 ? round(($moyenne / $moyBase) * 20, 2) : 0;
+
+    return [
+        'moyenne' => $moyenneArrondie,
+        'moyenne_sur_20' => $moyenneSur20,
+        'total_notes' => $totalNotes,
+        'total_coeffs' => $totalCoeffs
+    ];
+}
 
     private function getMention($moyenne, $moyBase)
     {

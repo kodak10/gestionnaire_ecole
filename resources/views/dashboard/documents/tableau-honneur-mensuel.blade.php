@@ -157,7 +157,7 @@
     </div>
 
     <div class="moyenne">
-        Moyenne : {{ number_format($eleve['moyenne'], 2) }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
+        Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
 
     </div>
 
