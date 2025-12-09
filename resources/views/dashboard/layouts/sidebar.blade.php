@@ -9,7 +9,7 @@
             <ul>
                 <li>
                     <a href="javascript:void(0);" class="d-flex align-items-center border bg-white rounded p-2 mb-4">
-                        <img src="{{ $ecole && $ecole->logo ? asset($ecole->logo) : 'assets/img/icons/global-img.svg' }}" 
+                        <img src="{{ asset($ecole->logo) }}" 
                              class="avatar avatar-md img-fluid rounded" 
                              alt="Logo {{ $ecole->nom ?? 'Ecole' }}">
                         <span class="text-dark ms-2 fw-normal">{{ $ecole->nom ?? 'Ecole non définie' }}</span>
