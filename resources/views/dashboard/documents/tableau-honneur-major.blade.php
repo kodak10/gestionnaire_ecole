@@ -113,7 +113,6 @@
 </head>
 <body>
 
-@foreach($meilleursEleves as $index => $eleve)
 <div class="diplome">
 
 @php
@@ -148,41 +147,36 @@
     $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
 @endphp
 
-    <div class="nom">
-        {{ $nomFinal }}
-    </div>
+<div class="nom">
+    {{ $nomFinal }}
+</div>
 
-    <div class="classe">
-        Elève en Classe de : {{ $eleve['inscription']->classe->nom }}
-    </div>
+<div class="classe">
+    Elève en Classe de : {{ $eleve['inscription']->classe->nom }}
+</div>
 
-    <div class="moyenne">
-        Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
+<div class="moyenne">
+    Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
+</div>
 
-    </div>
+<div class="rang">
+    Année Scolaire : {{ $anneeScolaire->annee }}
+</div>
 
-    <div class="rang">
-        Année Scolaire : {{ $anneeScolaire->annee }}
-    </div>
+<div class="date">
+    Fait à {{ $inscription->ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
+</div>
 
-    <div class="date">
-        Fait à {{ $inscription->ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
-    </div>
+<div class="signature_enseignant">
+    {{ $eleve['inscription']->classe->enseignant->nom_prenoms }}
+</div>
 
-    <div class="signature_enseignant">
-       {{ $eleve['inscription']->classe->enseignant->nom_prenoms }}
-    </div>
-
-    <div class="signature_directeur">
-        {{ $anneeScolaire->ecole->directeur }}
-    </div>
-
-    
+<div class="signature_directeur">
+    {{ $anneeScolaire->ecole->directeur }}
+</div>
 
 </div>
 
-<div style="page-break-after: always;"></div>
-@endforeach
 
 
 </body>

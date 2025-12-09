@@ -181,13 +181,97 @@ class TableauHonneurController extends Controller
     return $pdf->stream($filename);
 }
 
+// public function genererMajor(Request $request)
+// {
+//     $request->validate([
+//         'type' => 'required|in:classe,general',
+//         'classe_id' => 'required_if:type,classe|exists:classes,id',
+//         'periode' => 'required|in:mois,annee',
+//         'mois_id' => 'required_if:periode,mois|exists:mois_scolaires,id'
+//     ]);
+
+//     $ecoleId = session('current_ecole_id'); 
+//     $anneeScolaireId = session('current_annee_scolaire_id');
+
+//     $classe = $request->classe_id ? Classe::with('niveau.matieres')->find($request->classe_id) : null;
+//     $mois = $request->mois_id ? MoisScolaire::find($request->mois_id) : null;
+//     $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+//     $ecole = Ecole::find($ecoleId);
+
+//     $query = Inscription::with(['eleve', 'classe'])
+//         ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+//         ->where('inscriptions.ecole_id', $ecoleId)
+//         ->where('inscriptions.statut', 'active');
+
+//     if ($classe) {
+//         $query->where('inscriptions.classe_id', $classe->id);
+//     }
+
+//     $inscriptions = $query->get();
+//     $elevesAvecMoyennes = [];
+
+//     foreach ($inscriptions as $inscription) {
+//         $currentClasse = $classe ?: $inscription->classe;
+
+//         $classeBase = 20; // Base uniforme pour classement
+//         $moyenneClassement = $this->calculerMoyenneEleve(
+//             $inscription->id, 
+//             $request->periode == 'mois' ? $request->mois_id : null, 
+//             $classeBase
+//         );
+
+//         $moyBaseReelle = $currentClasse->moy_base ?? 20;
+//         $moyenneReelle = $this->calculerMoyenneEleve(
+//             $inscription->id, 
+//             $request->periode == 'mois' ? $request->mois_id : null, 
+//             $moyBaseReelle
+//         );
+
+//         if ($moyenneClassement['moyenne'] > 0) {
+//             $elevesAvecMoyennes[] = [
+//                 'inscription' => $inscription,
+//                 'moyenne' => $moyenneClassement['moyenne'],
+//                 'moyenne_sur_20' => $moyenneClassement['moyenne_sur_20'],
+//                 'moy_base' => $moyBaseReelle,
+//                 'moyenne_reelle' => $moyenneReelle['moyenne'],
+//                 'total_notes' => $moyenneClassement['total_notes'],
+//                 'total_coeffs' => $moyenneClassement['total_coeffs']
+//             ];
+//         }
+//     }
+
+//     // Trier décroissant et prendre le premier (major)
+//     usort($elevesAvecMoyennes, fn($a, $b) => $b['moyenne'] <=> $a['moyenne']);
+//     $major = $elevesAvecMoyennes[0] ?? null;
+
+//     if (!$major) {
+//         return back()->with('error', 'Aucun major trouvé pour les critères sélectionnés.');
+//     }
+
+//     $pdf = PDF::loadView('dashboard.documents.certificat-major', [
+//         'eleve' => $major,
+//         'periode' => $request->periode,
+//         'mois' => $mois,
+//         'anneeScolaire' => $anneeScolaire,
+//         'classe' => $classe,
+//         'type' => $request->type,
+//         'ecole' => $ecole
+//     ])->setPaper('a4', 'landscape');
+
+//     $filename = $request->type == 'classe' ? 
+//         "major-{$classe->nom}-{$request->periode}.pdf" : 
+//         "major-general-{$request->periode}.pdf";
+
+//     return $pdf->stream($filename);
+// }
+
 public function genererMajor(Request $request)
 {
     $request->validate([
         'type' => 'required|in:classe,general',
-        'classe_id' => 'required_if:type,classe|exists:classes,id',
+        'classe_id' => 'nullable|exists:classes,id',
         'periode' => 'required|in:mois,annee',
-        'mois_id' => 'required_if:periode,mois|exists:mois_scolaires,id'
+        'mois_id' => 'nullable|exists:mois_scolaires,id'
     ]);
 
     $ecoleId = session('current_ecole_id'); 
@@ -198,12 +282,13 @@ public function genererMajor(Request $request)
     $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
     $ecole = Ecole::find($ecoleId);
 
+    // Récupérer les inscriptions actives
     $query = Inscription::with(['eleve', 'classe'])
         ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
         ->where('inscriptions.ecole_id', $ecoleId)
         ->where('inscriptions.statut', 'active');
 
-    if ($classe) {
+    if ($classe && $request->type === 'classe') {
         $query->where('inscriptions.classe_id', $classe->id);
     }
 
@@ -213,27 +298,27 @@ public function genererMajor(Request $request)
     foreach ($inscriptions as $inscription) {
         $currentClasse = $classe ?: $inscription->classe;
 
-        $classeBase = 20; // Base uniforme pour classement
+        $classeBase = 20; // Base uniforme pour le classement
         $moyenneClassement = $this->calculerMoyenneEleve(
-            $inscription->id, 
-            $request->periode == 'mois' ? $request->mois_id : null, 
+            $inscription->id,
+            $request->periode === 'mois' ? $mois?->id : null,
             $classeBase
         );
 
         $moyBaseReelle = $currentClasse->moy_base ?? 20;
         $moyenneReelle = $this->calculerMoyenneEleve(
-            $inscription->id, 
-            $request->periode == 'mois' ? $request->mois_id : null, 
+            $inscription->id,
+            $request->periode === 'mois' ? $mois?->id : null,
             $moyBaseReelle
         );
 
         if ($moyenneClassement['moyenne'] > 0) {
             $elevesAvecMoyennes[] = [
                 'inscription' => $inscription,
-                'moyenne' => $moyenneClassement['moyenne'],
+                'moyenne' => $moyenneClassement['moyenne'],        // Pour le classement
                 'moyenne_sur_20' => $moyenneClassement['moyenne_sur_20'],
                 'moy_base' => $moyBaseReelle,
-                'moyenne_reelle' => $moyenneReelle['moyenne'],
+                'moyenne_reelle' => $moyenneReelle['moyenne'],   // Pour affichage sur le PDF
                 'total_notes' => $moyenneClassement['total_notes'],
                 'total_coeffs' => $moyenneClassement['total_coeffs']
             ];
@@ -248,7 +333,7 @@ public function genererMajor(Request $request)
         return back()->with('error', 'Aucun major trouvé pour les critères sélectionnés.');
     }
 
-    $pdf = PDF::loadView('dashboard.documents.certificat-major', [
+    $pdf = PDF::loadView('dashboard.documents.tableau-honneur-major', [
         'eleve' => $major,
         'periode' => $request->periode,
         'mois' => $mois,
@@ -258,12 +343,13 @@ public function genererMajor(Request $request)
         'ecole' => $ecole
     ])->setPaper('a4', 'landscape');
 
-    $filename = $request->type == 'classe' ? 
+    $filename = $request->type === 'classe' && $classe ? 
         "major-{$classe->nom}-{$request->periode}.pdf" : 
         "major-general-{$request->periode}.pdf";
 
     return $pdf->stream($filename);
 }
+
 
 
     public function genererDiplome(Request $request)

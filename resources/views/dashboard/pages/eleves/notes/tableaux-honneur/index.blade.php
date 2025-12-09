@@ -96,7 +96,7 @@
     </div>
 
     <!-- Certificat de Major -->
-    <div class="col-xl-4 col-lg-6 col-md-12">
+    {{-- <div class="col-xl-4 col-lg-6 col-md-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -144,7 +144,66 @@
                 </form>
             </div>
         </div>
+    </div> --}}
+    <!-- Certificat de Major -->
+<div class="col-xl-4 col-lg-6 col-md-12">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="ti ti-medal text-primary me-2"></i>
+                Certificat de Major
+            </h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('tableaux-honneur.generer-major') }}" method="GET" target="_blank">
+                <div class="mb-3">
+                    <label class="form-label">Type de Major</label>
+                    <select name="type" class="form-select" required>
+                        <option value="classe" {{ old('type') == 'classe' ? 'selected' : '' }}>Major de Classe</option>
+                        <option value="general" {{ old('type') == 'general' ? 'selected' : '' }}>Major Général</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="classe-field">
+                    <label class="form-label">Classe (facultatif pour Général)</label>
+                    <select name="classe_id" class="form-select">
+                        <option value="">Sélectionner une classe</option>
+                        @foreach($classes as $classe)
+                            <option value="{{ $classe->id }}" {{ old('classe_id') == $classe->id ? 'selected' : '' }}>
+                                {{ $classe->nom }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Période</label>
+                    <select name="periode" class="form-select" required>
+                        <option value="mois" {{ old('periode') == 'mois' ? 'selected' : '' }}>Mensuel</option>
+                        <option value="annee" {{ old('periode') == 'annee' ? 'selected' : '' }}>Annuel</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="mois-field">
+                    <label class="form-label">Mois (facultatif pour Annuel)</label>
+                    <select name="mois_id" class="form-select">
+                        <option value="">Sélectionner un mois</option>
+                        @foreach($moisScolaire as $mois)
+                            <option value="{{ $mois->id }}" {{ old('mois_id') == $mois->id ? 'selected' : '' }}>
+                                {{ $mois->nom }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="ti ti-certificate me-2"></i>Générer le Certificat
+                </button>
+            </form>
+        </div>
     </div>
+</div>
+
 </div>
 
 <!-- Information -->
@@ -162,7 +221,7 @@
 @endsection
 
 @push('scripts')
-<script>
+{{-- <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Gestion de l'affichage conditionnel des champs
     const typeSelect = document.querySelector('select[name="type"]');
@@ -196,5 +255,40 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialisation
     toggleFields();
 });
+</script> --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.querySelector('select[name="type"]');
+    const classeField = document.getElementById('classe-field');
+    const periodeSelect = document.querySelector('select[name="periode"]');
+    const moisField = document.getElementById('mois-field');
+
+    function toggleFields() {
+        // Champ classe
+        if (typeSelect.value === 'general') {
+            classeField.style.display = 'none';
+            classeField.querySelector('select').required = false;
+        } else {
+            classeField.style.display = 'block';
+            classeField.querySelector('select').required = true;
+        }
+
+        // Champ mois
+        if (periodeSelect.value === 'annee') {
+            moisField.style.display = 'none';
+            moisField.querySelector('select').required = false;
+        } else {
+            moisField.style.display = 'block';
+            moisField.querySelector('select').required = true;
+        }
+    }
+
+    typeSelect.addEventListener('change', toggleFields);
+    periodeSelect.addEventListener('change', toggleFields);
+
+    // Initialisation
+    toggleFields();
+});
 </script>
+
 @endpush
