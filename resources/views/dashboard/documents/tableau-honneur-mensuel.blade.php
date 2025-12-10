@@ -113,8 +113,8 @@
 
         .signature_directeur {
             position: absolute;
-            bottom: 25mm;
-            right: 76mm;
+            bottom: 14mm;
+            right: 60mm;
             font-size: 4mm;
             color: #333;
             font-weight: bold
@@ -122,9 +122,8 @@
 
         .signature_enseignant {
             position: absolute;
-            text-align: left;
-            bottom: 25mm;
-            left: 85mm;
+            bottom: 14mm;
+            left: 75mm;
             font-size: 4mm;
             color: #333;
             font-weight: bold
