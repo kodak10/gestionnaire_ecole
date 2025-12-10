@@ -42,13 +42,35 @@
             font-weight: bold;
         }
 
+        .photo {
+            position: absolute;
+            top: 80mm;          /* Ajuste si besoin */
+            left: 35mm;
+            width: 45mm;
+            height: 45mm;
+            border-radius: 50%;
+            border: 0.5mm solid #333;   /* ✅ Bordure circulaire */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+
         .nom {
             position: absolute;
             top: 95mm;      /* ⬅ ajuste */
             left: 40mm;
-            width: 215mm;
+            width: 250mm;
 
             text-align: center;
+            margin-left: 15px;
             font-size: 10mm;
             font-weight: bold;
             color: #000;
@@ -116,44 +138,60 @@
 @foreach($meilleursEleves as $index => $eleve)
 <div class="diplome">
 
-@php
-    $nom = strtoupper(trim($eleve['inscription']->eleve->nom));
-    $prenoms = array_values(array_filter(
-        explode(' ', trim($eleve['inscription']->eleve->prenom))
-    ));
+    @php
+        $nom = strtoupper(trim($eleve['inscription']->eleve->nom));
+        $prenoms = array_values(array_filter(
+            explode(' ', trim($eleve['inscription']->eleve->prenom))
+        ));
 
-    $maxLength = 30;
+        $maxLength = 25;
 
-    // Construction initiale
-    $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
+        // Construction initiale
+        $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
 
-    // Tant que ça dépasse, on réduit les prénoms un à un (en partant de la fin)
-    for ($i = count($prenoms) - 1; $i >= 0; $i--) {
+        // Tant que ça dépasse, on réduit les prénoms un à un (en partant de la fin)
+        for ($i = count($prenoms) - 1; $i >= 0; $i--) {
 
-        if (mb_strlen($nomFinal) <= $maxLength) {
-            break;
+            if (mb_strlen($nomFinal) <= $maxLength) {
+                break;
+            }
+
+            $prenoms[$i] = mb_substr($prenoms[$i], 0, 1) . '.';
+            $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
         }
 
-        $prenoms[$i] = mb_substr($prenoms[$i], 0, 1) . '.';
-        $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
-    }
+        // Si ça dépasse encore → réduire le nom en initiale
+        if (mb_strlen($nomFinal) > $maxLength) {
+            $nomInitial = mb_substr($nom, 0, 1) . '.';
+            $nomFinal = $nomInitial . ' ' . strtoupper(implode(' ', $prenoms));
+        }
 
-    // Si ça dépasse encore → réduire le nom en initiale
-    if (mb_strlen($nomFinal) > $maxLength) {
-        $nomInitial = mb_substr($nom, 0, 1) . '.';
-        $nomFinal = $nomInitial . ' ' . strtoupper(implode(' ', $prenoms));
-    }
+        // Nettoyage
+        $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
+    @endphp
 
-    // Nettoyage
-    $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
-@endphp
+
+    @php
+        $photoPath = str_replace(
+            url('/storage'),
+            public_path('storage'),
+            $eleve['inscription']->eleve->photo_url
+        );
+    @endphp
+
+
+
+    <div class="photo">
+        <img src="{{ $photoPath }}">
+
+    </div>
 
     <div class="nom">
         {{ $nomFinal }}
     </div>
 
     <div class="classe">
-        Elève en Classe de : {{ $eleve['inscription']->classe->nom }}
+        Elève en Classe de : <strong>{{ $eleve['inscription']->classe->nom }}</strong>
     </div>
 
     <div class="moyenne">

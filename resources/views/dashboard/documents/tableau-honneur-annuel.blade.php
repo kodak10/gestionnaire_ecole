@@ -46,14 +46,34 @@
             position: absolute;
             top: 95mm;      /* ⬅ ajuste */
             left: 40mm;
-            width: 215mm;
+            width: 250mm;
 
             text-align: center;
+            margin-left: 15px;
             font-size: 10mm;
             font-weight: bold;
             color: #000;
             text-transform: uppercase;
             line-height: 0.8;
+        }
+        .photo {
+            position: absolute;
+            top: 80mm;          /* Ajuste si besoin */
+            left: 35mm;
+            width: 45mm;
+            height: 45mm;
+            border-radius: 50%;
+            border: 0.5mm solid #333;   /* ✅ Bordure circulaire */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .classe {
@@ -122,7 +142,7 @@
         explode(' ', trim($eleve['inscription']->eleve->prenom))
     ));
 
-    $maxLength = 30;
+    $maxLength = 25;
 
     // Construction initiale
     $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
@@ -148,12 +168,27 @@
     $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
 @endphp
 
+ @php
+        $photoPath = str_replace(
+            url('/storage'),
+            public_path('storage'),
+            $eleve['inscription']->eleve->photo_url
+        );
+    @endphp
+
+
+
+    <div class="photo">
+        <img src="{{ $photoPath }}">
+
+    </div>
+
     <div class="nom">
         {{ $nomFinal }}
     </div>
 
     <div class="classe">
-        Elève en Classe de : {{ $eleve['inscription']->classe->nom }}
+        Elève en Classe de : <strong>{{ $eleve['inscription']->classe->nom }}</strong>
     </div>
 
     <div class="moyenne">
