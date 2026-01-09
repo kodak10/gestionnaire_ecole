@@ -81,12 +81,37 @@
                         @endforeach
                     </select> --}}
                     <select class="form-select" id="date_reference" name="date_reference" required>
-    <option value="" selected>-- Sélectionnez un mois --</option>
-    @foreach($moisScolaires as $mois)
-        <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
-    @endforeach
-</select>
+                        <option value="" selected>-- Sélectionnez un mois --</option>
+                        @foreach($moisScolaires as $mois)
+                            <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                        @endforeach
+                    </select>
 
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Filtrer par montant du reste à payer</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="montant_min" 
+                                   name="montant_min" 
+                                   placeholder="Min (XOF)"
+                                   min="0"
+                                   step="1000">
+                        </div>
+                        <div class="col-6">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="montant_max" 
+                                   name="montant_max" 
+                                   placeholder="Max (XOF)"
+                                   min="0"
+                                   step="1000">
+                        </div>
+                    </div>
+                    <small class="text-muted">Laissez vide pour ne pas filtrer par montant</small>
                 </div>
 
                 <button class="btn btn-primary w-100" id="filter-btn">
@@ -197,9 +222,10 @@ $(document).ready(function() {
     $('#print-btn').click(function() {
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
-        const typeFraisId = $('#type_frais_id').val(); // récupération du type de frais
+        const typeFraisId = $('#type_frais_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
         
-
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
             return;
@@ -212,19 +238,32 @@ $(document).ready(function() {
 
         let url = `/relance/imprimer?classe_id=${classeId}&date_reference=${dateRef}`;
 
-        // Ajouter type_frais_id si sélectionné
+        // Ajouter les filtres si sélectionnés
         if (typeFraisId) {
             url += `&type_frais_id=${typeFraisId}`;
+        }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
         }
 
         window.open(url, '_blank');
     });
 
-
     function chargerRelance() {
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
-        const typeFrais =  $('#type_frais_id').val();
+        const typeFraisId = $('#type_frais_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+        
+        // Validation des montants
+        if (montantMin && montantMax && parseFloat(montantMin) > parseFloat(montantMax)) {
+            toastr.error('Le montant minimum ne peut pas être supérieur au montant maximum');
+            return;
+        }
         
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
@@ -239,10 +278,11 @@ $(document).ready(function() {
             url: '{{ route("relance.data") }}',
             type: 'GET',
             data: { 
-                
                 classe_id: classeId,
                 date_reference: dateRef,
-                type_frais_id: typeFrais
+                type_frais_id: typeFraisId,
+                montant_min: montantMin,
+                montant_max: montantMax
             },
             success: function(response) {
                 $('#loading').addClass('d-none');
@@ -262,70 +302,94 @@ $(document).ready(function() {
         });
     }
 
-   function afficherResultats(data) {
-    $('#result-title').text(data.classe);
-    
-    // Mettre à jour le résumé avec les informations de filtre
-    let summaryText = `Relance générée pour la classe ${data.classe} du mois de ${data.mois_reference}`;
-    if (data.type_frais_id) {
-        const typeFraisName = $('#type_frais_id option:selected').text();
-        summaryText += ` - ${typeFraisName}`;
-    }
-    $('#result-summary').text(summaryText);
-    
-    const tbody = $('#relance-table tbody');
-    tbody.empty();
-    
-    let totalAttendu = 0;
-    let totalPaye = 0;
-    
-    data.data.forEach(function(eleve) {
-        totalAttendu += eleve.total_attendu;
-        totalPaye += eleve.total_paye;
+    function afficherResultats(data) {
+        $('#result-title').text(data.classe);
         
-        const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
-        
-        // Ajouter des badges pour cantine/transport
-        let servicesBadges = '';
-        if (eleve.cantine_active) {
-            servicesBadges += '<span class="badge bg-warning me-1">Cantine</span>';
+        // Mettre à jour le résumé
+        let summaryText = `Relance générée pour la classe ${data.classe} du mois de ${data.mois_reference}`;
+        if (data.type_frais_id) {
+            const typeFraisName = $('#type_frais_id option:selected').text();
+            summaryText += ` - ${typeFraisName}`;
         }
-        if (eleve.transport_active) {
-            servicesBadges += '<span class="badge bg-info">Transport</span>';
+        $('#result-summary').text(summaryText);
+        
+        // Afficher l'info sur le filtre de montant
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+        let montantSummary = '';
+        
+        if (montantMin || montantMax) {
+            if (montantMin && montantMax) {
+                montantSummary = `Montant filtré : ${formatMoney(montantMin)} - ${formatMoney(montantMax)}`;
+                $('#montant-filter-info').text(`Filtre: ${formatMoney(montantMin)} - ${formatMoney(montantMax)}`).removeClass('d-none');
+            } else if (montantMin) {
+                montantSummary = `Montant minimum : ${formatMoney(montantMin)}`;
+                $('#montant-filter-info').text(`Min: ${formatMoney(montantMin)}`).removeClass('d-none');
+            } else if (montantMax) {
+                montantSummary = `Montant maximum : ${formatMoney(montantMax)}`;
+                $('#montant-filter-info').text(`Max: ${formatMoney(montantMax)}`).removeClass('d-none');
+            }
+            $('#montant-summary').text(montantSummary);
+        } else {
+            $('#montant-summary').empty();
+            $('#montant-filter-info').addClass('d-none');
         }
         
-        tbody.append(`
-            <tr>
-                <td>
-                    <div class="fw-semibold">${eleve.eleve}</div>
-                    <div class="mt-1">${servicesBadges}</div>
-                </td>
-                <td>${eleve.classe}</td>
-                <td class="fw-bold">${formatMoney(eleve.total_attendu)}</td>
-                <td class="text-success">${formatMoney(eleve.total_paye)}</td>
-                <td class="text-danger">${formatMoney(eleve.reste_a_payer)}</td>
-                <td><span class="statut-badge ${statutClass}">${eleve.statut}</span></td>
-            </tr>
-        `);
-    });
-    
-    // Ajouter le total seulement s'il y a des données
-    if (data.data.length > 0) {
-        tbody.append(`
-            <tr class="table-active fw-bold">
-                <td colspan="2">TOTAL</td>
-                <td>${formatMoney(totalAttendu)}</td>
-                <td class="text-success">${formatMoney(totalPaye)}</td>
-                <td class="text-danger">${formatMoney(totalAttendu - totalPaye)}</td>
-                <td></td>
-            </tr>
-        `);
+        const tbody = $('#relance-table tbody');
+        tbody.empty();
+        
+        let totalAttendu = 0;
+        let totalPaye = 0;
+        let totalReste = 0;
+        let elevesFiltres = 0;
+        
+        data.data.forEach(function(eleve) {
+            totalAttendu += eleve.total_attendu;
+            totalPaye += eleve.total_paye;
+            totalReste += eleve.reste_a_payer;
+            elevesFiltres++;
+            
+            const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
+            
+            // Ajouter des badges pour cantine/transport
+            let servicesBadges = '';
+            if (eleve.cantine_active) {
+                servicesBadges += '<span class="badge bg-warning me-1">Cantine</span>';
+            }
+            if (eleve.transport_active) {
+                servicesBadges += '<span class="badge bg-info">Transport</span>';
+            }
+            
+            tbody.append(`
+                <tr>
+                    <td>
+                        <div class="fw-semibold">${eleve.eleve}</div>
+                        <div class="mt-1">${servicesBadges}</div>
+                    </td>
+                    <td>${eleve.classe}</td>
+                    <td class="fw-bold">${formatMoney(eleve.total_attendu)}</td>
+                    <td class="text-success">${formatMoney(eleve.total_paye)}</td>
+                    <td class="text-danger">${formatMoney(eleve.reste_a_payer)}</td>
+                    <td><span class="statut-badge ${statutClass}">${eleve.statut}</span></td>
+                </tr>
+            `);
+        });
+        
+        // Ajouter le total seulement s'il y a des données
+        if (data.data.length > 0) {
+            tbody.append(`
+                <tr class="table-active fw-bold">
+                    <td colspan="2">TOTAL (${elevesFiltres} élève${elevesFiltres > 1 ? 's' : ''})</td>
+                    <td>${formatMoney(totalAttendu)}</td>
+                    <td class="text-success">${formatMoney(totalPaye)}</td>
+                    <td class="text-danger">${formatMoney(totalReste)}</td>
+                    <td></td>
+                </tr>
+            `);
+        }
+        
+        $('#relance-results').removeClass('d-none');
     }
-    
-    $('#relance-results').removeClass('d-none');
-}
-
-   
 
     function formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR', { 
@@ -334,7 +398,6 @@ $(document).ready(function() {
             minimumFractionDigits: 0
         }).format(amount);
     }
-
 
     // Gestion de l'exportation
     $('#export-excel').click(function(e) {
@@ -351,6 +414,8 @@ $(document).ready(function() {
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
         const typeFraisId = $('#type_frais_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
 
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
@@ -362,9 +427,24 @@ $(document).ready(function() {
         if (typeFraisId) {
             url += `&type_frais_id=${typeFraisId}`;
         }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
+        }
 
         window.location.href = url;
     }
+
+    // Validation des champs montant
+    $('#montant_min, #montant_max').on('input', function() {
+        const value = $(this).val();
+        if (value && parseFloat(value) < 0) {
+            $(this).val(0);
+            toastr.warning('Le montant ne peut pas être négatif');
+        }
+    });
 
 });
 </script>
