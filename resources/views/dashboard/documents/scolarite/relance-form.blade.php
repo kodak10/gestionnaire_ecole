@@ -51,7 +51,7 @@
             </p>
         </div>
 
-        <p>Nous vous prions de bien vouloir régulariser le paiement.</p>
+        <p>Nous vous prions de bien vouloir régulariser le paiement avant le jeudi 15 janvier 2026 afin d’éviter toute mesure administrative conformément au règlement de l’établissement.</p>
         <p>La Direction</p>
     </div>
 
