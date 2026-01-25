@@ -262,8 +262,11 @@ public function genererFicheInscription(Eleve $eleve)
     // Générer fiche de fréquentation individuelle
     public function genererFicheFrequentation(Eleve $eleve)
     {
-        $ecoleId = session('current_ecole_id'); 
+        $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
+        
         
         $inscription = Inscription::with(['eleve', 'classe.niveau', 'anneeScolaire'])
             ->where('eleve_id', $eleve->id)
@@ -276,13 +279,10 @@ public function genererFicheInscription(Eleve $eleve)
             abort(404, 'Inscription non trouvée pour cette année académique');
         }
 
-        // Récupérer tous les mois scolaires de l'année académique
-        $moisScolaires = MoisScolaire::orderBy('numero')
-            ->get();
-
         $pdf = PDF::loadView('dashboard.documents.fiche-frequentation', [
             'inscription' => $inscription,
-            'moisScolaires' => $moisScolaires
+            'anneeScolaire' => $anneeScolaire,
+
         ]);
 
         return $pdf->stream('fiche-frequentation-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');

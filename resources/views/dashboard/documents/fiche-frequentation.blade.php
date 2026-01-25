@@ -1,169 +1,203 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
+    <title>Diplôme Tableau d'Honneur</title>
 
-<style>
-body {
-    font-family: 'comic', sans-serif;
-    font-size: 12px;
-    line-height: 1.4;
-    margin: 0;
-    padding: 0;
-}
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
 
-/* --- HEADER SANS TABLE --- */
-.header {
-    width: 100%;
-    display: inline-block;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-}
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: DejaVu Sans, Arial, sans-serif;
+        }
 
-/* Bloc gauche */
-.header-left {
-    display: inline-block;
-    width: 49%;
-    vertical-align: top;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-}
+        /* Page diplôme */
+        .diplome {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
 
-/* Bloc droit */
-.header-right {
-    display: inline-block;
-    width: 49%;
-    vertical-align: top;
-    text-align: right;
-    margin: 0;
-    padding: 0;
-}
+            /* ✅ IMAGE PHOTOSHOP EN FOND */
+            background-image: url('{{ public_path('storage/documents/certificat-frequentation.png') }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
 
-/* TITRE PRINCIPAL */
-.title {
-    text-align: center;
-    font-weight: bold;
-    font-size: 18px;
-    margin: 15px 0 10px 0;
-    text-decoration: underline;
-}
+        /* ========= ZONES TEXTE ========= */
+        .annee {
+            position: absolute;
+            top: 44mm;
+            right: 15mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
 
-/* CONTENU TEXTE */
-.content {
-    margin-top: 10px;
-    font-size: 13px;
-    text-align: justify;
-}
+        .nomPrenoms {
+            position: absolute;
+            top: 132mm;
+            left: 55mm;
+            width: 100%;
 
-/* SIGNATURE */
-.signature-block {
-    margin-top: 60px;
-    text-align: right;
-    font-size: 13px;
-}
+            font-size: 5mm;
+            color: #333;
+            font-weight: bold;
+        }
 
-.bold { font-weight: bold; }
-.underline { text-decoration: underline; }
+        .matricule {
+            position: absolute;
+            top: 144mm;
+            left: 36mm;
+            width: 100%;
 
-.logo-ecole {
-    margin-top: 5px;
-    width: 80px;
-}
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold;
+        }
 
-.line-wrapper {
-    display: inline-block;
-    width: 100%;
-}
+        .acteNaissance {
+            position: absolute;
+            top: 144mm;
+            left: 136mm;
+            width: 100%;
 
-.label-text {
-    display: inline-block;
-}
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold;
+        }
 
-.dotted-fill {
-    display: inline-block;
-    width: 80%;
-    border-bottom: 1px dotted #000;
-}
-</style>
+        .inscritLe {
+            position: absolute;
+            bottom: 84mm;
+            left: 35mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .aCeJour {
+            position: absolute;
+            bottom: 84mm;
+            right: 75mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .parents {
+            position: absolute;
+            bottom: 115mm;
+            left: 40mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .lieuNaissance {
+            position: absolute;
+            bottom: 137mm;
+            left: 95mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .dateNaissance {
+            position: absolute;
+            bottom: 137mm;
+            left: 31mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .classe {
+            position: absolute;
+            bottom: 126mm;
+            left: 40mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .faitLe {
+            position: absolute;
+            bottom: 56mm;
+            right: 22mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .signature_enseignant {
+            position: absolute;
+            bottom: 14mm;
+            left: 75mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        
+    </style>
 </head>
-
 <body>
 
-<!-- EN-TÊTE -->
-<div class="header">
-    <!-- GAUCHE -->
-    <div class="header-left">
-        <span class="bold">MINISTERE DE L’EDUCATION NATIONALE<br>
-        ET DE L’ALPHABETISATION</span><br>
-        --------------------<br>
-        DIRECTION REGIONALE DE {{ strtoupper($inscription->ecole->ville ?? '') }}<br>
-        I.E.P.P : {{ strtoupper($inscription->ecole->nom ?? '') }}<br>
-        Secteur pédagogique : {{ strtoupper($inscription->ecole->secteur ?? '') }}<br>
-        E.PV : {{ strtoupper($inscription->ecole->nom ?? '') }}<br><br>
+<div class="diplome">
 
-        @if(isset($inscription->ecole->logo))
-            <img src="{{ public_path('storage/'.$inscription->ecole->logo) }}" class="logo-ecole">
-        @endif
+    <div class="annee">
+        {{ $anneeScolaire->annee }}
     </div>
 
-    <!-- DROITE -->
-    <div class="header-right">
-        <span class="bold">REPUBLIQUE DE COTE D'IVOIRE</span><br>
-        Union - Discipline - Travail<br><br>
-        Année scolaire : {{ $inscription->anneeScolaire->debut }} / {{ $inscription->anneeScolaire->fin }}
+    <div class="classe">
+        {{ $inscription->classe->niveau->nom }}
     </div>
-</div>
 
-<!-- TITRE -->
-<div class="title">CERTIFICAT DE FREQUENTATION</div>
+    <div class="nomPrenoms">
+        {{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}
+    </div>
 
-<!-- CONTENU -->
-<div class="content">
-    Je soussigné,<br><br>
+    <div class="matricule">
+        {{ $inscription->eleve->matricule }}
+    </div>
 
-    <span class="bold">{{ $inscription->ecole->directeur ?? '' }}</span>,
-    Directeur des Etudes de l’E.PV <span class="bold">{{ $inscription->ecole->nom }}</span>,<br><br>
+    <div class="dateNaissance">
+        {{ $inscription->eleve->naissance_formattee ? $inscription->eleve->naissance->format('d/m/Y') : 'N/A' }}
+    </div>
 
-    Atteste que l’élève 
-    <span>{{ strtoupper($inscription->eleve->nom) }} {{ ucfirst($inscription->eleve->prenom) }}</span><br><br>
+    <div class="lieuNaissance">
+        {{ $inscription->eleve->lieu_naissance ?? 'N/A' }}
+    </div>
 
-    Matricule : {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }} /
-    Acte de naissance N° {{ $inscription->eleve->num_extrait ?? '...........' }}<br><br>
+    <div class="acteNaissance">
+        {{ $inscription->eleve->num_extrait ?: 'N/A' }}
+    </div>
 
-    Né(e) le {{ $inscription->eleve->naissance->format('d/m/Y') }} 
-    à {{ $inscription->eleve->lieu_naissance ?? '.........................' }}<br><br>
 
-    Cours suivi : <span class="bold">{{ $inscription->classe->nom }}</span><br><br>
+    <div class="parents">
+        {{ $inscription->eleve->parent_nom }}
+    </div>
 
-    <div>
-        <span>Fils/Fille de :</span>
-        <span>{{ $inscription->eleve->parent_nom }}</span>
-    </div><br>
+    <div class="inscritLe">
+        {{ $inscription->created_at->format('d/m/Y') }}
+    </div>
 
-    <div class="line-wrapper">
-        <span class="label-text">Et de :</span>
-        <span class="dotted-fill">{{ $inscription->eleve->parent_nom2 ?? '' }}</span>
-    </div><br><br>
+    <div class="aCeJour">
+        {{ now()->format('d/m/Y') }}
+    </div>
 
-    Est effectivement inscrit à l’E.PV <span class="bold">{{ $inscription->ecole->nom }}</span>.<br><br>
+    <div class="faitLe">
+        {{ now()->format('d/m/Y') }}
+    </div>
 
-    Depuis le {{ $inscription->eleve->created_at->format('d/m/Y') }} 
-    à ce jour {{ now()->format('d/m/Y') }}.<br><br>
-
-    En foi de quoi, cette attestation lui est délivrée pour servir et valoir ce que de droit.
-</div>
-
-<!-- SIGNATURE -->
-<div class="signature-block">
-    Fait à {{ $inscription->ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}<br><br><br>
-
-    <span class="bold underline">LE DIRECTEUR DES ETUDES</span><br><br><br>
-
-    <span class="bold">{{ $inscription->ecole->directeur ?? '' }}</span><br>
-    <span class="bold">Civilisation Germanique</span>
 </div>
 
 </body>
+
 </html>

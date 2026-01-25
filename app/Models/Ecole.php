@@ -15,4 +15,9 @@ class Ecole extends Model
         return $this->nom_ecole;
     }
 
+    public function anneesScolaires()
+    {
+        return $this->hasMany(AnneeScolaire::class, 'ecole_id');
+    }
+
 }
