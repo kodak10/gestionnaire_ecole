@@ -1,102 +1,303 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Certificat de Scolarité - {{ $inscription->eleve->nom }}</title>
+    <title>Diplôme Tableau d'Honneur</title>
+
     <style>
-        @page { margin: 2cm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; line-height: 1.5; }
-        
-        .header { 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 10px; 
-            overflow: hidden;
+        @page {
+            size: A4 portrait;
+            margin: 0;
         }
-        .logo-section {
-            width: 20%;
-            float: left;
-            text-align: center;
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: DejaVu Sans, Arial, sans-serif;
         }
-        .title-section {
-            width: 60%;
-            float: left;
-            text-align: center;
+
+        /* Page diplôme */
+        .diplome {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+
+            /* ✅ IMAGE PHOTOSHOP EN FOND */
+            background-image: url('{{ public_path('storage/documents/certificat-scolarite.png') }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
         }
-        .logo {
+
+        /* ========= ZONES TEXTE ========= */
+        .annee {
+            position: absolute;
+            top: 44mm;
+            right: 15mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .nomPrenoms {
+            position: absolute;
+            top: 132mm;
+            left: 55mm;
             width: 100%;
-            height: 100%;
+
+            font-size: 5mm;
+            color: #333;
+            font-weight: bold;
         }
-        .content { margin: 20px 0; }
-        .section { margin-bottom: 15px; }
-        .personal-info { width: 65%; float: left; }
-        .photo-eleve { width: 30%; float: right; text-align: center; }
-        .photo-eleve img { width: 120px; height: 150px; object-fit: cover; border: 1px solid #000; }
-        .clear { clear: both; }
 
-        .signature-row { margin-top: 50px; overflow: hidden; }
-        .signature-box { width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 5px; }
-        .signature-left { float: left; }
-        .signature-right { float: right; }
+        .matricule {
+            position: absolute;
+            top: 144mm;
+            left: 36mm;
+            width: 100%;
 
-        .cachet-section { text-align: right; margin-top: 40px; font-size: 10px; }
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .acteNaissance {
+            position: absolute;
+            top: 144mm;
+            left: 136mm;
+            width: 100%;
+
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .inscritLe {
+            position: absolute;
+            bottom: 84mm;
+            left: 35mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .aCeJour {
+            position: absolute;
+            bottom: 84mm;
+            right: 75mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .parents {
+            position: absolute;
+            bottom: 115mm;
+            left: 40mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .lieuNaissance {
+            position: absolute;
+            bottom: 137mm;
+            left: 95mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .dateNaissance {
+            position: absolute;
+            bottom: 137mm;
+            left: 31mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .classe {
+            position: absolute;
+            bottom: 126mm;
+            left: 40mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .faitLe {
+            position: absolute;
+            bottom: 56mm;
+            right: 22mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .signature_enseignant {
+            position: absolute;
+            bottom: 14mm;
+            left: 75mm;
+            font-size: 4mm;
+            color: #333;
+            font-weight: bold
+        }
+
+        .tab{
+            position: absolute;
+            top: 170mm;
+            left: 20mm;
+            width: 170mm;
+        }
+
+        .table-scolarite {
+            
+            
+            border-collapse: collapse;
+            font-size: 3.5mm;
+        }
+
+        .table-scolarite th,
+        .table-scolarite td {
+            border: 1px solid #000;
+            padding: 2mm;
+            text-align: center;
+        }
+
+        .table-scolarite th {
+            font-weight: bold;
+        }
+
+
+        
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo-section">
-            <img class="logo" src="{{ public_path('assets/img/logo_excelle.jpg') }}" alt="Logo école" style="height:80px;">
-        </div>
-        <div class="title-section">
-            <h2 style="margin: 0; font-size: 18px;">CERTIFICAT DE SCOLARITÉ</h2>
-            <h3 style="margin: 5px 0; font-size: 16px;">{{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}</h3>
-            <p style="margin: 0; font-size: 12px;">Année Scolaire: {{ $inscription->anneeScolaire->annee }}</p>
-        </div>
-        <div class="clear"></div>
+
+<div class="diplome">
+
+    <div class="annee">
+        {{ $anneeScolaire->annee }}
     </div>
 
-    <div class="content section">
-        <div class="personal-info">
-            <p>Le Directeur de l'École <strong>{{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}</strong> certifie que :</p>
-            <p><strong>Nom :</strong> {{ $inscription->eleve->nom }}</p>
-            <p><strong>Prénom :</strong> {{ $inscription->eleve->prenom }}</p>
-            <p><strong>Date de naissance :</strong> {{ $inscription->eleve->naissance->format('d/m/Y') }}</p>
-            <p><strong>Lieu de naissance :</strong> {{ $inscription->eleve->lieu_naissance ?? 'Non renseigné' }}</p>
-            <p><strong>Matricule :</strong> {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</p>
+    {{-- 
 
-            <p>Est régulièrement inscrit(e) en classe de <strong>{{ $inscription->classe->nom }}</strong> pour l'année scolaire <strong>{{ $inscription->anneeScolaire->annee }}</strong>.</p>
-        </div>
+    
+ 
 
-        <div class="photo-eleve" style="margin-top: 50px; float:right">
-            @if($inscription->eleve->photo_path)
-                    
-                    <img src="{{ public_path('storage/' . $inscription->eleve->photo_path) }}" alt="Photo {{ $inscription->eleve->nom }}">
-                @else
-                    <div style="width:120px; height:150px; border:1px solid #000; display:flex; align-items:center; justify-content:center;">
-                        Pas de photo
-                    </div>
-                @endif
-        </div>
-
-        <div class="clear"></div>
+    <div class="aCeJour">
+        {{ now()->format('d/m/Y') }}
     </div>
+
+    <div class="faitLe">
+        {{ now()->format('d/m/Y') }}
+    </div>
+
+    --}}
+
+
+    <div style="position:absolute; top:115mm; left:20mm; right:20mm; font-size:4mm; text-align:justify;">
+        Le Directeur de L’E.P.V <strong>EXCELLE</strong> <br>
+        Sous-préfecture de <strong> {{ $ecole->sous_prefecture ?? 'KORHOGO' }} </strong><br>
+        Circonscription primaire de <strong> {{ $ecole->circonscription ?? 'KORHOGO-SUD' }} </strong><br>
+        Soussigné, certifie que l’élève :
+        <strong>{{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</strong>,
+        né(e) le <strong>{{ $inscription->eleve->naissance->format('d-m-Y') }}</strong>
+        à <strong>{{ $inscription->eleve->lieu_naissance }}</strong>,
+        selon
+        @if($inscription->eleve->jugement)
+            le jugement supplétif du {{ $inscription->eleve->jugement_date }} N° {{ $inscription->eleve->jugement_numero }}
+        @else
+            l’acte de naissance N° {{ !empty($inscription->eleve->num_extrait) ? $inscription->eleve->num_extrait : '.................' }}
+        @endif,
+        inscrit(e) sous le N° <strong>{{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</strong>,
+        a fréquenté son école du
+        <strong>{{ $inscription->eleve->created_at->format('d/m/Y') }}</strong> au
+        <strong>{{ now()->format('d/m/Y') }}</strong>.
+    </div>
+
+    <div style="position:absolute; top:155mm; left:20mm; right:20mm; font-size:4mm; text-align:justify; text-decoration: underline; text-weight: bold !important;">
+        <p> <strong>SA SCOLARITE TOTALE S’ETABLIE COMME SUIT: </strong></p>
+    </div>
+
+    <div class="tab">
+        <table class="table-scolarite">
+            <thead>
+                <tr>
+                    <th>Année scolaire</th>
+                    <th>Classe</th>
+                    <th>Moyenne annuelle</th>
+                    <th>Classement</th>
+                    <th>Observation</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($tableauScolarite as $ligne)
+                    <tr>
+                        <td>{{ $ligne['annee_scolaire'] }}</td>
+                        <td>{{ $ligne['classe'] }}</td>
+                        <td>{{ $ligne['moyenne'] ?? 'N/A' }} / 20</td>
+                        <td>{{ $ligne['rang'] }}</td>
+                        <td>{{ $ligne['observation'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+
+            
+        </table>
+
+        
+
+        <div style="">
+            <strong>APPRÉCIATIONS GÉNÉRALES</strong><br>
+            Travail : <br>
+            Conduite : <br>
+            Motif de départ : 
+        </div>
+
+        <!-- Conteneur pour les signatures -->
+        <div style="bottom: 14mm; width: 100%; display: flex; font-size: 4mm; color: #333; font-weight: bold;">
+
+            <!-- Bloc 1 : Nom et Prénom du Directeur -->
+            <div style="flex: 1; text-align: center;">
+                NOM ET PRENOMS DU DIRECTEUR<br>
+                Dr. Amed DOUMOUYA
+            </div>
+
+            <!-- Bloc 2 : Cachet de l’Etablissement -->
+            <div style="flex: 1; text-align: center;">
+                Cachet de l’Etablissement<br>
+                Civilisation Germanique
+            </div>
+
+            <!-- Bloc 3 : Signature du Directeur -->
+            <div style="flex: 1; text-align: center;">
+                Signature du Directeur<br>
+                __________________
+            </div>
+
+        </div>
+
+    </div>
+
+    
+    
 
     <div>
-        <p>Le présent certificat est délivré à l'intéressé(e) pour servir et
-valoir ce que de droit</p>
+
     </div>
 
-    <div class="signature-row">
-        <div class="signature-box signature-left">
-            Fait à ______________<br>
-            Le Directeur<br><br>
-            _________________________
-        </div>
-        <div class="signature-box signature-right">
-            Cachet de l'École
-        </div>
-        <div class="clear"></div>
-    </div>
+
+    {{--  --}}
+
+    
+
+
+
+
+</div>
 
 </body>
+
 </html>

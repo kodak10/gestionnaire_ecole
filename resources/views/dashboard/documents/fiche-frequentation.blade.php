@@ -164,7 +164,7 @@
     </div>
 
     <div class="matricule">
-        {{ $inscription->eleve->matricule }}
+        {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}
     </div>
 
     <div class="dateNaissance">

@@ -73,14 +73,19 @@
                                                     <i class="ti ti-calendar"></i>
                                                 </span>
                                                
-                                                <select name="user_ecole_annee" class="form-control @error('user_ecole_annee') is-invalid @enderror" required>
-                                                    <option value="">Sélectionnez votre école et année scolaire</option>
-                                                    @foreach($anneesScolaires as $annee)
-                                                        <option value="{{ $annee->ecole_id }}_{{ $annee->id }}">
+                                               <select name="user_ecole_annee"
+                                                        class="form-control @error('user_ecole_annee') is-invalid @enderror"
+                                                        required>
+
+                                                    @foreach($anneesScolaires as $index => $annee)
+                                                        <option value="{{ $annee->ecole_id }}_{{ $annee->id }}"
+                                                            {{ $index === 0 ? 'selected' : '' }}>
                                                             {{ $annee->ecole->nom_ecole }} - {{ $annee->annee }}
                                                         </option>
                                                     @endforeach
+
                                                 </select>
+
                                                 @error('user_ecole_annee')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>

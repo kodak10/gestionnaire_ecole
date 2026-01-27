@@ -282,58 +282,144 @@ public function genererFicheInscription(Eleve $eleve)
         $pdf = PDF::loadView('dashboard.documents.fiche-frequentation', [
             'inscription' => $inscription,
             'anneeScolaire' => $anneeScolaire,
+            'ecoleId' => $ecoleId,
 
         ]);
 
         return $pdf->stream('fiche-frequentation-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
     }
 
-    // Générer fiche d'inscription
-    // public function genererFicheInscription(Eleve $eleve)
-    // {
-    //     $ecoleId = session('current_ecole_id'); 
-    //     $anneeScolaireId = session('current_annee_scolaire_id');
-        
-    //     $inscription = Inscription::with(['eleve', 'classe.niveau'])
-    //         ->where('eleve_id', $eleve->id)
-    //         ->where('annee_scolaire_id', $anneeScolaireId)
-    //         ->where('ecole_id', $ecoleId)
-    //         ->where('statut', 'active')
-    //         ->first();
-
-    //     if (!$inscription) {
-    //         abort(404, 'Inscription non trouvée');
-    //     }
-
-    //     $pdf = PDF::loadView('dashboard.documents.fiche-inscription', [
-    //         'inscription' => $inscription
-    //     ]);
-
-    //     return $pdf->stream('fiche-inscription-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
-    // }
-
+   
     public function genererCertificatScolarite(Eleve $eleve)
     {
-        $ecoleId = session('current_ecole_id'); 
+        $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
-        
-        $inscription = Inscription::with(['eleve', 'classe.niveau'])
+
+        $anneeScolaire = AnneeScolaire::findOrFail($anneeScolaireId);
+
+        $inscription = Inscription::with(['eleve', 'classe.niveau', 'notes.matiere.niveaux'])
             ->where('eleve_id', $eleve->id)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->where('ecole_id', $ecoleId)
             ->where('statut', 'active')
             ->first();
 
-        if (!$inscription) {
-            abort(404, 'Inscription non trouvée');
+        if (!$inscription) abort(404, 'Inscription non trouvée');
+
+        $niveau = $inscription->classe->niveau;
+
+        // ==========================
+        // Calcul de la moyenne annuelle
+        // ==========================
+        $totalPoints = 0;
+        $totalCoefficients = 0;
+
+        foreach ($inscription->notes as $note) {
+            $pivot = $note->matiere->niveaux
+                ->where('id', $niveau->id)
+                ->first()?->pivot;
+
+            if (!$pivot) continue;
+
+            $coefficient = $pivot->coefficient ?? 1;
+            $denominateur = $pivot->denominateur ?? 20;
+
+            $noteSur20 = ($note->valeur / $denominateur) * 20;
+
+            $totalPoints += $noteSur20 * $coefficient;
+            $totalCoefficients += $coefficient;
         }
 
+        $moyenneAnnuelle = $totalCoefficients > 0
+            ? round($totalPoints / $totalCoefficients, 2)
+            : 0;
+
+        // ==========================
+        // Classement général
+        // ==========================
+        $elevesClasse = Inscription::with('notes.matiere.niveaux')
+            ->where('classe_id', $inscription->classe_id)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId)
+            ->where('statut', 'active')
+            ->get();
+
+        $classement = [];
+
+        foreach ($elevesClasse as $eleveClasse) {
+            $totalPointsEleve = 0;
+            $totalCoeffsEleve = 0;
+            foreach ($eleveClasse->notes as $note) {
+                $pivot = $note->matiere->niveaux
+                    ->where('id', $niveau->id)
+                    ->first()?->pivot;
+                if (!$pivot) continue;
+
+                $coeff = $pivot->coefficient ?? 1;
+                $denom = $pivot->denominateur ?? 20;
+
+                $noteSur20 = ($note->valeur / $denom) * 20;
+
+                $totalPointsEleve += $noteSur20 * $coeff;
+                $totalCoeffsEleve += $coeff;
+            }
+
+            $moy = $totalCoeffsEleve > 0 ? round($totalPointsEleve / $totalCoeffsEleve, 2) : 0;
+
+            $classement[] = [
+                'eleve_id' => $eleveClasse->eleve_id,
+                'moyenne'  => $moy,
+            ];
+        }
+
+        // Trier du plus élevé au plus faible
+        usort($classement, fn($a, $b) => $b['moyenne'] <=> $a['moyenne']);
+
+        $rang = null;
+        foreach ($classement as $index => $c) {
+            if ($c['eleve_id'] === $eleve->id) {
+                $rang = $index + 1;
+                break;
+            }
+        }
+
+        $effectif = count($classement);
+
+        // ==========================
+        // Classe suivante
+        // ==========================
+        $niveauSuivant = Niveau::where('ordre', $niveau->ordre + 1)
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->first();
+
+        $classeSuivante = $niveauSuivant ? $niveauSuivant->nom : 'Fin de cycle';
+
+        // ==========================
+        // Préparer tableau de scolarité
+        // ==========================
+        $tableauScolarite = [[
+            'annee_scolaire' => $anneeScolaire->annee,
+            'classe'         => $inscription->classe->niveau->nom,
+            'moyenne'        => $moyenneAnnuelle,
+            'rang'           => $rang . ' / ' . $effectif,
+            'observation'    => $moyenneAnnuelle >= 10 ? 'Admis(e)' : 'Non admis(e)',
+        ]];
+
+        // ==========================
+        // Génération PDF
+        // ==========================
         $pdf = PDF::loadView('dashboard.documents.certificat-scolarite', [
-            'inscription' => $inscription
+            'inscription'       => $inscription,
+            'anneeScolaire'     => $anneeScolaire,
+            'classeSuivante'    => $classeSuivante,
+            'tableauScolarite'  => $tableauScolarite,
         ]);
 
         return $pdf->stream('certificat-scolarite-' . $eleve->nom . '-' . $eleve->prenom . '.pdf');
     }
+
+
 
     // Générer fiche de PRESENCE
     public function genererFichePresence(Classe $classe)
