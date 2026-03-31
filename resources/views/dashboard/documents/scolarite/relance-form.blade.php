@@ -51,7 +51,7 @@
             </p>
         </div>
 
-        <p>Nous vous prions de bien vouloir régulariser le paiement avant le 11 Avril. Après ce délais, l'élève ne sera pas admis en classe.</p>
+        <p>Nous vous prions de bien vouloir régulariser le paiement avant le 11 Avril 2026. Après ce délais, l'élève ne sera pas admis en classe.</p>
         <p>La Comptabilité</p>
     </div>
 
