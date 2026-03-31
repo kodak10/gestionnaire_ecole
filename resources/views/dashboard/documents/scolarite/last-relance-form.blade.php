@@ -38,21 +38,21 @@
         <p>
             Votre enfant <span class="bold">{{ $recusEleve['eleve'] }}</span>, inscrit en classe de 
             <span class="bold">{{ $recusEleve['classe'] }}</span>, 
-            {{-- pour le mois de <span class="bold">{{ $recusEleve['mois'] }}</span>  --}}
+            pour le mois de <span class="bold">{{ $recusEleve['mois'] }}</span> 
             présente le détail suivant :
         </p>
 
        <div class="details">
             <p>
-                {{-- Montant attendu pour le mois : <span class="bold">{{ number_format($recusEleve['montant_attendu'], 0, ',', ' ') }} FCFA</span> |
+                Montant attendu pour le mois : <span class="bold">{{ number_format($recusEleve['montant_attendu'], 0, ',', ' ') }} FCFA</span> |
                 Montant déjà payé pour le mois : <span class="bold">{{ number_format($recusEleve['montant_paye'], 0, ',', ' ') }} FCFA</span> |
-                Reste à payer sur le mois : <span class="bold">{{ number_format($recusEleve['reste_mois'], 0, ',', ' ') }} FCFA</span> | --}}
+                Reste à payer sur le mois : <span class="bold">{{ number_format($recusEleve['reste_mois'], 0, ',', ' ') }} FCFA</span> |
                 Reste total de {{ $type_frais }} : <span class="bold">{{ number_format($recusEleve['reste_total'], 0, ',', ' ') }} FCFA</span>
             </p>
         </div>
 
-        <p>Nous vous prions de bien vouloir régulariser le paiement avant le 11 Avril. Après ce délais, l'élève ne sera pas admis en classe.</p>
-        <p>La Comptabilité</p>
+        <p>Nous vous prions de bien vouloir régulariser le paiement avant le jeudi 15 janvier 2026 afin d’éviter toute mesure administrative conformément au règlement de l’établissement.</p>
+        <p>La Direction</p>
     </div>
 
 
