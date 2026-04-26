@@ -12,6 +12,13 @@
         </nav>
     </div>
     <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
+
+        <div class="pe-1 mb-2">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulletinAnnuelModal">
+                <i class="ti ti-calendar-stats me-2"></i>Bulletin Annuel
+            </button>
+        </div>
+
         <div class="pe-1 mb-2">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulletinModal">
                 <i class="ti ti-file-spreadsheet me-2"></i>Générer Bulletin
@@ -169,6 +176,51 @@
     {{ $notes->appends(request()->query())->links() }}
 </div>
 
+<!-- Modal pour générer bulletin annuel avec sélection des mois - Version simplifiée -->
+<div class="modal fade" id="bulletinAnnuelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form action="{{ route('notes.generateBulletinAnnuel') }}" method="GET" target="_blank">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Générer le Bulletin Annuel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Classe <span class="text-danger">*</span></label>
+                        <select name="classe_id" class="form-select select2" required>
+                            <option value="">Sélectionner une classe</option>
+                            @foreach($classes as $classe)
+                                <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Mois / Périodes à inclure <span class="text-danger">*</span></label>
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle"></i> 
+                            Sélectionnez les mois à inclure dans le calcul de la moyenne annuelle
+                        </div>
+                        
+                        <select name="mois_ids[]" id="mois_select2" class="form-select select2" multiple="multiple" required>
+                            @foreach($moisScolaire as $mois)
+                                <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                            @endforeach
+                        </select>
+                        
+                        <small class="text-muted">Vous pouvez sélectionner plusieurs mois</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Générer le bulletin annuel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal pour générer bulletin -->
 <div class="modal fade" id="bulletinModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -279,4 +331,47 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Select2 CSS et JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<script>
+$(document).ready(function() {
+    // Initialiser Select2
+    $('.select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Sélectionnez...',
+        allowClear: true
+    });
+    
+    $('#mois_select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Sélectionnez un ou plusieurs mois',
+        allowClear: true
+    });
+    
+    // Validation avant soumission
+    $('form[action*="generateBulletinAnnuel"]').on('submit', function(e) {
+        var classeId = $('select[name="classe_id"]').val();
+        var moisCount = $('select[name="mois_ids[]"]').val() ? $('select[name="mois_ids[]"]').val().length : 0;
+        
+        if (!classeId) {
+            e.preventDefault();
+            toastr.error("Veuillez sélectionner une classe");
+            return false;
+        }
+        
+        if (moisCount === 0) {
+            e.preventDefault();
+            toastr.error("Veuillez sélectionner au moins un mois pour le bulletin annuel");
+            return false;
+        }
+        
+        toastr.success("Génération du bulletin annuel en cours...");
+    });
+});
+</script>
 @endpush

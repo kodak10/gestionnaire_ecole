@@ -146,6 +146,8 @@ use Illuminate\Support\Facades\Route;
         Route::get('/notes/recap/pdf', [NoteController::class, 'generateRecapMoyennes'])->name('notes.recap.pdf');
 
 
+        Route::get('notes/generate-bulletin-annuel', [NoteController::class, 'generateBulletinAnnuel'])->name('notes.generateBulletinAnnuel');
+
         Route::resource('notes', NoteController::class);
 
 
