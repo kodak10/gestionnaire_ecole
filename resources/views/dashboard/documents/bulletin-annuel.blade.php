@@ -84,6 +84,12 @@ table.general th {
 @php
     use Carbon\Carbon;
     $ecole = \App\Models\Ecole::find(session('current_ecole_id'));
+    
+    // Trier les mois par ordre chronologique (id croissant)
+    $moisScolairesTries = $moisScolaires->sortBy('id');
+    
+    // Obtenir le dernier mois (composition de passage)
+    $dernierMois = $moisScolairesTries->last();
 @endphp
 
 @foreach($elevesAvecMoyennes as $eleveData)
@@ -124,7 +130,7 @@ table.general th {
     <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
         <tr>
             <td style="text-align:center; width:70%;">
-                <strong>BULLETIN ANNUEL</strong>
+                <strong>COMPOSITION DE PASSAGE</strong>
             </td>
             <td style="text-align:right; width:30%;">
                 {{ $anneeScolaire->annee ?? $anneeScolaire->debut.'-'.$anneeScolaire->fin }}
@@ -187,46 +193,73 @@ table.general th {
             </tr>
         </table>
 
-        <!-- Matières avec moyenne annuelle -->
-        <table class="general">
-            <thead>
-                <tr>
-                    <th>MATIÈRES</th>
-                    <th>Moyenne Annuelle</th>
-                    <th>Coeff.</th>
-                    <th>Rang</th>
-                    <th>Appréciation</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    $matieresAvecNotes = $matieres->filter(function ($matiere) use ($eleveData) {
-                        return $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
-                    });
-                @endphp
+       <!-- Matières avec notes du DERNIER MOIS (composition de passage) -->
+<table class="general">
+    <thead>
+        <tr>
+            <th>MATIÈRES</th>
+            <th>Note</th>
+            <th>Coeff.</th>
+            <th>Rang</th>
+            <th>Appréciation</th>
+        </tr>
+    </thead>
+    <tbody>
+        @php
+            // Utiliser les notes ORIGINALES (avec mois_id) au lieu de $eleveData['notes']
+            $notesDernierMois = $eleveData['notes_originales']->filter(function($note) use ($dernierMois) {
+                return $note->mois_id == $dernierMois->id;
+            });
+            
+            $matieresAvecNotes = $matieres->filter(function ($matiere) use ($notesDernierMois) {
+                return $notesDernierMois->firstWhere('matiere_id', $matiere->id);
+            });
+        @endphp
 
-                @foreach($matieresAvecNotes as $matiere)
+        @foreach($matieresAvecNotes as $matiere)
+            @php
+                $note = $notesDernierMois->firstWhere('matiere_id', $matiere->id);
+            @endphp
+            <tr>
+                <td class="left">{{ $matiere->nom }}</td>
+                <td>
+                    @if($note && $note->valeur !== null)
+                        {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
+                    @else
+                        &nbsp;
+                    @endif
+                </td>
+                <td>{{ $note->coefficient ?? '' }}</td>
+                <td>{{ isset($note->rang_matiere_text) ? $note->rang_matiere_text : '-' }}</td>
+                <td>{{ $note->appreciation ?? '-' }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
+        <!-- COMPOSITION DE PASSAGE (dernier mois) -->
+        <table class="general" style="width:100%; border-collapse: collapse;">
+            <tr style="background:#ccc; text-align:center;">
+                <td style="padding:5px;">
                     @php
-                        $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+                        $compositionPasse = null;
+                        if($dernierMois && isset($eleveData['moyennes_par_mois'])){
+                            $compositionPasse = collect($eleveData['moyennes_par_mois'])->firstWhere('mois', $dernierMois->nom);
+                        }
                     @endphp
-                    <tr>
-                        <td class="left">{{ $matiere->nom }}</td>
-                        <td>
-                            @if($note && $note->valeur > 0)
-                                {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
-                            @else
-                                &nbsp;
-                            @endif
-                        </td>
-                        <td>{{ $note->coefficient ?? '' }}</td>
-                        <td>{{ $note->rang_matiere_text ?? '-' }}</td>
-                        <td>{{ $note->appreciation ?? '-' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
+                    @if($compositionPasse)
+                        <b>COMPOSITION DE PASSAGE ({{ $dernierMois->nom }}) :</b> 
+                        {{ number_format($compositionPasse['moyenne'], 2, ',', '') }} / {{ number_format($classe->moy_base, 0, '', '') }} &nbsp; | &nbsp; 
+                        <b>RANG :</b> {{ $compositionPasse['rang'] }}e / {{ $compositionPasse['effectif'] }} &nbsp; | &nbsp;
+                        <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
+                    @else
+                        <b>COMPOSITION DE PASSAGE :</b> Aucune donnée disponible
+                    @endif
+                </td>
+            </tr>
         </table>
 
-        <!-- Totaux -->
+        <!-- MOYENNE ANNUELLE -->
         <table class="general" style="width:100%; border-collapse: collapse;">
             <tr style="background:#ccc; text-align:center;">
                 <td style="padding:5px;">
