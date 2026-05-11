@@ -121,7 +121,7 @@ table.general th {
             Code : <b>{{ $ecole->code ?? '' }}</b><br>
             Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
             Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b><br>
-            Email : <b>{{ $ecole->email ?? '' }}</b><br>
+            Email : <b>{{ $ecole->email ?? '' }}</b><br> <br>
         </div>
         <div style="clear:both;"></div>
     </div>
@@ -346,17 +346,40 @@ table.general th {
             <thead>
                 <tr>
                     <th>Appreciation du conseil de classe</th>
+                    <th>Décision de fin d'année</th>
                     <th>Visa du directeur</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td style="vertical-align: top;">
-                        
                         <span style="text-decoration: underline;">L'enseignant</span>
                         <br> <br> <br>
                         <br><br>
                         {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '___________________') }}
+                    </td>
+                    <td style="text-align: center; vertical-align: middle;">
+                        @php
+                            $sexe = $eleveData['inscription']->eleve->sexe ?? '';
+                            $moyenne = $eleveData['moyenne'];
+                            $moyBase = $classe->moy_base;
+                            $pourcentage = ($moyBase > 0) ? ($moyenne / $moyBase) * 100 : 0;
+                            
+                            if ($pourcentage >= 50) {
+                                if ($sexe == 'Féminin' || $sexe == 'F' || $sexe == 'femme' || $sexe == 'female') {
+                                    $decision = 'ADMISE EN CLASSE SUPÉRIEURE';
+                                } else {
+                                    $decision = 'ADMIS EN CLASSE SUPÉRIEURE';
+                                }
+                            } else {
+                                if ($sexe == 'Féminin' || $sexe == 'F' || $sexe == 'femme' || $sexe == 'female') {
+                                    $decision = 'NON ADMISE';
+                                } else {
+                                    $decision = 'NON ADMIS';
+                                }
+                            }
+                        @endphp
+                        <strong>{{ $decision }}</strong>
                     </td>
                     <td style="text-align: center; vertical-align: bottom;">
                         {{ $ecole->ville ?? 'Korhogo' }} le {{ Carbon::now()->format('d/m/Y') }}<br>

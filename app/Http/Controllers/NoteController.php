@@ -299,222 +299,7 @@ private function generateAppreciation($valeur, $base)
         return response()->json($notes);
     }
 
-public function generateBulletin(Request $request)
-{
-    $request->validate([
-        'classe_id' => 'required|exists:classes,id',
-        'mois_id' => 'required|exists:mois_scolaires,id'
-    ]);
 
-    $ecoleId = session('current_ecole_id');
-    $anneeScolaireId = session('current_annee_scolaire_id');
-    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-
-    $classe = Classe::with(['niveau.matieres' => function ($q) {
-        $q->orderByPivot('ordre');
-    }])->findOrFail($request->classe_id);
-
-    $mois = MoisScolaire::findOrFail($request->mois_id);
-
-    $inscriptions = Inscription::with(['eleve', 'notes' => function ($q) use ($request) {
-        $q->where('mois_id', $request->mois_id)->with('matiere');
-    }])
-        ->where('classe_id', $request->classe_id)
-        ->where('statut', 'active')
-        ->get();
-
-    $mentions = Mention::where('ecole_id', $ecoleId)
-        ->orderBy('min_note')
-        ->get();
-
-    $elevesAvecMoyennes = [];
-    $moyBase = $classe->moy_base;
-    
-    // Vérifier si c'est le mois de mai (id: 10)
-    $isMai = ($mois->id == 10);
-
-    foreach ($inscriptions as $inscription) {
-        $notes = $inscription->notes ?? collect();
-        $totalNotes = 0;
-        $totalCoeffs = 0;
-
-        foreach ($notes as $note) {
-            $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
-            $base = $matierePivot->denominateur;
-            $coeff = $matierePivot->coefficient;
-
-            $note->base = $base;
-            $note->coefficient = $coeff;
-
-            if ($note->valeur !== null && $coeff > 0) {
-                $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
-                $totalCoeffs += $coeff;
-            }
-
-            $note->execo = ($note->valeur == $base);
-        }
-
-        $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
-        
-        // Appliquer la coupure sans arrondi pour mai, sinon arrondi normal
-        if ($isMai && $moyenne !== null) {
-            $moyenneArrondie = floor($moyenne * 100) / 100; // Coupe à 2 chiffres sans arrondi
-        } else {
-            $moyenneArrondie = $moyenne !== null ? round($moyenne, 2) : null;
-        }
-
-        $mentionNom = $moyenneArrondie !== null
-            ? $this->getMention($moyenneArrondie, $moyBase)
-            : 'N/A';
-
-        $distinctions = $moyenneArrondie !== null ? $this->calculerDistinctions($moyenneArrondie, $moyBase) : [];
-        $sanctions = $moyenneArrondie !== null ? $this->calculerSanctions($moyenneArrondie, $moyBase) : [];
-
-        $execoCount = $notes->filter(fn($n) => isset($n->execo) && $n->execo)->count();
-
-        $elevesAvecMoyennes[] = [
-            'inscription' => $inscription,
-            'notes' => $notes,
-            'moyenne' => $moyenneArrondie ?? 0,
-            'mention' => $mentionNom,
-            'execo_count' => $execoCount,
-            'total_notes' => $totalNotes,
-            'total_coeffs' => $totalCoeffs,
-            'distinctions' => $distinctions,
-            'sanctions' => $sanctions,
-        ];
-
-        Log::info('Mention trouvée', [
-            'moyenneOriginale' => $moyenne,
-            'moyenneArrondie' => $moyenneArrondie,
-            'mention' => $mentionNom,
-            'mois' => $mois->nom,
-            'isMai' => $isMai
-        ]);
-    }
-
-    // Le reste du code reste identique...
-    // Classement par matière
-    $matieres = $classe->niveau->matieres
-        ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
-        ->values();
-
-    foreach ($elevesAvecMoyennes as &$eleve) {
-        foreach ($matieres as $matiere) {
-            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
-            if ($note) {
-                $note->base = $matiere->pivot->denominateur;
-                $note->coefficient = $matiere->pivot->coefficient;
-            }
-        }
-    }
-    unset($eleve);
-
-    // Classement par matière avec rang
-    foreach ($matieres as $matiere) {
-        $notesMatiere = [];
-        foreach ($elevesAvecMoyennes as $index => &$eleve) {
-            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
-            if ($note) {
-                $notesMatiere[] = ['note_obj' => $note, 'eleve_index' => $index];
-            }
-        }
-
-        usort($notesMatiere, function ($a, $b) {
-            $va = $a['note_obj']->valeur ?? -1;
-            $vb = $b['note_obj']->valeur ?? -1;
-            return $vb <=> $va;
-        });
-
-        foreach ($notesMatiere as $idx => $data) {
-            $note = $data['note_obj'];
-            if ($idx === 0) {
-                $note->rang_matiere = 1;
-            } else {
-                $prev = $notesMatiere[$idx - 1]['note_obj'];
-                $note->rang_matiere = ($note->valeur !== null && $note->valeur == $prev->valeur)
-                    ? $prev->rang_matiere
-                    : $idx + 1;
-            }
-            $note->rang_matiere_text = $this->formatRang($note->rang_matiere);
-        }
-    }
-    unset($eleve);
-
-    // Classement général
-    usort($elevesAvecMoyennes, function ($a, $b) {
-        return $b['moyenne'] <=> $a['moyenne'] ?: strcmp($a['inscription']->eleve->nom, $b['inscription']->eleve->nom);
-    });
-
-    $moyKeys = array_map(fn($e) => sprintf('%.2f', $e['moyenne']), $elevesAvecMoyennes);
-    $moyCounts = array_count_values($moyKeys);
-
-    foreach ($elevesAvecMoyennes as $index => &$eleve) {
-        $key = sprintf('%.2f', $eleve['moyenne']);
-        $eleve['exaequo'] = ($moyCounts[$key] > 1);
-
-        if ($index === 0) {
-            $eleve['rang_general'] = 1;
-        } else {
-            $prev = $elevesAvecMoyennes[$index - 1];
-            $eleve['rang_general'] = ($key == sprintf('%.2f', $prev['moyenne']))
-                ? $prev['rang_general']
-                : $index + 1;
-        }
-
-        $eleve['rang_text'] = $this->formatRang($eleve['rang_general'], $eleve['exaequo']);
-    }
-    unset($eleve);
-
-    // Moyennes de classe en ignorant élèves sans note
-    $elevesAvecNotes = array_filter($elevesAvecMoyennes, fn($e) => $e['total_coeffs'] > 0);
-    
-    // Appliquer la même logique pour les moyennes de classe
-    if ($isMai) {
-        $moyClasse = count($elevesAvecNotes) > 0
-            ? floor((array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes)) * 100) / 100
-            : 0;
-        $moyPremier = count($elevesAvecNotes) > 0
-            ? floor(max(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
-            : 0;
-        $moyDernier = count($elevesAvecNotes) > 0
-            ? floor(min(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
-            : 0;
-    } else {
-        $moyClasse = count($elevesAvecNotes) > 0
-            ? round(array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes), 2)
-            : 0;
-        $moyPremier = count($elevesAvecNotes) > 0
-            ? round(max(array_column($elevesAvecNotes, 'moyenne')), 2)
-            : 0;
-        $moyDernier = count($elevesAvecNotes) > 0
-            ? round(min(array_column($elevesAvecNotes, 'moyenne')), 2)
-            : 0;
-    }
-
-    Log::info('Stats de classe', [
-        'effectifAvecNotes' => count($elevesAvecNotes),
-        'moyClasse' => $moyClasse,
-        'moyPremier' => $moyPremier,
-        'moyDernier' => $moyDernier,
-        'isMai' => $isMai
-    ]);
-
-    // Génération PDF
-    $pdf = Pdf::loadView('dashboard.documents.bulletin', [
-        'classe' => $classe,
-        'mois' => $mois,
-        'elevesAvecMoyennes' => $elevesAvecMoyennes,
-        'matieres' => $matieres,
-        'moyClasse' => $moyClasse,
-        'moyPremier' => $moyPremier,
-        'moyDernier' => $moyDernier,
-        'effectif' => count($elevesAvecMoyennes),
-        'anneeScolaire' => $anneeScolaire,
-    ]);
-
-    return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
-}
 
 private function getMention($moyenne, $moyBase)
 {
@@ -772,6 +557,452 @@ public function generateRecapMoyennes(Request $request)
     return $pdf->stream('recap_moyennes_' . $mois->nom . '.pdf');
 }
 
+// public function generateBulletin(Request $request)
+// {
+//     $request->validate([
+//         'classe_id' => 'required|exists:classes,id',
+//         'mois_id' => 'required|exists:mois_scolaires,id'
+//     ]);
+
+//     $ecoleId = session('current_ecole_id');
+//     $anneeScolaireId = session('current_annee_scolaire_id');
+//     $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
+//     $classe = Classe::with(['niveau.matieres' => function ($q) {
+//         $q->orderByPivot('ordre');
+//     }])->findOrFail($request->classe_id);
+
+//     $mois = MoisScolaire::findOrFail($request->mois_id);
+
+//     $inscriptions = Inscription::with(['eleve', 'notes' => function ($q) use ($request) {
+//         $q->where('mois_id', $request->mois_id)->with('matiere');
+//     }])
+//         ->where('classe_id', $request->classe_id)
+//         ->where('statut', 'active')
+//         ->get();
+
+//     $mentions = Mention::where('ecole_id', $ecoleId)
+//         ->orderBy('min_note')
+//         ->get();
+
+//     $elevesAvecMoyennes = [];
+//     $moyBase = $classe->moy_base;
+    
+//     // Vérifier si c'est le mois de mai (id: 10)
+//     $isMai = ($mois->id == 10);
+
+//     foreach ($inscriptions as $inscription) {
+//         $notes = $inscription->notes ?? collect();
+//         $totalNotes = 0;
+//         $totalCoeffs = 0;
+
+//         foreach ($notes as $note) {
+//             $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
+//             $base = $matierePivot->denominateur;
+//             $coeff = $matierePivot->coefficient;
+
+//             $note->base = $base;
+//             $note->coefficient = $coeff;
+
+//             if ($note->valeur !== null && $coeff > 0) {
+//                 $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+//                 $totalCoeffs += $coeff;
+//             }
+
+//             $note->execo = ($note->valeur == $base);
+//         }
+
+//         $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
+        
+//         // Appliquer la coupure sans arrondi pour mai, sinon arrondi normal
+//         if ($isMai && $moyenne !== null) {
+//             $moyenneArrondie = floor($moyenne * 100) / 100; // Coupe à 2 chiffres sans arrondi
+//         } else {
+//             $moyenneArrondie = $moyenne !== null ? round($moyenne, 2) : null;
+//         }
+
+//         $mentionNom = $moyenneArrondie !== null
+//             ? $this->getMention($moyenneArrondie, $moyBase)
+//             : 'N/A';
+
+//         $distinctions = $moyenneArrondie !== null ? $this->calculerDistinctions($moyenneArrondie, $moyBase) : [];
+//         $sanctions = $moyenneArrondie !== null ? $this->calculerSanctions($moyenneArrondie, $moyBase) : [];
+
+//         $execoCount = $notes->filter(fn($n) => isset($n->execo) && $n->execo)->count();
+
+//         $elevesAvecMoyennes[] = [
+//             'inscription' => $inscription,
+//             'notes' => $notes,
+//             'moyenne' => $moyenneArrondie ?? 0,
+//             'mention' => $mentionNom,
+//             'execo_count' => $execoCount,
+//             'total_notes' => $totalNotes,
+//             'total_coeffs' => $totalCoeffs,
+//             'distinctions' => $distinctions,
+//             'sanctions' => $sanctions,
+//         ];
+
+//         Log::info('Mention trouvée', [
+//             'moyenneOriginale' => $moyenne,
+//             'moyenneArrondie' => $moyenneArrondie,
+//             'mention' => $mentionNom,
+//             'mois' => $mois->nom,
+//             'isMai' => $isMai
+//         ]);
+//     }
+
+//     // Le reste du code reste identique...
+//     // Classement par matière
+//     $matieres = $classe->niveau->matieres
+//         ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
+//         ->values();
+
+//     foreach ($elevesAvecMoyennes as &$eleve) {
+//         foreach ($matieres as $matiere) {
+//             $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+//             if ($note) {
+//                 $note->base = $matiere->pivot->denominateur;
+//                 $note->coefficient = $matiere->pivot->coefficient;
+//             }
+//         }
+//     }
+//     unset($eleve);
+
+//     // Classement par matière avec rang
+//     foreach ($matieres as $matiere) {
+//         $notesMatiere = [];
+//         foreach ($elevesAvecMoyennes as $index => &$eleve) {
+//             $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+//             if ($note) {
+//                 $notesMatiere[] = ['note_obj' => $note, 'eleve_index' => $index];
+//             }
+//         }
+
+//         usort($notesMatiere, function ($a, $b) {
+//             $va = $a['note_obj']->valeur ?? -1;
+//             $vb = $b['note_obj']->valeur ?? -1;
+//             return $vb <=> $va;
+//         });
+
+//         foreach ($notesMatiere as $idx => $data) {
+//             $note = $data['note_obj'];
+//             if ($idx === 0) {
+//                 $note->rang_matiere = 1;
+//             } else {
+//                 $prev = $notesMatiere[$idx - 1]['note_obj'];
+//                 $note->rang_matiere = ($note->valeur !== null && $note->valeur == $prev->valeur)
+//                     ? $prev->rang_matiere
+//                     : $idx + 1;
+//             }
+//             $note->rang_matiere_text = $this->formatRang($note->rang_matiere);
+//         }
+//     }
+//     unset($eleve);
+
+//     // Classement général
+//     usort($elevesAvecMoyennes, function ($a, $b) {
+//         return $b['moyenne'] <=> $a['moyenne'] ?: strcmp($a['inscription']->eleve->nom, $b['inscription']->eleve->nom);
+//     });
+
+//     $moyKeys = array_map(fn($e) => sprintf('%.2f', $e['moyenne']), $elevesAvecMoyennes);
+//     $moyCounts = array_count_values($moyKeys);
+
+//     foreach ($elevesAvecMoyennes as $index => &$eleve) {
+//         $key = sprintf('%.2f', $eleve['moyenne']);
+//         $eleve['exaequo'] = ($moyCounts[$key] > 1);
+
+//         if ($index === 0) {
+//             $eleve['rang_general'] = 1;
+//         } else {
+//             $prev = $elevesAvecMoyennes[$index - 1];
+//             $eleve['rang_general'] = ($key == sprintf('%.2f', $prev['moyenne']))
+//                 ? $prev['rang_general']
+//                 : $index + 1;
+//         }
+
+//         $eleve['rang_text'] = $this->formatRang($eleve['rang_general'], $eleve['exaequo']);
+//     }
+//     unset($eleve);
+
+//     // Moyennes de classe en ignorant élèves sans note
+//     $elevesAvecNotes = array_filter($elevesAvecMoyennes, fn($e) => $e['total_coeffs'] > 0);
+    
+//     // Appliquer la même logique pour les moyennes de classe
+//     if ($isMai) {
+//         $moyClasse = count($elevesAvecNotes) > 0
+//             ? floor((array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes)) * 100) / 100
+//             : 0;
+//         $moyPremier = count($elevesAvecNotes) > 0
+//             ? floor(max(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
+//             : 0;
+//         $moyDernier = count($elevesAvecNotes) > 0
+//             ? floor(min(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
+//             : 0;
+//     } else {
+//         $moyClasse = count($elevesAvecNotes) > 0
+//             ? round(array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes), 2)
+//             : 0;
+//         $moyPremier = count($elevesAvecNotes) > 0
+//             ? round(max(array_column($elevesAvecNotes, 'moyenne')), 2)
+//             : 0;
+//         $moyDernier = count($elevesAvecNotes) > 0
+//             ? round(min(array_column($elevesAvecNotes, 'moyenne')), 2)
+//             : 0;
+//     }
+
+//     Log::info('Stats de classe', [
+//         'effectifAvecNotes' => count($elevesAvecNotes),
+//         'moyClasse' => $moyClasse,
+//         'moyPremier' => $moyPremier,
+//         'moyDernier' => $moyDernier,
+//         'isMai' => $isMai
+//     ]);
+
+//     // Génération PDF
+//     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
+//         'classe' => $classe,
+//         'mois' => $mois,
+//         'elevesAvecMoyennes' => $elevesAvecMoyennes,
+//         'matieres' => $matieres,
+//         'moyClasse' => $moyClasse,
+//         'moyPremier' => $moyPremier,
+//         'moyDernier' => $moyDernier,
+//         'effectif' => count($elevesAvecMoyennes),
+//         'anneeScolaire' => $anneeScolaire,
+//     ]);
+
+//     return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
+// }
+public function generateBulletin(Request $request)
+{
+    $request->validate([
+        'classe_id' => 'required|exists:classes,id',
+        'mois_id' => 'required|exists:mois_scolaires,id'
+    ]);
+
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
+    $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
+
+    $classe = Classe::with(['niveau.matieres' => function ($q) {
+        $q->orderByPivot('ordre');
+    }])->findOrFail($request->classe_id);
+
+    $mois = MoisScolaire::findOrFail($request->mois_id);
+
+    $inscriptions = Inscription::with(['eleve', 'notes' => function ($q) use ($request) {
+        $q->where('mois_id', $request->mois_id)->with('matiere');
+    }])
+        ->where('classe_id', $request->classe_id)
+        ->where('statut', 'active')
+        ->get();
+
+    // ==================== CORRECTION : ÉLIMINER LES DOUBLONS ====================
+    foreach ($inscriptions as $inscription) {
+        $notesUniques = [];
+        foreach ($inscription->notes as $note) {
+            $key = $note->matiere_id;
+            if (!isset($notesUniques[$key])) {
+                $notesUniques[$key] = $note;
+            }
+        }
+        $inscription->notes = collect($notesUniques);
+    }
+    // ==================== FIN CORRECTION ====================
+
+    $mentions = Mention::where('ecole_id', $ecoleId)
+        ->orderBy('min_note')
+        ->get();
+
+    $elevesAvecMoyennes = [];
+    $moyBase = $classe->moy_base;
+    
+    // Vérifier si c'est le mois de mai (id: 10)
+    $isMai = ($mois->id == 10);
+
+    foreach ($inscriptions as $inscription) {
+        $notes = $inscription->notes ?? collect();
+        $totalNotes = 0;
+        $totalCoeffs = 0;
+
+        foreach ($notes as $note) {
+            $matierePivot = $classe->niveau->matieres->firstWhere('id', $note->matiere_id)->pivot ?? null;
+            $base = $matierePivot->denominateur;
+            $coeff = $matierePivot->coefficient;
+
+            $note->base = $base;
+            $note->coefficient = $coeff;
+
+            if ($note->valeur !== null && $coeff > 0) {
+                $totalNotes += ($note->valeur / $base) * $moyBase * $coeff;
+                $totalCoeffs += $coeff;
+            }
+
+            $note->execo = ($note->valeur == $base);
+        }
+
+        $moyenne = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
+        
+        // Appliquer la coupure sans arrondi pour mai, sinon arrondi normal
+        if ($isMai && $moyenne !== null) {
+            $moyenneArrondie = floor($moyenne * 100) / 100; // Coupe à 2 chiffres sans arrondi
+        } else {
+            $moyenneArrondie = $moyenne !== null ? round($moyenne, 2) : null;
+        }
+
+        $mentionNom = $moyenneArrondie !== null
+            ? $this->getMention($moyenneArrondie, $moyBase)
+            : 'N/A';
+
+        $distinctions = $moyenneArrondie !== null ? $this->calculerDistinctions($moyenneArrondie, $moyBase) : [];
+        $sanctions = $moyenneArrondie !== null ? $this->calculerSanctions($moyenneArrondie, $moyBase) : [];
+
+        $execoCount = $notes->filter(fn($n) => isset($n->execo) && $n->execo)->count();
+
+        $elevesAvecMoyennes[] = [
+            'inscription' => $inscription,
+            'notes' => $notes,
+            'moyenne' => $moyenneArrondie ?? 0,
+            'mention' => $mentionNom,
+            'execo_count' => $execoCount,
+            'total_notes' => $totalNotes,
+            'total_coeffs' => $totalCoeffs,
+            'distinctions' => $distinctions,
+            'sanctions' => $sanctions,
+        ];
+
+        Log::info('Mention trouvée', [
+            'moyenneOriginale' => $moyenne,
+            'moyenneArrondie' => $moyenneArrondie,
+            'mention' => $mentionNom,
+            'mois' => $mois->nom,
+            'isMai' => $isMai
+        ]);
+    }
+
+    // Le reste du code reste identique...
+    // Classement par matière
+    $matieres = $classe->niveau->matieres
+        ->sortBy(fn($matiere) => (int)$matiere->pivot->ordre)
+        ->values();
+
+    foreach ($elevesAvecMoyennes as &$eleve) {
+        foreach ($matieres as $matiere) {
+            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+            if ($note) {
+                $note->base = $matiere->pivot->denominateur;
+                $note->coefficient = $matiere->pivot->coefficient;
+            }
+        }
+    }
+    unset($eleve);
+
+    // Classement par matière avec rang
+    foreach ($matieres as $matiere) {
+        $notesMatiere = [];
+        foreach ($elevesAvecMoyennes as $index => &$eleve) {
+            $note = $eleve['notes']->firstWhere('matiere_id', $matiere->id);
+            if ($note) {
+                $notesMatiere[] = ['note_obj' => $note, 'eleve_index' => $index];
+            }
+        }
+
+        usort($notesMatiere, function ($a, $b) {
+            $va = $a['note_obj']->valeur ?? -1;
+            $vb = $b['note_obj']->valeur ?? -1;
+            return $vb <=> $va;
+        });
+
+        foreach ($notesMatiere as $idx => $data) {
+            $note = $data['note_obj'];
+            if ($idx === 0) {
+                $note->rang_matiere = 1;
+            } else {
+                $prev = $notesMatiere[$idx - 1]['note_obj'];
+                $note->rang_matiere = ($note->valeur !== null && $note->valeur == $prev->valeur)
+                    ? $prev->rang_matiere
+                    : $idx + 1;
+            }
+            $note->rang_matiere_text = $this->formatRang($note->rang_matiere);
+        }
+    }
+    unset($eleve);
+
+    // Classement général
+    usort($elevesAvecMoyennes, function ($a, $b) {
+        return $b['moyenne'] <=> $a['moyenne'] ?: strcmp($a['inscription']->eleve->nom, $b['inscription']->eleve->nom);
+    });
+
+    $moyKeys = array_map(fn($e) => sprintf('%.2f', $e['moyenne']), $elevesAvecMoyennes);
+    $moyCounts = array_count_values($moyKeys);
+
+    foreach ($elevesAvecMoyennes as $index => &$eleve) {
+        $key = sprintf('%.2f', $eleve['moyenne']);
+        $eleve['exaequo'] = ($moyCounts[$key] > 1);
+
+        if ($index === 0) {
+            $eleve['rang_general'] = 1;
+        } else {
+            $prev = $elevesAvecMoyennes[$index - 1];
+            $eleve['rang_general'] = ($key == sprintf('%.2f', $prev['moyenne']))
+                ? $prev['rang_general']
+                : $index + 1;
+        }
+
+        $eleve['rang_text'] = $this->formatRang($eleve['rang_general'], $eleve['exaequo']);
+    }
+    unset($eleve);
+
+    // Moyennes de classe en ignorant élèves sans note
+    $elevesAvecNotes = array_filter($elevesAvecMoyennes, fn($e) => $e['total_coeffs'] > 0);
+    
+    // Appliquer la même logique pour les moyennes de classe
+    if ($isMai) {
+        $moyClasse = count($elevesAvecNotes) > 0
+            ? floor((array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes)) * 100) / 100
+            : 0;
+        $moyPremier = count($elevesAvecNotes) > 0
+            ? floor(max(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
+            : 0;
+        $moyDernier = count($elevesAvecNotes) > 0
+            ? floor(min(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
+            : 0;
+    } else {
+        $moyClasse = count($elevesAvecNotes) > 0
+            ? round(array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes), 2)
+            : 0;
+        $moyPremier = count($elevesAvecNotes) > 0
+            ? round(max(array_column($elevesAvecNotes, 'moyenne')), 2)
+            : 0;
+        $moyDernier = count($elevesAvecNotes) > 0
+            ? round(min(array_column($elevesAvecNotes, 'moyenne')), 2)
+            : 0;
+    }
+
+    Log::info('Stats de classe', [
+        'effectifAvecNotes' => count($elevesAvecNotes),
+        'moyClasse' => $moyClasse,
+        'moyPremier' => $moyPremier,
+        'moyDernier' => $moyDernier,
+        'isMai' => $isMai
+    ]);
+
+    // Génération PDF
+    $pdf = Pdf::loadView('dashboard.documents.bulletin', [
+        'classe' => $classe,
+        'mois' => $mois,
+        'elevesAvecMoyennes' => $elevesAvecMoyennes,
+        'matieres' => $matieres,
+        'moyClasse' => $moyClasse,
+        'moyPremier' => $moyPremier,
+        'moyDernier' => $moyDernier,
+        'effectif' => count($elevesAvecMoyennes),
+        'anneeScolaire' => $anneeScolaire,
+    ]);
+
+    return $pdf->stream('bulletins-' . $classe->nom . '-' . $mois->nom . '.pdf');
+}
+
 
 // public function generateBulletinAnnuel(Request $request)
 // {
@@ -956,9 +1187,9 @@ public function generateRecapMoyennes(Request $request)
 //             }
 //         }
         
-//         // Moyenne générale annuelle (arrondie normalement)
+//         // Moyenne générale annuelle - COUPEE à 2 chiffres sans arrondi (comme pour mai)
 //         $moyenneGenerale = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
-//         $moyenneGeneraleArrondie = $moyenneGenerale !== null ? round($moyenneGenerale, 2) : null;
+//         $moyenneGeneraleArrondie = $moyenneGenerale !== null ? floor($moyenneGenerale * 100) / 100 : null;
         
 //         // Assiduité
 //         $moisAvecNotes = $notes->pluck('mois_id')->unique()->count();
@@ -1049,16 +1280,16 @@ public function generateRecapMoyennes(Request $request)
 //     }
 //     unset($eleve);
     
-//     // Statistiques (moyennes de classe arrondies normalement)
+//     // Statistiques (moyennes de classe coupées à 2 chiffres sans arrondi aussi)
 //     $elevesAvecNotes = array_filter($elevesAvecMoyennes, fn($e) => $e['moyenne'] > 0);
 //     $moyClasse = count($elevesAvecNotes) > 0
-//         ? round(array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes), 2)
+//         ? floor((array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes)) * 100) / 100
 //         : 0;
 //     $moyPremier = count($elevesAvecNotes) > 0
-//         ? round(max(array_column($elevesAvecNotes, 'moyenne')), 2)
+//         ? floor(max(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
 //         : 0;
 //     $moyDernier = count($elevesAvecNotes) > 0
-//         ? round(min(array_column($elevesAvecNotes, 'moyenne')), 2)
+//         ? floor(min(array_column($elevesAvecNotes, 'moyenne')) * 100) / 100
 //         : 0;
     
 //     $pdf = Pdf::loadView('dashboard.documents.bulletin-annuel', [
@@ -1110,6 +1341,19 @@ public function generateBulletinAnnuel(Request $request)
         ->where('classe_id', $request->classe_id)
         ->where('statut', 'active')
         ->get();
+
+    // ==================== CORRECTION : ÉLIMINER LES DOUBLONS ====================
+    foreach ($inscriptions as $inscription) {
+        $notesUniques = [];
+        foreach ($inscription->notes as $note) {
+            $key = $note->matiere_id . '_' . $note->mois_id;
+            if (!isset($notesUniques[$key])) {
+                $notesUniques[$key] = $note;
+            }
+        }
+        $inscription->notes = collect($notesUniques);
+    }
+    // ==================== FIN CORRECTION ====================
 
     // ==================== AJOUT : Ajouter les infos de base et coefficient aux notes ====================
     foreach ($inscriptions as $inscription) {
