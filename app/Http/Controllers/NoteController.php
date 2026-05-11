@@ -1039,6 +1039,19 @@ public function generateBulletin(Request $request)
 //         ->where('statut', 'active')
 //         ->get();
 
+//     // ==================== CORRECTION : ÉLIMINER LES DOUBLONS ====================
+//     foreach ($inscriptions as $inscription) {
+//         $notesUniques = [];
+//         foreach ($inscription->notes as $note) {
+//             $key = $note->matiere_id . '_' . $note->mois_id;
+//             if (!isset($notesUniques[$key])) {
+//                 $notesUniques[$key] = $note;
+//             }
+//         }
+//         $inscription->notes = collect($notesUniques);
+//     }
+//     // ==================== FIN CORRECTION ====================
+
 //     // ==================== AJOUT : Ajouter les infos de base et coefficient aux notes ====================
 //     foreach ($inscriptions as $inscription) {
 //         foreach ($inscription->notes as $note) {
@@ -1307,6 +1320,7 @@ public function generateBulletin(Request $request)
 //     return $pdf->stream("bulletin-annuel-{$classe->nom}.pdf");
 // }
 
+
 public function generateBulletinAnnuel(Request $request)
 {
     $request->validate([
@@ -1409,6 +1423,9 @@ public function generateBulletinAnnuel(Request $request)
     $moyennesParMoisGlobale = [];
     
     foreach ($moisScolaires as $mois) {
+        // Définir le coefficient du mois (2 pour mai, 1 pour les autres)
+        $coeffMois = ($mois->id == 10) ? 2 : 1;
+        
         foreach ($inscriptions as $inscription) {
             $notes = $inscription->notes->where('mois_id', $mois->id);
             $totalNotes = 0;
@@ -1427,7 +1444,11 @@ public function generateBulletinAnnuel(Request $request)
             $moyenneMois = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
             
             if ($moyenneMois !== null) {
-                $moyennesParMoisGlobale[$mois->id][$inscription->id] = $moyenneMois;
+                // Stocker la moyenne ET le coefficient du mois
+                $moyennesParMoisGlobale[$mois->id][$inscription->id] = [
+                    'moyenne' => $moyenneMois,
+                    'coefficient' => $coeffMois
+                ];
             }
         }
     }
@@ -1436,7 +1457,11 @@ public function generateBulletinAnnuel(Request $request)
     $rangsParMois = [];
     foreach ($moisScolaires as $mois) {
         if (isset($moyennesParMoisGlobale[$mois->id])) {
-            $moyennes = $moyennesParMoisGlobale[$mois->id];
+            // Extraire les moyennes pour le tri
+            $moyennes = [];
+            foreach ($moyennesParMoisGlobale[$mois->id] as $inscriptionId => $data) {
+                $moyennes[$inscriptionId] = $data['moyenne'];
+            }
             arsort($moyennes);
             $rang = 1;
             $prevMoyenne = null;
@@ -1503,9 +1528,22 @@ public function generateBulletinAnnuel(Request $request)
             }
         }
         
-        // Moyenne générale annuelle - COUPEE à 2 chiffres sans arrondi (comme pour mai)
-        $moyenneGenerale = $totalCoeffs > 0 ? ($totalNotes / $totalCoeffs) : null;
+        // ==================== NOUVEAU CALCUL : Moyenne générale annuelle avec pondération des mois ====================
+        $totalNotesMois = 0;
+        $totalCoeffsMois = 0;
+        
+        foreach ($moisScolaires as $mois) {
+            if (isset($moyennesParMoisGlobale[$mois->id][$inscription->id])) {
+                $dataMois = $moyennesParMoisGlobale[$mois->id][$inscription->id];
+                $totalNotesMois += $dataMois['moyenne'] * $dataMois['coefficient'];
+                $totalCoeffsMois += $dataMois['coefficient'];
+            }
+        }
+        
+        // Moyenne générale annuelle pondérée par les coefficients des mois
+        $moyenneGenerale = $totalCoeffsMois > 0 ? ($totalNotesMois / $totalCoeffsMois) : null;
         $moyenneGeneraleArrondie = $moyenneGenerale !== null ? floor($moyenneGenerale * 100) / 100 : null;
+        // ==================== FIN NOUVEAU CALCUL ====================
         
         // Assiduité
         $moisAvecNotes = $notes->pluck('mois_id')->unique()->count();
@@ -1514,10 +1552,12 @@ public function generateBulletinAnnuel(Request $request)
         // Construire le récapitulatif des moyennes par mois pour cet élève
         $moyennesParMois = [];
         foreach ($moisScolaires as $mois) {
-            $moyenneMois = $moyennesParMoisGlobale[$mois->id][$inscription->id] ?? null;
-            $rangMois = $rangsParMois[$mois->id][$inscription->id] ?? null;
-            
-            if ($moyenneMois !== null) {
+            if (isset($moyennesParMoisGlobale[$mois->id][$inscription->id])) {
+                $dataMois = $moyennesParMoisGlobale[$mois->id][$inscription->id];
+                $moyenneMois = $dataMois['moyenne'];
+                $rangMois = $rangsParMois[$mois->id][$inscription->id] ?? null;
+                $coeffMois = $dataMois['coefficient'];
+                
                 // Pour le mois de mai (id: 10) on coupe à 2 chiffres sans arrondi
                 // Pour les autres mois on arrondit normalement
                 if ($mois->id == 10) {
@@ -1529,6 +1569,7 @@ public function generateBulletinAnnuel(Request $request)
                 $moyennesParMois[] = [
                     'mois' => $mois->nom,
                     'moyenne' => $moyenneMoisFormatee,
+                    'coefficient' => $coeffMois,
                     'rang' => $rangMois,
                     'effectif' => $effectifTotal
                 ];
@@ -1537,8 +1578,8 @@ public function generateBulletinAnnuel(Request $request)
         
         $elevesAvecMoyennes[] = [
             'inscription' => $inscription,
-            'notes_originales' => $notes,  // Notes originales avec base, coefficient et rang
-            'notes' => collect($matieresAvecMoyenne),  // Les moyennes annuelles par matière
+            'notes_originales' => $notes,
+            'notes' => collect($matieresAvecMoyenne),
             'moyenne' => $moyenneGeneraleArrondie ?? 0,
             'mention' => $moyenneGeneraleArrondie !== null ? $this->getMention($moyenneGeneraleArrondie, $moyBase) : 'N/A',
             'assiduite' => round($assiduite, 2),
@@ -1596,7 +1637,7 @@ public function generateBulletinAnnuel(Request $request)
     }
     unset($eleve);
     
-    // Statistiques (moyennes de classe coupées à 2 chiffres sans arrondi aussi)
+    // Statistiques (moyennes de classe pondérées aussi)
     $elevesAvecNotes = array_filter($elevesAvecMoyennes, fn($e) => $e['moyenne'] > 0);
     $moyClasse = count($elevesAvecNotes) > 0
         ? floor((array_sum(array_column($elevesAvecNotes, 'moyenne')) / count($elevesAvecNotes)) * 100) / 100
