@@ -59,7 +59,7 @@
         </div>
     </div>
 
-    <!-- Tableau d'Honneur Annuel -->
+    <!-- Tableau d'Honneur Annuel avec sélection des mois -->
     <div class="col-xl-4 col-lg-6 col-md-12">
         <div class="card">
             <div class="card-header">
@@ -80,6 +80,19 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Mois / Périodes à inclure <span class="text-danger">*</span></label>
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle"></i> 
+                            Sélectionnez les mois à inclure dans le calcul de la moyenne annuelle
+                        </div>
+                        <select name="mois_ids[]" id="mois_annuel_select2" class="form-select select2" multiple="multiple" required>
+                            @foreach($moisScolaire as $mois)
+                                <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Vous pouvez sélectionner plusieurs mois</small>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Nombre d'élèves à honorer</label>
                         <select name="nombre_eleves" class="form-select" required>
                             @for($i = 1; $i <= 10; $i++)
@@ -95,8 +108,8 @@
         </div>
     </div>
 
-    <!-- Certificat de Major -->
-    {{-- <div class="col-xl-4 col-lg-6 col-md-12">
+    <!-- Certificat de Major avec sélection multiple des classes et des mois -->
+    <div class="col-xl-4 col-lg-6 col-md-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -107,103 +120,40 @@
             <div class="card-body">
                 <form action="{{ route('tableaux-honneur.generer-major') }}" method="GET" target="_blank">
                     <div class="mb-3">
-                        <label class="form-label">Type de Major</label>
-                        <select name="type" class="form-select" required>
-                            <option value="classe">Major de Classe</option>
-                            <option value="general">Major Général</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="classe-field">
-                        <label class="form-label">Classe</label>
-                        <select name="classe_id" class="form-select">
-                            <option value="">Sélectionner une classe</option>
+                        <label class="form-label">Classes à inclure <span class="text-danger">*</span></label>
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle"></i> 
+                            Sélectionnez les classes pour lesquelles vous voulez générer le certificat
+                        </div>
+                        <select name="classe_ids[]" id="classe_major_select2" class="form-select select2" multiple="multiple" required>
                             @foreach($classes as $classe)
                                 <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
                             @endforeach
                         </select>
+                        <small class="text-muted">Vous pouvez sélectionner plusieurs classes</small>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Période</label>
-                        <select name="periode" class="form-select" required>
-                            <option value="mois">Mensuel</option>
-                            <option value="annee">Annuel</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="mois-field">
-                        <label class="form-label">Mois</label>
-                        <select name="mois_id" class="form-select">
-                            <option value="">Sélectionner un mois</option>
+                        <label class="form-label">Mois / Périodes à inclure <span class="text-danger">*</span></label>
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle"></i> 
+                            Sélectionnez les mois à inclure dans le calcul de la moyenne
+                        </div>
+                        <select name="mois_ids[]" id="mois_major_select2" class="form-select select2" multiple="multiple" required>
                             @foreach($moisScolaire as $mois)
                                 <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
                             @endforeach
                         </select>
+                        <small class="text-muted">Vous pouvez sélectionner plusieurs mois</small>
                     </div>
+
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="ti ti-certificate me-2"></i>Générer le Certificat
                     </button>
                 </form>
             </div>
         </div>
-    </div> --}}
-    <!-- Certificat de Major -->
-<div class="col-xl-4 col-lg-6 col-md-12">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">
-                <i class="ti ti-medal text-primary me-2"></i>
-                Certificat de Major
-            </h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('tableaux-honneur.generer-major') }}" method="GET" target="_blank">
-                <div class="mb-3">
-                    <label class="form-label">Type de Major</label>
-                    <select name="type" class="form-select" required>
-                        <option value="classe" {{ old('type') == 'classe' ? 'selected' : '' }}>Major de Classe</option>
-                        <option value="general" {{ old('type') == 'general' ? 'selected' : '' }}>Major Général</option>
-                    </select>
-                </div>
-
-                <div class="mb-3" id="classe-field">
-                    <label class="form-label">Classe (facultatif pour Général)</label>
-                    <select name="classe_id" class="form-select">
-                        <option value="">Sélectionner une classe</option>
-                        @foreach($classes as $classe)
-                            <option value="{{ $classe->id }}" {{ old('classe_id') == $classe->id ? 'selected' : '' }}>
-                                {{ $classe->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Période</label>
-                    <select name="periode" class="form-select" required>
-                        <option value="mois" {{ old('periode') == 'mois' ? 'selected' : '' }}>Mensuel</option>
-                        <option value="annee" {{ old('periode') == 'annee' ? 'selected' : '' }}>Annuel</option>
-                    </select>
-                </div>
-
-                <div class="mb-3" id="mois-field">
-                    <label class="form-label">Mois (facultatif pour Annuel)</label>
-                    <select name="mois_id" class="form-select">
-                        <option value="">Sélectionner un mois</option>
-                        @foreach($moisScolaire as $mois)
-                            <option value="{{ $mois->id }}" {{ old('mois_id') == $mois->id ? 'selected' : '' }}>
-                                {{ $mois->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="ti ti-certificate me-2"></i>Générer le Certificat
-                </button>
-            </form>
-        </div>
     </div>
-</div>
-
 </div>
 
 <!-- Information -->
@@ -221,74 +171,96 @@
 @endsection
 
 @push('scripts')
-{{-- <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion de l'affichage conditionnel des champs
-    const typeSelect = document.querySelector('select[name="type"]');
-    const classeField = document.getElementById('classe-field');
-    const periodeSelect = document.querySelector('select[name="periode"]');
-    const moisField = document.getElementById('mois-field');
+<!-- jQuery (si pas déjà inclus) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 CSS et JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
-    function toggleFields() {
-        // Gestion du champ classe
-        if (typeSelect.value === 'general') {
-            classeField.style.display = 'none';
-            classeField.querySelector('select').required = false;
-        } else {
-            classeField.style.display = 'block';
-            classeField.querySelector('select').required = true;
-        }
-
-        // Gestion du champ mois
-        if (periodeSelect.value === 'annee') {
-            moisField.style.display = 'none';
-            moisField.querySelector('select').required = false;
-        } else {
-            moisField.style.display = 'block';
-            moisField.querySelector('select').required = true;
-        }
-    }
-
-    typeSelect.addEventListener('change', toggleFields);
-    periodeSelect.addEventListener('change', toggleFields);
-    
-    // Initialisation
-    toggleFields();
-});
-</script> --}}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const typeSelect = document.querySelector('select[name="type"]');
-    const classeField = document.getElementById('classe-field');
-    const periodeSelect = document.querySelector('select[name="periode"]');
-    const moisField = document.getElementById('mois-field');
-
-    function toggleFields() {
-        // Champ classe
-        if (typeSelect.value === 'general') {
-            classeField.style.display = 'none';
-            classeField.querySelector('select').required = false;
-        } else {
-            classeField.style.display = 'block';
-            classeField.querySelector('select').required = true;
+$(document).ready(function() {
+    // Configuration commune pour Select2
+    var select2Config = {
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Sélectionnez une ou plusieurs options',
+        allowClear: true,
+        language: {
+            noResults: function() {
+                return "Aucun résultat trouvé";
+            }
         }
-
-        // Champ mois
-        if (periodeSelect.value === 'annee') {
-            moisField.style.display = 'none';
-            moisField.querySelector('select').required = false;
-        } else {
-            moisField.style.display = 'block';
-            moisField.querySelector('select').required = true;
-        }
+    };
+    
+    // Initialiser Select2 pour le tableau d'honneur annuel
+    if ($('#mois_annuel_select2').length) {
+        $('#mois_annuel_select2').select2(select2Config);
     }
-
-    typeSelect.addEventListener('change', toggleFields);
-    periodeSelect.addEventListener('change', toggleFields);
-
-    // Initialisation
-    toggleFields();
+    
+    // Initialiser Select2 pour les classes du major
+    if ($('#classe_major_select2').length) {
+        $('#classe_major_select2').select2(select2Config);
+    }
+    
+    // Initialiser Select2 pour les mois du major
+    if ($('#mois_major_select2').length) {
+        $('#mois_major_select2').select2(select2Config);
+    }
+    
+    // Validation avant soumission pour le formulaire annuel du tableau d'honneur
+    $('form[action*="generer-annuel"]').on('submit', function(e) {
+        var moisCount = $('#mois_annuel_select2').val() ? $('#mois_annuel_select2').val().length : 0;
+        
+        if (moisCount === 0) {
+            e.preventDefault();
+            var errorMsg = "Veuillez sélectionner au moins un mois pour le tableau d'honneur annuel";
+            if (typeof toastr !== 'undefined') {
+                toastr.error(errorMsg);
+            } else {
+                alert(errorMsg);
+            }
+            return false;
+        }
+        return true;
+    });
+    
+    // Validation avant soumission pour le formulaire major
+    $('form[action*="generer-major"]').on('submit', function(e) {
+        // Vérifier qu'au moins une classe est sélectionnée
+        var classeCount = $('#classe_major_select2').val() ? $('#classe_major_select2').val().length : 0;
+        
+        if (classeCount === 0) {
+            e.preventDefault();
+            var errorMsg = "Veuillez sélectionner au moins une classe pour le certificat du major";
+            if (typeof toastr !== 'undefined') {
+                toastr.error(errorMsg);
+            } else {
+                alert(errorMsg);
+            }
+            return false;
+        }
+        
+        // Vérifier qu'au moins un mois est sélectionné
+        var moisCount = $('#mois_major_select2').val() ? $('#mois_major_select2').val().length : 0;
+        
+        if (moisCount === 0) {
+            e.preventDefault();
+            var errorMsg = "Veuillez sélectionner au moins un mois pour le certificat du major";
+            if (typeof toastr !== 'undefined') {
+                toastr.error(errorMsg);
+            } else {
+                alert(errorMsg);
+            }
+            return false;
+        }
+        
+        if (typeof toastr !== 'undefined') {
+            toastr.success("Génération des certificats en cours...");
+        }
+        
+        return true;
+    });
 });
 </script>
-
 @endpush

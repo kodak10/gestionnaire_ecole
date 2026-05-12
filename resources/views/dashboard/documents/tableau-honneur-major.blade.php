@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Diplôme Tableau d'Honneur</title>
+    <title>Certificat de Major</title>
 
     <style>
         @page {
@@ -132,90 +132,162 @@
 </head>
 <body>
 
-<div class="diplome">
+@if(isset($majors) && count($majors) > 0)
+    @foreach($majors as $index => $eleve)
+    <div class="diplome">
+        @php
+            $inscription = $eleve['inscription'];
+            $nom = strtoupper(trim($inscription->eleve->nom));
+            $prenoms = array_values(array_filter(
+                explode(' ', trim($inscription->eleve->prenom))
+            ));
 
-@php
-    $nom = strtoupper(trim($eleve['inscription']->eleve->nom));
-    $prenoms = array_values(array_filter(
-        explode(' ', trim($eleve['inscription']->eleve->prenom))
-    ));
+            $maxLength = 25;
 
-    $maxLength = 25;
+            // Construction initiale
+            $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
 
-    // Construction initiale
-    $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
+            // Tant que ça dépasse, on réduit les prénoms un à un (en partant de la fin)
+            for ($i = count($prenoms) - 1; $i >= 0; $i--) {
 
-    // Tant que ça dépasse, on réduit les prénoms un à un (en partant de la fin)
-    for ($i = count($prenoms) - 1; $i >= 0; $i--) {
+                if (mb_strlen($nomFinal) <= $maxLength) {
+                    break;
+                }
 
-        if (mb_strlen($nomFinal) <= $maxLength) {
-            break;
-        }
+                $prenoms[$i] = mb_substr($prenoms[$i], 0, 1) . '.';
+                $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
+            }
 
-        $prenoms[$i] = mb_substr($prenoms[$i], 0, 1) . '.';
-        $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
-    }
+            // Si ça dépasse encore → réduire le nom en initiale
+            if (mb_strlen($nomFinal) > $maxLength) {
+                $nomInitial = mb_substr($nom, 0, 1) . '.';
+                $nomFinal = $nomInitial . ' ' . strtoupper(implode(' ', $prenoms));
+            }
 
-    // Si ça dépasse encore → réduire le nom en initiale
-    if (mb_strlen($nomFinal) > $maxLength) {
-        $nomInitial = mb_substr($nom, 0, 1) . '.';
-        $nomFinal = $nomInitial . ' ' . strtoupper(implode(' ', $prenoms));
-    }
+            // Nettoyage
+            $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
+            
+            $photoPath = str_replace(
+                url('/storage'),
+                public_path('storage'),
+                $inscription->eleve->photo_url
+            );
+        @endphp
 
-    // Nettoyage
-    $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
-@endphp
+        @if(file_exists($photoPath))
+        <div class="photo">
+            <img src="{{ $photoPath }}">
+        </div>
+        @endif
 
- @php
-        $photoPath = str_replace(
-            url('/storage'),
-            public_path('storage'),
-            $eleve['inscription']->eleve->photo_url
-        );
-    @endphp
+        <div class="nom">
+            {{ $nomFinal }}
+        </div>
 
+        <div class="classe">
+            Elève en Classe de : <strong>{{ $inscription->classe->nom }}</strong>
+        </div>
 
+        <div class="moyenne">
+            Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
+        </div>
 
-    <div class="photo">
-        <img src="{{ $photoPath }}">
+        <div class="rang">
+            Année Scolaire : {{ $anneeScolaire->annee }}
+        </div>
 
+        <div class="date">
+            Fait à {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
+        </div>
+
+        <div class="signature_enseignant">
+            {{ $inscription->classe->enseignant->nom_prenoms ?? 'L\'Enseignant' }}
+        </div>
+
+        <div class="signature_directeur">
+            {{ $ecole->directeur ?? 'Le Directeur' }}
+        </div>
     </div>
+    @if(!$loop->last)
+    <div style="page-break-after: always;"></div>
+    @endif
+    @endforeach
+@elseif(isset($eleve))
+    <div class="diplome">
+        @php
+            $inscription = $eleve['inscription'];
+            $nom = strtoupper(trim($inscription->eleve->nom));
+            $prenoms = array_values(array_filter(
+                explode(' ', trim($inscription->eleve->prenom))
+            ));
 
-<div class="nom">
-    {{ $nomFinal }}
-</div>
+            $maxLength = 25;
 
-<div class="photo">
-    <img src="{{ $eleve['inscription']->eleve->photo_url }} ">
-</div>
+            // Construction initiale
+            $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
 
-<div class="classe">
-    Elève en Classe de : <strong>{{ $eleve['inscription']->classe->nom }}</strong>
-</div>
+            // Tant que ça dépasse, on réduit les prénoms un à un (en partant de la fin)
+            for ($i = count($prenoms) - 1; $i >= 0; $i--) {
 
-<div class="moyenne">
-    Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
-</div>
+                if (mb_strlen($nomFinal) <= $maxLength) {
+                    break;
+                }
 
-<div class="rang">
-    Année Scolaire : {{ $anneeScolaire->annee }}
-</div>
+                $prenoms[$i] = mb_substr($prenoms[$i], 0, 1) . '.';
+                $nomFinal = $nom . ' ' . strtoupper(implode(' ', $prenoms));
+            }
 
-<div class="date">
-    Fait à {{ $inscription->ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
-</div>
+            // Si ça dépasse encore → réduire le nom en initiale
+            if (mb_strlen($nomFinal) > $maxLength) {
+                $nomInitial = mb_substr($nom, 0, 1) . '.';
+                $nomFinal = $nomInitial . ' ' . strtoupper(implode(' ', $prenoms));
+            }
 
-<div class="signature_enseignant">
-    {{ $eleve['inscription']->classe->enseignant->nom_prenoms }}
-</div>
+            // Nettoyage
+            $nomFinal = preg_replace('/\s+/', ' ', trim($nomFinal));
+            
+            $photoPath = str_replace(
+                url('/storage'),
+                public_path('storage'),
+                $inscription->eleve->photo_url
+            );
+        @endphp
 
-<div class="signature_directeur">
-    {{ $anneeScolaire->ecole->directeur }}
-</div>
+        @if(file_exists($photoPath))
+        <div class="photo">
+            <img src="{{ $photoPath }}">
+        </div>
+        @endif
 
-</div>
+        <div class="nom">
+            {{ $nomFinal }}
+        </div>
 
+        <div class="classe">
+            Elève en Classe de : <strong>{{ $inscription->classe->nom }}</strong>
+        </div>
 
+        <div class="moyenne">
+            Moyenne : {{ number_format((float)$eleve['moyenne_reelle'], 2, '.', '') }} / {{ intval(preg_replace('/[.,].*/', '', $eleve['moy_base'])) }}
+        </div>
+
+        <div class="rang">
+            Année Scolaire : {{ $anneeScolaire->annee }}
+        </div>
+
+        <div class="date">
+            Fait à {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
+        </div>
+
+        <div class="signature_enseignant">
+            {{ $inscription->classe->enseignant->nom_prenoms ?? 'L\'Enseignant' }}
+        </div>
+
+        <div class="signature_directeur">
+            {{ $ecole->directeur ?? 'Le Directeur' }}
+        </div>
+    </div>
+@endif
 
 </body>
 </html>
