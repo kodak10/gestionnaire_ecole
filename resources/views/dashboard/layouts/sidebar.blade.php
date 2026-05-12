@@ -63,6 +63,7 @@
                                 @endhasanyrole
                                 @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                                 <li><a href="{{ route('tableaux-honneur.index') }}" class="{{ request()->routeIs('tableaux-honneur.index') ? 'active' : '' }}">Tableau d'honneur</a></li>
+                                <li><a href="{{ route('parchemin.index') }}" class="{{ request()->routeIs('parchemin.index') ? 'active' : '' }}">Parchemin</a></li>
                                 @endhasanyrole
                             </ul>
                         </li>

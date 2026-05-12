@@ -19,6 +19,7 @@ use App\Http\Controllers\MatiereController;
 use App\Http\Controllers\MentionController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ParametrageScolariteController;
+use App\Http\Controllers\ParcheminController;
 use App\Http\Controllers\PreInscriptionController;
 use App\Http\Controllers\ReglementController;
 use App\Http\Controllers\ReinscriptionController;
@@ -167,6 +168,12 @@ use Illuminate\Support\Facades\Route;
         Route::get('/tableaux-honneur/generer-mensuel', [TableauHonneurController::class, 'genererMensuel'])->name('tableaux-honneur.generer-mensuel');
         Route::get('/tableaux-honneur/generer-annuel', [TableauHonneurController::class, 'genererAnnuel'])->name('tableaux-honneur.generer-annuel');
         Route::get('/tableaux-honneur/generer-major', [TableauHonneurController::class, 'genererMajor'])->name('tableaux-honneur.generer-major');
+
+        // Routes pour les parchemins
+        Route::get('/parchemin', [ParcheminController::class, 'index'])->name('parchemin.index');
+        Route::get('/parchemin/generer', [ParcheminController::class, 'generer'])->name('parchemin.generer');
+
+
 
         // Routes pour le journal des paiements
         Route::prefix('journal-paiements')->group(function () {
