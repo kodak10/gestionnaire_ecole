@@ -338,7 +338,7 @@
                 </table>
 
                 <div class="travail">
-                    Il/elle est par conséquent, déclaré(e) capable de suivre, au titre de l'année scolaire {{ $anneeScolaire->annee ?? $anneeScolaire->debut.'-'.$anneeScolaire->fin }}
+                    Il/elle est par conséquent, déclaré(e) capable de suivre, au titre de l'année scolaire 2026-2027
                 </div>
 
                 <!-- Tableau classe suivante -->
