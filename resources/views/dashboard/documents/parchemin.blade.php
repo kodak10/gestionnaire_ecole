@@ -359,35 +359,34 @@
             <div class="date">
                 {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
             </div>
-
-            <!-- Signature avec photo de l'élève -->
-            <!-- Signature avec photo de l'élève -->
+<!-- Signature avec photo de l'élève -->
 <div class="signature-container">
     <div class="photo-eleve">
         @php
-            $photoUrl = '';
+            $photoPath = public_path('images/default.png'); // Chemin par défaut
+            
             if($inscription->eleve->photo_path) {
-                // Vérifier si le chemin commence par 'storage/' ou si c'est un chemin complet
-                if(Str::startsWith($inscription->eleve->photo_path, 'storage/')) {
-                    $photoUrl = asset($inscription->eleve->photo_path);
-                } elseif(Str::startsWith($inscription->eleve->photo_path, 'public/')) {
-                    $photoUrl = asset(str_replace('public/', 'storage/', $inscription->eleve->photo_path));
+                // Vérifier si le fichier existe dans storage
+                $storagePath = storage_path('app/public/' . $inscription->eleve->photo_path);
+                if(file_exists($storagePath)) {
+                    $photoPath = $storagePath;
                 } else {
-                    $photoUrl = asset('storage/' . $inscription->eleve->photo_path);
+                    // Vérifier si le fichier existe dans public/storage
+                    $publicPath = public_path('storage/' . $inscription->eleve->photo_path);
+                    if(file_exists($publicPath)) {
+                        $photoPath = $publicPath;
+                    }
                 }
-            } else {
-                $photoUrl = asset('assets/img/default-user.png');
             }
         @endphp
-        <img src="{{ $photoUrl }}" 
+        <img src="{{ $photoPath }}" 
              alt="Photo de {{ $inscription->eleve->prenom }}"
-             style="width:80px; height:80px; object-fit:cover; border-radius:50%;">
+             style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
     </div>
     <div class="signature">
         <div class="signature-line">
             LA DIRECTION
         </div>
-        <br> <br>
     </div>
 </div>
         </div>
