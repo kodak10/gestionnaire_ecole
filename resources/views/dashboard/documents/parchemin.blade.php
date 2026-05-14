@@ -214,50 +214,59 @@
         }
 
         /* Signature avec photo */
-        .signature-container {
-            margin-top: 5mm;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* Signature avec photo */
+.signature-container {
+    margin-top: 5mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
 
-        .photo-eleve {
-            width: 90px;
-            height: 90px;
-            border: 1px solid #8B4513;
-            border-radius: 50%;
-            overflow: hidden;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+.photo-eleve {
+    width: 90px;
+    height: 90px;
+    border: 1px solid #8B4513;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
 
-        .photo-eleve img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+.photo-eleve img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
-        .photo-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            color: #999;
-        }
+.photo-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: #999;
+}
 
-        .signature {
-            text-align: right;
-            flex-grow: 1;
-        }
+.signature {
+    text-align: right;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 90px; /* Même hauteur que la photo */
+}
 
-        .signature-line {
-            margin-top: 8mm;
-            font-weight: bold;
-        }
+.signature-line {
+    font-weight: bold;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+}
 
         .date {
             text-align: center;
@@ -280,6 +289,24 @@
     $mention = $eleve['mention'];
     $classeSuivante = $eleve['classe_suivante'];
     $photoPath = $eleve['photo_path'] ?? null;
+@endphp
+
+@php
+    $photoPath = public_path('images/default.png'); // Chemin par défaut
+    
+    if($inscription->eleve->photo_path) {
+        // Vérifier si le fichier existe dans storage
+        $storagePath = storage_path('app/public/' . $inscription->eleve->photo_path);
+        if(file_exists($storagePath)) {
+            $photoPath = $storagePath;
+        } else {
+            // Vérifier si le fichier existe dans public/storage
+            $publicPath = public_path('storage/' . $inscription->eleve->photo_path);
+            if(file_exists($publicPath)) {
+                $photoPath = $publicPath;
+            }
+        }
+    }
 @endphp
 
 <div class="container">
@@ -359,19 +386,16 @@
             <div class="date">
                 {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
             </div>
-<!-- Signature avec photo de l'élève -->
 <div class="signature-container">
     <div class="photo-eleve">
         @php
             $photoPath = public_path('images/default.png'); // Chemin par défaut
             
             if($inscription->eleve->photo_path) {
-                // Vérifier si le fichier existe dans storage
                 $storagePath = storage_path('app/public/' . $inscription->eleve->photo_path);
                 if(file_exists($storagePath)) {
                     $photoPath = $storagePath;
                 } else {
-                    // Vérifier si le fichier existe dans public/storage
                     $publicPath = public_path('storage/' . $inscription->eleve->photo_path);
                     if(file_exists($publicPath)) {
                         $photoPath = $publicPath;
@@ -380,8 +404,7 @@
             }
         @endphp
         <img src="{{ $photoPath }}" 
-             alt="Photo de {{ $inscription->eleve->prenom }}"
-             style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
+             alt="Photo de {{ $inscription->eleve->prenom }}">
     </div>
     <div class="signature">
         <div class="signature-line">
