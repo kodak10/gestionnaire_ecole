@@ -56,12 +56,12 @@ class ParcheminController extends Controller
 
         foreach ($inscriptions as $inscription) {
             // Calculer la moyenne annuelle de l'élève sur tous les mois
-            $moyenneData = $this->calculerMoyenneAnnuelle($inscription->id, $classe->id);
+            $moyenneData = $this->calculerMoyenneAnnuelle($inscription->id, $classe->id, $anneeScolaireId);
             
             // Déterminer la mention
             $mention = $this->getMentionParchemin($moyenneData['moyenne'], $classe->moy_base ?? 20);
             
-            // Déterminer la section/ classe suivante
+            // Déterminer la section/classe suivante
             $classeSuivante = $this->getClasseSuivante($classe->nom);
 
             $elevesAvecMention[] = [
@@ -70,7 +70,8 @@ class ParcheminController extends Controller
                 'moyenne_formatee' => number_format($moyenneData['moyenne'], 2, ',', ' '),
                 'mention' => $mention,
                 'classe_suivante' => $classeSuivante,
-                'statut' => $this->getStatut($mention)
+                'statut' => $this->getStatut($mention),
+                'photo_path' => $inscription->eleve->photo_path
             ];
         }
 
@@ -95,13 +96,14 @@ class ParcheminController extends Controller
     /**
      * Calcule la moyenne annuelle d'un élève
      */
-    private function calculerMoyenneAnnuelle($inscriptionId, $classeId)
+    private function calculerMoyenneAnnuelle($inscriptionId, $classeId, $anneeScolaireId)
     {
         $classe = Classe::with('niveau.matieres')->find($classeId);
         $moyBase = $classe->moy_base ?? 20;
 
-        // Récupérer toutes les notes de l'élève
+        // Récupérer toutes les notes de l'élève pour l'année scolaire
         $notes = Note::where('inscription_id', $inscriptionId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
             ->with('matiere')
             ->get();
 

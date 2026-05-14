@@ -20,7 +20,7 @@
 
         .container {
             width: 100%;
-            max-width: 180mm;
+            max-width: 200mm;
             margin: 0 auto;
             padding: 5mm 0;
         }
@@ -40,37 +40,66 @@
 
         .border-cadre {
             border: 2px solid #8B4513;
-            padding: 8mm 10mm;
+            padding: 8mm 2mm;
             background: #fffef7;
         }
 
-        /* En-tête */
-        .header {
+        /* En-tête identique à celui du bulletin */
+        .entete {
             width: 100%;
-            text-align: center;
+            overflow: hidden;
             margin-bottom: 5mm;
         }
-
-        .ministere {
-            font-size: 11pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 2mm;
+        .entete-logo {
+            float: left;
+            width: 15%;
+            text-align: center;
         }
+        .logo-img {
+            width: 100%;
+            height: 100px;
+        }
+        .entete-centre {
+            float: left;
+            width: 50%;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 2mm;
+            box-sizing: border-box;
+            border-radius: 10px;
+                        
 
-        .direction, .inspection, .secteur {
+        }
+        .entete-droite {
+            
+            float: right;
+            width: 30%;
+            text-align: left;
+            border: 1px solid #000;
+            padding: 2mm;
+            box-sizing: border-box;
+            border-radius: 10px;
+        }
+        .clearfix {
+            clear: both;
+        }
+        
+        .republique-text {
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        .ministere-text {
             font-size: 9pt;
-            margin-bottom: 1mm;
-        }
-
-        .ecole {
-            font-size: 13pt;
             font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 4mm;
-            margin-bottom: 4mm;
-            text-decoration: underline;
+        }
+        .ecole-nom-header {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 2mm;
+        }
+        .info-droite {
+            font-size: 9pt;
+            line-height: 1.4;
         }
 
         /* Titre */
@@ -184,10 +213,45 @@
             margin: 5mm 0 3mm 0;
         }
 
-        /* Signature */
-        .signature {
+        /* Signature avec photo */
+        .signature-container {
             margin-top: 5mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .photo-eleve {
+            width: 90px;
+            height: 90px;
+            border: 1px solid #8B4513;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-eleve img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: #999;
+        }
+
+        .signature {
             text-align: right;
+            flex-grow: 1;
         }
 
         .signature-line {
@@ -201,38 +265,57 @@
             margin-bottom: 2mm;
             font-size: 10pt;
         }
-
-        /* Empêcher les sauts de page à l'intérieur */
-        .parchemin, .border-cadre, .header, .content {
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
     </style>
 </head>
 <body>
+
+@php
+    use Carbon\Carbon;
+    $ecole = \App\Models\Ecole::find(session('current_ecole_id'));
+@endphp
 
 @foreach($eleves as $eleve)
 @php
     $inscription = $eleve['inscription'];
     $mention = $eleve['mention'];
     $classeSuivante = $eleve['classe_suivante'];
+    $photoPath = $eleve['photo_path'] ?? null;
 @endphp
 
 <div class="container">
     <div class="parchemin">
         <div class="border-cadre">
-            <!-- En-tête -->
-            <div class="header">
-                <div class="ministere">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
-                <div class="direction">DIRECTION RÉGIONALE : {{ strtoupper($ecole->region ?? 'KORHOGO') }}</div>
-                <div class="inspection">INSPECTION DE L'ENSEIGNEMENT PRÉSCOLAIRE ET PRIMAIRE : {{ strtoupper($ecole->inspection ?? 'KORHOGO-EST') }}</div>
-                <div class="secteur">SECTEUR PÉDAGOGIQUE : {{ strtoupper($ecole->secteur ?? 'TIEKELEZO') }}</div>
-                <div class="ecole">{{ strtoupper($ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE') }}</div>
+            
+            <!-- EN-TÊTE AVEC INFOS ÉCOLE -->
+            <div class="entete">
+                <!-- Logo à gauche -->
+                <div class="entete-logo">
+                    <img src="{{ $ecole->logo }}" alt="Logo" class="logo-img">
+                </div>
+
+                <!-- Partie centrale (avec cadre) -->
+                <div class="entete-centre">
+                    <div class="republique-text"><b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b></div>
+                    <div class="ministere-text">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
+                    <div>...........................</div>
+                    <div class="ecole-nom-header"><b>{{ strtoupper($ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE') }}</b></div>
+                </div>
+
+                <!-- Partie droite (infos école) -->
+                <div class="entete-droite">
+                    <div class="info-droite">
+                        Code : <b>{{ $ecole->code ?? '' }}</b><br>
+                        Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
+                        Tél. : <b>{{ $ecole->telephone ?? '' }}</b> <br>
+                        Ville : <b>{{ $ecole->ville ?? 'KORHOGO' }}</b> <br>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
             </div>
 
             <!-- Titre -->
             <div class="title">
-                BILAN DE FIN D'ANNÉE SCOLAIRE {{ $anneeScolaire->annee }}
+                BILAN DE FIN D'ANNÉE SCOLAIRE {{ $anneeScolaire->annee ?? $anneeScolaire->debut.'-'.$anneeScolaire->fin }}
             </div>
 
             <!-- Contenu -->
@@ -242,28 +325,28 @@
                 </div>
 
                 <div class="section">
-                    En {{ $classe->nom }} de la Maternelle « {{ $ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE' }} » de {{ $ecole->ville ?? 'KORHOGO' }}, a produit un travail dans l'ensemble :
+                    En {{ $classe->nom }} de l'école « {{ $ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE' }} » de {{ $ecole->ville ?? 'KORHOGO' }}, a produit un travail dans l'ensemble :
                 </div>
 
                 <!-- Tableau des mentions -->
                 <table class="mention-table">
-                    <tr><td>Passable</td><td class="{{ $mention == 'Passable' ? 'mention-checked' : '' }}">{{ $mention == 'Passable' ? 'X' : '' }}</td></tr>
-                    <tr><td>Assez-bien</td><td class="{{ $mention == 'Assez-bien' ? 'mention-checked' : '' }}">{{ $mention == 'Assez-bien' ? 'X' : '' }}</td></tr>
-                    <tr><td>Bien</td><td class="{{ $mention == 'Bien' ? 'mention-checked' : '' }}">{{ $mention == 'Bien' ? 'X' : '' }}</td></tr>
-                    <tr><td>Très-bien</td><td class="{{ $mention == 'Très-bien' ? 'mention-checked' : '' }}">{{ $mention == 'Très-bien' ? 'X' : '' }}</td></tr>
-                    <tr><td>Excellent</td><td class="{{ $mention == 'Excellent' ? 'mention-checked' : '' }}">{{ $mention == 'Excellent' ? 'X' : '' }}</td></tr>
+                    <tr><td>Passable</td><td></td></tr>
+                    <tr><td>Assez-bien</td><td></td></tr>
+                    <tr><td>Bien</td><td></td></tr>
+                    <tr><td>Très-bien</td><td></td></tr>
+                    <tr><td>Excellent</td><td></td></tr>
                 </table>
 
                 <div class="travail">
-                    Il/elle est par conséquent, déclaré(e) capable de suivre, au titre de l'année scolaire {{ $anneeScolaire->annee }}
+                    Il/elle est par conséquent, déclaré(e) capable de suivre, au titre de l'année scolaire {{ $anneeScolaire->annee ?? $anneeScolaire->debut.'-'.$anneeScolaire->fin }}
                 </div>
 
                 <!-- Tableau classe suivante -->
                 <table class="classe-suivante-table">
-                    <tr><td>La Petite Section</td><td class="{{ $classeSuivante == 'Petite Section' ? 'classe-checked' : '' }}">{{ $classeSuivante == 'Petite Section' ? 'X' : '' }}</td></tr>
-                    <tr><td>La Moyenne Section</td><td class="{{ $classeSuivante == 'Moyenne Section' ? 'classe-checked' : '' }}">{{ $classeSuivante == 'Moyenne Section' ? 'X' : '' }}</td></tr>
-                    <tr><td>La Grande Section</td><td class="{{ $classeSuivante == 'Grande Section' ? 'classe-checked' : '' }}">{{ $classeSuivante == 'Grande Section' ? 'X' : '' }}</td></tr>
-                    <tr><td>Le CP1</td><td class="{{ $classeSuivante == 'CP1' ? 'classe-checked' : '' }}">{{ $classeSuivante == 'CP1' ? 'X' : '' }}</td></tr>
+                    <tr><td>La Petite Section</td><td></td></tr>
+                    <tr><td>La Moyenne Section</td><td></td></tr>
+                    <tr><td>La Grande Section</td><td></td></tr>
+                    <tr><td>Le CP1</td><td></td></tr>
                 </table>
 
                 <!-- Voeux -->
@@ -272,16 +355,41 @@
                 </div>
             </div>
 
-            <!-- Date et signature -->
+            <!-- Date -->
             <div class="date">
-                Korhogo, le {{ now()->format('d/m/Y') }}
+                {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
             </div>
 
-            <div class="signature">
-                <div class="signature-line">
-                    LA DIRECTION
-                </div>
-            </div>
+            <!-- Signature avec photo de l'élève -->
+            <!-- Signature avec photo de l'élève -->
+<div class="signature-container">
+    <div class="photo-eleve">
+        @php
+            $photoUrl = '';
+            if($inscription->eleve->photo_path) {
+                // Vérifier si le chemin commence par 'storage/' ou si c'est un chemin complet
+                if(Str::startsWith($inscription->eleve->photo_path, 'storage/')) {
+                    $photoUrl = asset($inscription->eleve->photo_path);
+                } elseif(Str::startsWith($inscription->eleve->photo_path, 'public/')) {
+                    $photoUrl = asset(str_replace('public/', 'storage/', $inscription->eleve->photo_path));
+                } else {
+                    $photoUrl = asset('storage/' . $inscription->eleve->photo_path);
+                }
+            } else {
+                $photoUrl = asset('assets/img/default-user.png');
+            }
+        @endphp
+        <img src="{{ $photoUrl }}" 
+             alt="Photo de {{ $inscription->eleve->prenom }}"
+             style="width:80px; height:80px; object-fit:cover; border-radius:50%;">
+    </div>
+    <div class="signature">
+        <div class="signature-line">
+            LA DIRECTION
+        </div>
+        <br> <br>
+    </div>
+</div>
         </div>
     </div>
 </div>
