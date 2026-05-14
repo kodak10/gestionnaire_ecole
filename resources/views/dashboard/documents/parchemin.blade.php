@@ -52,7 +52,7 @@
         }
         .entete-logo {
             float: left;
-            width: 15%;
+            width: 20%;
             text-align: center;
         }
         .logo-img {
@@ -61,7 +61,7 @@
         }
         .entete-centre {
             float: left;
-            width: 50%;
+            width: 58%;
             text-align: center;
             border: 1px solid #000;
             padding: 2mm;
@@ -73,10 +73,8 @@
         .entete-droite {
             
             float: right;
-            width: 30%;
+            width: 14%;
             text-align: left;
-            border: 1px solid #000;
-            padding: 2mm;
             box-sizing: border-box;
             border-radius: 10px;
         }
@@ -224,8 +222,8 @@
 }
 
 .photo-eleve {
-    width: 90px;
-    height: 90px;
+    width: 100px;
+    height: 100px;
     border: 1px solid #8B4513;
     border-radius: 50%;
     overflow: hidden;
@@ -316,8 +314,10 @@
             <!-- EN-TÊTE AVEC INFOS ÉCOLE -->
             <div class="entete">
                 <!-- Logo à gauche -->
-                <div class="entete-logo">
+                <div class="entete-logo" style="margin-right: 20px">
                     <img src="{{ $ecole->logo }}" alt="Logo" class="logo-img">
+                    <br>
+                    Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b>
                 </div>
 
                 <!-- Partie centrale (avec cadre) -->
@@ -331,10 +331,25 @@
                 <!-- Partie droite (infos école) -->
                 <div class="entete-droite">
                     <div class="info-droite">
-                        Code : <b>{{ $ecole->code ?? '' }}</b><br>
-                        Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
-                        Tél. : <b>{{ $ecole->telephone ?? '' }}</b> <br>
-                        Ville : <b>{{ $ecole->ville ?? 'KORHOGO' }}</b> <br>
+                        <div class="photo-eleve">
+        @php
+            $photoPath = public_path('images/default.png'); // Chemin par défaut
+            
+            if($inscription->eleve->photo_path) {
+                $storagePath = storage_path('app/public/' . $inscription->eleve->photo_path);
+                if(file_exists($storagePath)) {
+                    $photoPath = $storagePath;
+                } else {
+                    $publicPath = public_path('storage/' . $inscription->eleve->photo_path);
+                    if(file_exists($publicPath)) {
+                        $photoPath = $publicPath;
+                    }
+                }
+            }
+        @endphp
+        <img src="{{ $photoPath }}" 
+             alt="Photo de {{ $inscription->eleve->prenom }}">
+    </div>
                     </div>
                 </div>
                 <div class="clearfix"></div>
@@ -387,25 +402,7 @@
                 {{ $ecole->ville ?? 'Korhogo' }}, le {{ now()->format('d/m/Y') }}
             </div>
 <div class="signature-container">
-    <div class="photo-eleve">
-        @php
-            $photoPath = public_path('images/default.png'); // Chemin par défaut
-            
-            if($inscription->eleve->photo_path) {
-                $storagePath = storage_path('app/public/' . $inscription->eleve->photo_path);
-                if(file_exists($storagePath)) {
-                    $photoPath = $storagePath;
-                } else {
-                    $publicPath = public_path('storage/' . $inscription->eleve->photo_path);
-                    if(file_exists($publicPath)) {
-                        $photoPath = $publicPath;
-                    }
-                }
-            }
-        @endphp
-        <img src="{{ $photoPath }}" 
-             alt="Photo de {{ $inscription->eleve->prenom }}">
-    </div>
+    
     <div class="signature">
         <div class="signature-line">
             LA DIRECTION
