@@ -327,7 +327,7 @@
                     <div>...........................</div>
                     <span>Direction Régionale: Korhogo</span> <br>
                     <span>IEPP: {{ $ecole->iept ?? 'KORHOGO EST' }}</span> <br>
-                    <span>Secteur Pédagogique: {{ $ecole->secteur_pedagogique ?? 'JEAN DE LA FOSSE' }}</span>
+                    <span>Secteur Pédagogique: {{ $ecole->secteur_pedagogique ?? 'Jean Delafosse' }}</span>
                     <div>...........................</div>
 
                     <div class="ecole-nom-header"><b>{{ strtoupper($ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE') }}</b></div>
