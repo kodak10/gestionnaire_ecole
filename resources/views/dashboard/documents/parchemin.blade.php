@@ -323,11 +323,16 @@
                 <!-- Partie centrale (avec cadre) -->
                 <div class="entete-centre">
                     <div class="republique-text"><b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b></div>
-                    <div class="ministere-text">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
+                    <div>MINISTÈRE DE L’ÉDUCATION NATIONALE DE L'ALPHABÉTISATION ET DE L'ENSEIGNEMENT TECHNIQUE<br></div>
                     <div>...........................</div>
+                    <span>Direction Régionale: Korhogo</span> <br>
+                    <span>IEPP: {{ $ecole->iept ?? 'KORHOGO EST' }}</span> <br>
+                    <span>Secteur Pédagogique: {{ $ecole->secteur_pedagogique ?? 'JEAN DE LA FOSSE' }}</span>
+                    <div>...........................</div>
+
                     <div class="ecole-nom-header"><b>{{ strtoupper($ecole->nom ?? 'GROUPE SCOLAIRE EXCELLE') }}</b></div>
                 </div>
-
+ 
                 <!-- Partie droite (infos école) -->
                 <div class="entete-droite">
                     <div class="info-droite">
