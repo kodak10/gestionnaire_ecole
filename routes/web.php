@@ -151,6 +151,8 @@ use Illuminate\Support\Facades\Route;
 
         Route::resource('notes', NoteController::class);
 
+        Route::get('/notes/check-existing-mois-moyenne', [NoteController::class, 'checkExistingMoisMoyenne'])->name('notes.checkExistingMoisMoyenne');
+
 
         // Routes pour les documents
         Route::get('/documents/inscriptions', [DocumentController::class, 'inscriptions'])->name('documents.inscriptions');
