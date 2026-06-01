@@ -446,238 +446,14 @@ public function generateFichesMoyennes(Request $request)
 }
 
 
-// public function generateRecapMoyennes(Request $request)
-// {
-//     $request->validate([
-//         'type' => 'required|in:mensuel,annuel',
-//         //'classe_id' => 'required_if:type,mensuel|exists:classes,id',
-//         'classe_id' => 'required_if:type,mensuel',
-//         'mois_id' => 'required_if:type,mensuel'
-//         //'mois_id' => 'requir=ed_if:type,mensuel|exists:mois_scolaires,id'
-//     ]);
-
-//     $ecoleId = session('current_ecole_id');
-//     $anneeScolaireId = session('current_annee_scolaire_id');
-//     $type = $request->type;
-    
-//     if ($type == 'mensuel') {
-//         // Récupération depuis moyenne_mois
-//         $mois = MoisScolaire::findOrFail($request->mois_id);
-//         $classe = Classe::findOrFail($request->classe_id);
-        
-//         // LOG : Afficher les paramètres de recherche
-//         \Log::info('Recherche moyenne_mois', [
-//             'classe_id' => $classe->id,
-//             'mois_id' => $mois->id,
-//             'annee_scolaire_id' => $anneeScolaireId,
-//             'ecole_id' => $ecoleId
-//         ]);
-        
-//         // Récupérer les moyennes mensuelles pour cette classe avec les relations
-//         $moyennesMois = MoyenneMois::with(['eleve', 'classe', 'mois'])
-//             ->where('classe_id', $classe->id)
-//             ->where('mois_id', $mois->id)
-//             ->where('annee_scolaire_id', $anneeScolaireId)
-//             ->where('ecole_id', $ecoleId)
-//             ->orderBy('moyenne', 'desc')
-//             ->get();
-        
-//         // LOG : Afficher le nombre de résultats
-//         \Log::info('Nombre de résultats', ['count' => $moyennesMois->count()]);
-        
-//         if ($moyennesMois->isEmpty()) {
-//             // LOG : Afficher un extrait des données pour déboguer
-//             $sample = MoyenneMois::where('classe_id', $classe->id)
-//                 ->where('annee_scolaire_id', $anneeScolaireId)
-//                 ->where('ecole_id', $ecoleId)
-//                 ->first();
-            
-//             if ($sample) {
-//                 \Log::info('Exemple de données existantes', [
-//                     'classe_id' => $sample->classe_id,
-//                     'mois_id' => $sample->mois_id,
-//                     'moyenne' => $sample->moyenne
-//                 ]);
-//             } else {
-//                 \Log::info('Aucune donnée trouvée pour cette classe dans moyenne_mois');
-//             }
-            
-//             return back()->with('error', "Aucune moyenne enregistrée pour la classe {$classe->nom} au mois de {$mois->nom}. Veuillez d'abord générer et enregistrer le bulletin mensuel.");
-//         }
-        
-//         // Récupérer les matières pour cette classe
-//         $matieres = $classe->niveau->matieres->sortBy(fn($m) => $m->pivot->ordre ?? 0);
-        
-//         // Préparer les données pour le PDF
-//         $eleves = [];
-//         $rang = 1;
-//         foreach ($moyennesMois as $moyenne) {
-//             // Récupérer les détails des notes par matière
-//             $notesDetails = [];
-//             if ($moyenne->details_notes) {
-//                 // Décoder le JSON si nécessaire
-//                 $details = is_string($moyenne->details_notes) ? json_decode($moyenne->details_notes, true) : $moyenne->details_notes;
-//                 foreach ($details as $note) {
-//                     $notesDetails[$note['matiere_id']] = $note;
-//                 }
-//             }
-            
-//             $eleves[] = [
-//                 'rang' => $rang++,
-//                 'nom' => $moyenne->eleve->nom,
-//                 'prenom' => $moyenne->eleve->prenom,
-//                 'moyenne' => number_format($moyenne->moyenne, 2, ',', ''),
-//                 'moyenne_brute' => $moyenne->moyenne,
-//                 'appreciation' => $moyenne->appreciation ?? '-',
-//                 'details' => $notesDetails,
-//                 'rang_general' => $moyenne->rang,
-//                 'exaequo' => $moyenne->exaequo
-//             ];
-//         }
-        
-//         $data = [
-//             'classe' => $classe,
-//             'enseignant' => $classe->enseignant?->name ?? '—',
-//             'eleves' => $eleves,
-//             'matieres' => $matieres,
-//             'mois' => $mois,
-//             'type' => 'mensuel',
-//             'moyenne_classe' => $moyennesMois->first()->moyenne_classe ?? 0,
-//             'moyenne_min' => $moyennesMois->first()->moyenne_min ?? 0,
-//             'moyenne_max' => $moyennesMois->first()->moyenne_max ?? 0,
-//             'effectif' => $moyennesMois->first()->effectif_classe ?? count($eleves),
-//             'moy_base' => $classe->moy_base
-//         ];
-        
-//         $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_mensuelle', compact('data'))
-//             ->setPaper('a4', 'landscape');
-        
-//         return $pdf->stream('recap_moyennes_' . $classe->nom . '_' . $mois->nom . '.pdf');
-        
-//     } else {
-//     // Récupération depuis moyenne_generale (annuel)
-//     $moyennesGenerales = MoyenneGenerale::with(['eleve', 'classe.niveau.matieres'])
-//         ->where('annee_scolaire_id', $anneeScolaireId)
-//         ->where('ecole_id', $ecoleId)
-//         ->get();
-    
-//     if ($moyennesGenerales->isEmpty()) {
-//         return back()->with('error', "Aucune moyenne annuelle enregistrée. Veuillez d'abord générer et enregistrer les bulletins annuels.");
-//     }
-    
-//     // Grouper par classe
-//     $data = [];
-//     $classesTraitees = [];
-    
-//     foreach ($moyennesGenerales as $moyenne) {
-//         $classeId = $moyenne->classe_id;
-        
-//         if (!isset($classesTraitees[$classeId])) {
-//             // Récupérer la liste des mois depuis le JSON
-//             $moisListe = [];
-//             if ($moyenne->moyennes_par_mois) {
-//                 $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
-//                 foreach ($moisData as $moisId => $dataMois) {
-//                     $moisListe[] = [
-//                         'id' => $moisId,
-//                         'nom' => $dataMois['mois_nom'],
-//                         'ordre' => $dataMois['mois_ordre'] ?? $moisId
-//                     ];
-//                 }
-//                 // TRI PAR ORDRE CROISSANT (4, 7, 9 au lieu de 4, 7, 9 mais correct)
-//                 usort($moisListe, function($a, $b) {
-//                     return $a['ordre'] <=> $b['ordre'];
-//                 });
-//             }
-            
-//             // CRITIQUE: S'assurer que l'ordre est correct
-//             // Pour déboguer, afficher l'ordre des mois
-//             \Log::info('Ordre des mois pour la classe', [
-//                 'classe' => $moyenne->classe->nom,
-//                 'mois' => array_column($moisListe, 'nom'),
-//                 'ordre' => array_column($moisListe, 'ordre')
-//             ]);
-            
-//             $classesTraitees[$classeId] = [
-//                 'classe' => $moyenne->classe,
-//                 'enseignant' => $moyenne->classe->enseignant?->name ?? '—',
-//                 'eleves' => [],
-//                 'mois_notes' => $moisListe,
-//                 'type' => 'annuel',
-//                 'moyenne_classe' => 0,
-//                 'moyenne_min' => 0,
-//                 'moyenne_max' => 0,
-//                 'effectif' => 0,
-//                 'moy_base' => $moyenne->classe->moy_base
-//             ];
-//         }
-        
-//         // Récupérer les moyennes par mois pour cet élève
-//         $moisNotesEleve = [];
-//         $rangsMoisEleve = [];
-//         if ($moyenne->moyennes_par_mois) {
-//             $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
-//             foreach ($moisData as $moisId => $dataMois) {
-//                 $moisNotesEleve[$moisId] = $dataMois['moyenne'];
-//             }
-//         }
-//         if ($moyenne->rangs_par_mois) {
-//             $rangsData = is_string($moyenne->rangs_par_mois) ? json_decode($moyenne->rangs_par_mois, true) : $moyenne->rangs_par_mois;
-//             foreach ($rangsData as $moisId => $dataRang) {
-//                 $rangsMoisEleve[$moisId] = $dataRang;
-//             }
-//         }
-        
-//         $classesTraitees[$classeId]['eleves'][] = [
-//             'eleve_id' => $moyenne->eleve->id,
-//             'nom' => $moyenne->eleve->nom,
-//             'prenom' => $moyenne->eleve->prenom,
-//             'moyenne' => number_format($moyenne->moyenne_annuelle, 2, ',', ''),
-//             'moyenne_brute' => $moyenne->moyenne_annuelle,
-//             'decision' => $moyenne->decision ?? '-',
-//             'rang_general' => $moyenne->rang_general,
-//             'exaequo' => $moyenne->exaequo,
-//             'mois_notes' => $moisNotesEleve,
-//             'rangs_mois' => $rangsMoisEleve
-//         ];
-        
-//         // Mettre à jour les statistiques de classe
-//         $classesTraitees[$classeId]['effectif']++;
-//         $classesTraitees[$classeId]['moyenne_classe'] += $moyenne->moyenne_annuelle;
-//         if ($moyenne->moyenne_annuelle > $classesTraitees[$classeId]['moyenne_max']) {
-//             $classesTraitees[$classeId]['moyenne_max'] = $moyenne->moyenne_annuelle;
-//         }
-//         if ($classesTraitees[$classeId]['moyenne_min'] == 0 || $moyenne->moyenne_annuelle < $classesTraitees[$classeId]['moyenne_min']) {
-//             $classesTraitees[$classeId]['moyenne_min'] = $moyenne->moyenne_annuelle;
-//         }
-//     }
-    
-//     // Finaliser les statistiques
-//     foreach ($classesTraitees as &$classeData) {
-//         // Calculer la moyenne de classe
-//         if ($classeData['effectif'] > 0) {
-//             $classeData['moyenne_classe'] = $classeData['moyenne_classe'] / $classeData['effectif'];
-//             $classeData['moyenne_classe'] = floor($classeData['moyenne_classe'] * 100) / 100;
-//             $classeData['moyenne_max'] = floor($classeData['moyenne_max'] * 100) / 100;
-//             $classeData['moyenne_min'] = floor($classeData['moyenne_min'] * 100) / 100;
-//         }
-//     }
-    
-//     $data = array_values($classesTraitees);
-    
-//     $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_annuelle', compact('data'))
-//         ->setPaper('a4', 'landscape');
-    
-//     return $pdf->stream('recap_moyennes_annuelles.pdf');
-// }
-// }
-
 public function generateRecapMoyennes(Request $request)
 {
     $request->validate([
         'type' => 'required|in:mensuel,annuel',
+        //'classe_id' => 'required_if:type,mensuel|exists:classes,id',
         'classe_id' => 'required_if:type,mensuel',
         'mois_id' => 'required_if:type,mensuel'
+        //'mois_id' => 'requir=ed_if:type,mensuel|exists:mois_scolaires,id'
     ]);
 
     $ecoleId = session('current_ecole_id');
@@ -779,181 +555,405 @@ public function generateRecapMoyennes(Request $request)
         return $pdf->stream('recap_moyennes_' . $classe->nom . '_' . $mois->nom . '.pdf');
         
     } else {
-        // Récupération depuis moyenne_generale (annuel)
-        $moyennesGenerales = MoyenneGenerale::with(['eleve', 'classe.niveau.matieres'])
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->where('ecole_id', $ecoleId)
-            ->get();
+    // Récupération depuis moyenne_generale (annuel)
+    $moyennesGenerales = MoyenneGenerale::with(['eleve', 'classe.niveau.matieres'])
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->where('ecole_id', $ecoleId)
+        ->get();
+    
+    if ($moyennesGenerales->isEmpty()) {
+        return back()->with('error', "Aucune moyenne annuelle enregistrée. Veuillez d'abord générer et enregistrer les bulletins annuels.");
+    }
+    
+    // Grouper par classe
+    $data = [];
+    $classesTraitees = [];
+    
+    foreach ($moyennesGenerales as $moyenne) {
+        $classeId = $moyenne->classe_id;
         
-        if ($moyennesGenerales->isEmpty()) {
-            return back()->with('error', "Aucune moyenne annuelle enregistrée. Veuillez d'abord générer et enregistrer les bulletins annuels.");
-        }
-        
-        // Grouper par classe
-        $data = [];
-        $classesTraitees = [];
-        
-        foreach ($moyennesGenerales as $moyenne) {
-            $classeId = $moyenne->classe_id;
-            
-            if (!isset($classesTraitees[$classeId])) {
-                // Récupérer la liste des mois depuis le JSON
-                $moisListe = [];
-                if ($moyenne->moyennes_par_mois) {
-                    $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
-                    foreach ($moisData as $moisId => $dataMois) {
-                        $moisListe[] = [
-                            'id' => $moisId,
-                            'nom' => $dataMois['mois_nom'],
-                            'ordre' => $dataMois['mois_ordre'] ?? $moisId
-                        ];
-                    }
-                    // TRI PAR ORDRE CROISSANT
-                    usort($moisListe, function($a, $b) {
-                        return $a['ordre'] <=> $b['ordre'];
-                    });
-                }
-                
-                \Log::info('Ordre des mois pour la classe', [
-                    'classe' => $moyenne->classe->nom,
-                    'mois' => array_column($moisListe, 'nom'),
-                    'ordre' => array_column($moisListe, 'ordre')
-                ]);
-                
-                $classesTraitees[$classeId] = [
-                    'classe' => $moyenne->classe,
-                    'enseignant' => $moyenne->classe->enseignant?->name ?? '—',
-                    'eleves' => [],
-                    'mois_notes' => $moisListe,
-                    'type' => 'annuel',
-                    'moyenne_classe' => 0,
-                    'moyenne_min' => 0,
-                    'moyenne_max' => 0,
-                    'effectif' => 0,
-                    'moy_base' => $moyenne->classe->moy_base
-                ];
-            }
-            
-            // Récupérer les moyennes par mois pour cet élève ET RECALCULER LA MOYENNE ANNUELLE
-            $moisNotesEleve = [];
-            $rangsMoisEleve = [];
-            $moyenneRecalculee = null;
-            $totalCoeffs = 0;
-            $totalNotes = 0;
-            
+        if (!isset($classesTraitees[$classeId])) {
+            // Récupérer la liste des mois depuis le JSON
+            $moisListe = [];
             if ($moyenne->moyennes_par_mois) {
                 $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
-                
                 foreach ($moisData as $moisId => $dataMois) {
-                    // Stocker la moyenne pour l'affichage
-                    $moisNotesEleve[$moisId] = $dataMois['moyenne'];
-                    
-                    // Coefficient du mois (1 sauf mai coeff 2)
-                    $coeffMois = ($moisId == 10) ? 2 : 1;
-                    $totalCoeffs += $coeffMois;
-                    
-                    // Si l'élève a une note pour ce mois, on l'ajoute
-                    if ($dataMois['moyenne'] !== null && $dataMois['moyenne'] !== '') {
-                        $totalNotes += $dataMois['moyenne'] * $coeffMois;
-                    }
-                    // Si moyenne = null, contribution = 0 (rien à ajouter)
+                    $moisListe[] = [
+                        'id' => $moisId,
+                        'nom' => $dataMois['mois_nom'],
+                        'ordre' => $dataMois['mois_ordre'] ?? $moisId
+                    ];
                 }
-                
-                // Calculer la moyenne réelle sur tous les mois
-                if ($totalCoeffs > 0) {
-                    $moyenneRecalculee = $totalNotes / $totalCoeffs;
-                    $moyenneRecalculee = floor($moyenneRecalculee * 100) / 100; // Couper à 2 chiffres
-                }
+                // TRI PAR ORDRE CROISSANT (4, 7, 9 au lieu de 4, 7, 9 mais correct)
+                usort($moisListe, function($a, $b) {
+                    return $a['ordre'] <=> $b['ordre'];
+                });
             }
             
-            if ($moyenne->rangs_par_mois) {
-                $rangsData = is_string($moyenne->rangs_par_mois) ? json_decode($moyenne->rangs_par_mois, true) : $moyenne->rangs_par_mois;
-                foreach ($rangsData as $moisId => $dataRang) {
-                    $rangsMoisEleve[$moisId] = $dataRang;
-                }
-            }
+            // CRITIQUE: S'assurer que l'ordre est correct
+            // Pour déboguer, afficher l'ordre des mois
+            \Log::info('Ordre des mois pour la classe', [
+                'classe' => $moyenne->classe->nom,
+                'mois' => array_column($moisListe, 'nom'),
+                'ordre' => array_column($moisListe, 'ordre')
+            ]);
             
-            // Utiliser la moyenne recalculee si disponible, sinon l'ancienne
-            $moyenneFinale = ($moyenneRecalculee !== null) ? $moyenneRecalculee : $moyenne->moyenne_annuelle;
-            
-            $classesTraitees[$classeId]['eleves'][] = [
-                'eleve_id' => $moyenne->eleve->id,
-                'nom' => $moyenne->eleve->nom,
-                'prenom' => $moyenne->eleve->prenom,
-                'moyenne' => number_format($moyenneFinale, 2, ',', ''),
-                'moyenne_brute' => $moyenneFinale,
-                'decision' => $moyenne->decision ?? '-',
-                'rang_general' => $moyenne->rang_general,
-                'exaequo' => $moyenne->exaequo,
-                'mois_notes' => $moisNotesEleve,
-                'rangs_mois' => $rangsMoisEleve
+            $classesTraitees[$classeId] = [
+                'classe' => $moyenne->classe,
+                'enseignant' => $moyenne->classe->enseignant?->name ?? '—',
+                'eleves' => [],
+                'mois_notes' => $moisListe,
+                'type' => 'annuel',
+                'moyenne_classe' => 0,
+                'moyenne_min' => 0,
+                'moyenne_max' => 0,
+                'effectif' => 0,
+                'moy_base' => $moyenne->classe->moy_base
             ];
         }
         
-        // ==================== RECALCUL DES RANGS POUR CHAQUE CLASSE ====================
-        foreach ($classesTraitees as &$classeData) {
-            // Trier les élèves par moyenne brute décroissante
-            usort($classeData['eleves'], function($a, $b) {
-                return $b['moyenne_brute'] <=> $a['moyenne_brute'];
-            });
-            
-            // Recalcul des rangs
-            $rang = 1;
-            $prevMoyenne = null;
-            foreach ($classeData['eleves'] as $index => &$eleveData) {
-                if ($index === 0) {
-                    $eleveData['rang_general'] = 1;
-                    $eleveData['exaequo'] = false;
-                } else {
-                    if ($eleveData['moyenne_brute'] == $prevMoyenne) {
-                        $eleveData['rang_general'] = $rang;
-                        $eleveData['exaequo'] = true;
-                        // Marquer l'élève précédent comme exaequo aussi
-                        $classeData['eleves'][$index - 1]['exaequo'] = true;
-                    } else {
-                        $rang = $index + 1;
-                        $eleveData['rang_general'] = $rang;
-                        $eleveData['exaequo'] = false;
-                    }
-                }
-                $prevMoyenne = $eleveData['moyenne_brute'];
-                // Mettre à jour l'affichage de la moyenne avec le bon format
-                $eleveData['moyenne'] = number_format($eleveData['moyenne_brute'], 2, ',', '');
+        // Récupérer les moyennes par mois pour cet élève
+        $moisNotesEleve = [];
+        $rangsMoisEleve = [];
+        if ($moyenne->moyennes_par_mois) {
+            $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
+            foreach ($moisData as $moisId => $dataMois) {
+                $moisNotesEleve[$moisId] = $dataMois['moyenne'];
             }
-            unset($eleveData);
-            
-            // Recalculer les statistiques de classe avec les nouvelles moyennes
-            $classeData['effectif'] = count($classeData['eleves']);
-            $classeData['moyenne_classe'] = 0;
-            $classeData['moyenne_max'] = 0;
-            $classeData['moyenne_min'] = 0;
-            
-            foreach ($classeData['eleves'] as $eleveData) {
-                $classeData['moyenne_classe'] += $eleveData['moyenne_brute'];
-                if ($eleveData['moyenne_brute'] > $classeData['moyenne_max']) {
-                    $classeData['moyenne_max'] = $eleveData['moyenne_brute'];
-                }
-                if ($classeData['moyenne_min'] == 0 || $eleveData['moyenne_brute'] < $classeData['moyenne_min']) {
-                    $classeData['moyenne_min'] = $eleveData['moyenne_brute'];
-                }
-            }
-            
-            if ($classeData['effectif'] > 0) {
-                $classeData['moyenne_classe'] = $classeData['moyenne_classe'] / $classeData['effectif'];
-                $classeData['moyenne_classe'] = floor($classeData['moyenne_classe'] * 100) / 100;
-                $classeData['moyenne_max'] = floor($classeData['moyenne_max'] * 100) / 100;
-                $classeData['moyenne_min'] = floor($classeData['moyenne_min'] * 100) / 100;
+        }
+        if ($moyenne->rangs_par_mois) {
+            $rangsData = is_string($moyenne->rangs_par_mois) ? json_decode($moyenne->rangs_par_mois, true) : $moyenne->rangs_par_mois;
+            foreach ($rangsData as $moisId => $dataRang) {
+                $rangsMoisEleve[$moisId] = $dataRang;
             }
         }
         
-        $data = array_values($classesTraitees);
+        $classesTraitees[$classeId]['eleves'][] = [
+            'eleve_id' => $moyenne->eleve->id,
+            'nom' => $moyenne->eleve->nom,
+            'prenom' => $moyenne->eleve->prenom,
+            'moyenne' => number_format($moyenne->moyenne_annuelle, 2, ',', ''),
+            'moyenne_brute' => $moyenne->moyenne_annuelle,
+            'decision' => $moyenne->decision ?? '-',
+            'rang_general' => $moyenne->rang_general,
+            'exaequo' => $moyenne->exaequo,
+            'mois_notes' => $moisNotesEleve,
+            'rangs_mois' => $rangsMoisEleve
+        ];
         
-        $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_annuelle', compact('data'))
-            ->setPaper('a4', 'landscape');
-        
-        return $pdf->stream('recap_moyennes_annuelles.pdf');
+        // Mettre à jour les statistiques de classe
+        $classesTraitees[$classeId]['effectif']++;
+        $classesTraitees[$classeId]['moyenne_classe'] += $moyenne->moyenne_annuelle;
+        if ($moyenne->moyenne_annuelle > $classesTraitees[$classeId]['moyenne_max']) {
+            $classesTraitees[$classeId]['moyenne_max'] = $moyenne->moyenne_annuelle;
+        }
+        if ($classesTraitees[$classeId]['moyenne_min'] == 0 || $moyenne->moyenne_annuelle < $classesTraitees[$classeId]['moyenne_min']) {
+            $classesTraitees[$classeId]['moyenne_min'] = $moyenne->moyenne_annuelle;
+        }
     }
+    
+    // Finaliser les statistiques
+    foreach ($classesTraitees as &$classeData) {
+        // Calculer la moyenne de classe
+        if ($classeData['effectif'] > 0) {
+            $classeData['moyenne_classe'] = $classeData['moyenne_classe'] / $classeData['effectif'];
+            $classeData['moyenne_classe'] = floor($classeData['moyenne_classe'] * 100) / 100;
+            $classeData['moyenne_max'] = floor($classeData['moyenne_max'] * 100) / 100;
+            $classeData['moyenne_min'] = floor($classeData['moyenne_min'] * 100) / 100;
+        }
+    }
+    
+    $data = array_values($classesTraitees);
+    
+    $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_annuelle', compact('data'))
+        ->setPaper('a4', 'landscape');
+    
+    return $pdf->stream('recap_moyennes_annuelles.pdf');
 }
+}
+
+// public function generateRecapMoyennes(Request $request)
+// {
+//     $request->validate([
+//         'type' => 'required|in:mensuel,annuel',
+//         'classe_id' => 'required_if:type,mensuel',
+//         'mois_id' => 'required_if:type,mensuel'
+//     ]);
+
+//     $ecoleId = session('current_ecole_id');
+//     $anneeScolaireId = session('current_annee_scolaire_id');
+//     $type = $request->type;
+    
+//     if ($type == 'mensuel') {
+//         // Récupération depuis moyenne_mois
+//         $mois = MoisScolaire::findOrFail($request->mois_id);
+//         $classe = Classe::findOrFail($request->classe_id);
+        
+//         // LOG : Afficher les paramètres de recherche
+//         \Log::info('Recherche moyenne_mois', [
+//             'classe_id' => $classe->id,
+//             'mois_id' => $mois->id,
+//             'annee_scolaire_id' => $anneeScolaireId,
+//             'ecole_id' => $ecoleId
+//         ]);
+        
+//         // Récupérer les moyennes mensuelles pour cette classe avec les relations
+//         $moyennesMois = MoyenneMois::with(['eleve', 'classe', 'mois'])
+//             ->where('classe_id', $classe->id)
+//             ->where('mois_id', $mois->id)
+//             ->where('annee_scolaire_id', $anneeScolaireId)
+//             ->where('ecole_id', $ecoleId)
+//             ->orderBy('moyenne', 'desc')
+//             ->get();
+        
+//         // LOG : Afficher le nombre de résultats
+//         \Log::info('Nombre de résultats', ['count' => $moyennesMois->count()]);
+        
+//         if ($moyennesMois->isEmpty()) {
+//             // LOG : Afficher un extrait des données pour déboguer
+//             $sample = MoyenneMois::where('classe_id', $classe->id)
+//                 ->where('annee_scolaire_id', $anneeScolaireId)
+//                 ->where('ecole_id', $ecoleId)
+//                 ->first();
+            
+//             if ($sample) {
+//                 \Log::info('Exemple de données existantes', [
+//                     'classe_id' => $sample->classe_id,
+//                     'mois_id' => $sample->mois_id,
+//                     'moyenne' => $sample->moyenne
+//                 ]);
+//             } else {
+//                 \Log::info('Aucune donnée trouvée pour cette classe dans moyenne_mois');
+//             }
+            
+//             return back()->with('error', "Aucune moyenne enregistrée pour la classe {$classe->nom} au mois de {$mois->nom}. Veuillez d'abord générer et enregistrer le bulletin mensuel.");
+//         }
+        
+//         // Récupérer les matières pour cette classe
+//         $matieres = $classe->niveau->matieres->sortBy(fn($m) => $m->pivot->ordre ?? 0);
+        
+//         // Préparer les données pour le PDF
+//         $eleves = [];
+//         $rang = 1;
+//         foreach ($moyennesMois as $moyenne) {
+//             // Récupérer les détails des notes par matière
+//             $notesDetails = [];
+//             if ($moyenne->details_notes) {
+//                 // Décoder le JSON si nécessaire
+//                 $details = is_string($moyenne->details_notes) ? json_decode($moyenne->details_notes, true) : $moyenne->details_notes;
+//                 foreach ($details as $note) {
+//                     $notesDetails[$note['matiere_id']] = $note;
+//                 }
+//             }
+            
+//             $eleves[] = [
+//                 'rang' => $rang++,
+//                 'nom' => $moyenne->eleve->nom,
+//                 'prenom' => $moyenne->eleve->prenom,
+//                 'moyenne' => number_format($moyenne->moyenne, 2, ',', ''),
+//                 'moyenne_brute' => $moyenne->moyenne,
+//                 'appreciation' => $moyenne->appreciation ?? '-',
+//                 'details' => $notesDetails,
+//                 'rang_general' => $moyenne->rang,
+//                 'exaequo' => $moyenne->exaequo
+//             ];
+//         }
+        
+//         $data = [
+//             'classe' => $classe,
+//             'enseignant' => $classe->enseignant?->name ?? '—',
+//             'eleves' => $eleves,
+//             'matieres' => $matieres,
+//             'mois' => $mois,
+//             'type' => 'mensuel',
+//             'moyenne_classe' => $moyennesMois->first()->moyenne_classe ?? 0,
+//             'moyenne_min' => $moyennesMois->first()->moyenne_min ?? 0,
+//             'moyenne_max' => $moyennesMois->first()->moyenne_max ?? 0,
+//             'effectif' => $moyennesMois->first()->effectif_classe ?? count($eleves),
+//             'moy_base' => $classe->moy_base
+//         ];
+        
+//         $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_mensuelle', compact('data'))
+//             ->setPaper('a4', 'landscape');
+        
+//         return $pdf->stream('recap_moyennes_' . $classe->nom . '_' . $mois->nom . '.pdf');
+        
+//     } else {
+//         // Récupération depuis moyenne_generale (annuel)
+//         $moyennesGenerales = MoyenneGenerale::with(['eleve', 'classe.niveau.matieres'])
+//             ->where('annee_scolaire_id', $anneeScolaireId)
+//             ->where('ecole_id', $ecoleId)
+//             ->get();
+        
+//         if ($moyennesGenerales->isEmpty()) {
+//             return back()->with('error', "Aucune moyenne annuelle enregistrée. Veuillez d'abord générer et enregistrer les bulletins annuels.");
+//         }
+        
+//         // Grouper par classe
+//         $data = [];
+//         $classesTraitees = [];
+        
+//         foreach ($moyennesGenerales as $moyenne) {
+//             $classeId = $moyenne->classe_id;
+            
+//             if (!isset($classesTraitees[$classeId])) {
+//                 // Récupérer la liste des mois depuis le JSON
+//                 $moisListe = [];
+//                 if ($moyenne->moyennes_par_mois) {
+//                     $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
+//                     foreach ($moisData as $moisId => $dataMois) {
+//                         $moisListe[] = [
+//                             'id' => $moisId,
+//                             'nom' => $dataMois['mois_nom'],
+//                             'ordre' => $dataMois['mois_ordre'] ?? $moisId
+//                         ];
+//                     }
+//                     // TRI PAR ORDRE CROISSANT
+//                     usort($moisListe, function($a, $b) {
+//                         return $a['ordre'] <=> $b['ordre'];
+//                     });
+//                 }
+                
+//                 \Log::info('Ordre des mois pour la classe', [
+//                     'classe' => $moyenne->classe->nom,
+//                     'mois' => array_column($moisListe, 'nom'),
+//                     'ordre' => array_column($moisListe, 'ordre')
+//                 ]);
+                
+//                 $classesTraitees[$classeId] = [
+//                     'classe' => $moyenne->classe,
+//                     'enseignant' => $moyenne->classe->enseignant?->name ?? '—',
+//                     'eleves' => [],
+//                     'mois_notes' => $moisListe,
+//                     'type' => 'annuel',
+//                     'moyenne_classe' => 0,
+//                     'moyenne_min' => 0,
+//                     'moyenne_max' => 0,
+//                     'effectif' => 0,
+//                     'moy_base' => $moyenne->classe->moy_base
+//                 ];
+//             }
+            
+//             // Récupérer les moyennes par mois pour cet élève ET RECALCULER LA MOYENNE ANNUELLE
+//             $moisNotesEleve = [];
+//             $rangsMoisEleve = [];
+//             $moyenneRecalculee = null;
+//             $totalCoeffs = 0;
+//             $totalNotes = 0;
+            
+//             if ($moyenne->moyennes_par_mois) {
+//                 $moisData = is_string($moyenne->moyennes_par_mois) ? json_decode($moyenne->moyennes_par_mois, true) : $moyenne->moyennes_par_mois;
+                
+//                 foreach ($moisData as $moisId => $dataMois) {
+//                     // Stocker la moyenne pour l'affichage
+//                     $moisNotesEleve[$moisId] = $dataMois['moyenne'];
+                    
+//                     // Coefficient du mois (1 sauf mai coeff 2)
+//                     $coeffMois = ($moisId == 10) ? 2 : 1;
+//                     $totalCoeffs += $coeffMois;
+                    
+//                     // Si l'élève a une note pour ce mois, on l'ajoute
+//                     if ($dataMois['moyenne'] !== null && $dataMois['moyenne'] !== '') {
+//                         $totalNotes += $dataMois['moyenne'] * $coeffMois;
+//                     }
+//                     // Si moyenne = null, contribution = 0 (rien à ajouter)
+//                 }
+                
+//                 // Calculer la moyenne réelle sur tous les mois
+//                 if ($totalCoeffs > 0) {
+//                     $moyenneRecalculee = $totalNotes / $totalCoeffs;
+//                     $moyenneRecalculee = floor($moyenneRecalculee * 100) / 100; // Couper à 2 chiffres
+//                 }
+//             }
+            
+//             if ($moyenne->rangs_par_mois) {
+//                 $rangsData = is_string($moyenne->rangs_par_mois) ? json_decode($moyenne->rangs_par_mois, true) : $moyenne->rangs_par_mois;
+//                 foreach ($rangsData as $moisId => $dataRang) {
+//                     $rangsMoisEleve[$moisId] = $dataRang;
+//                 }
+//             }
+            
+//             // Utiliser la moyenne recalculee si disponible, sinon l'ancienne
+//             $moyenneFinale = ($moyenneRecalculee !== null) ? $moyenneRecalculee : $moyenne->moyenne_annuelle;
+            
+//             $classesTraitees[$classeId]['eleves'][] = [
+//                 'eleve_id' => $moyenne->eleve->id,
+//                 'nom' => $moyenne->eleve->nom,
+//                 'prenom' => $moyenne->eleve->prenom,
+//                 'moyenne' => number_format($moyenneFinale, 2, ',', ''),
+//                 'moyenne_brute' => $moyenneFinale,
+//                 'decision' => $moyenne->decision ?? '-',
+//                 'rang_general' => $moyenne->rang_general,
+//                 'exaequo' => $moyenne->exaequo,
+//                 'mois_notes' => $moisNotesEleve,
+//                 'rangs_mois' => $rangsMoisEleve
+//             ];
+//         }
+        
+//         // ==================== RECALCUL DES RANGS POUR CHAQUE CLASSE ====================
+//         foreach ($classesTraitees as &$classeData) {
+//             // Trier les élèves par moyenne brute décroissante
+//             usort($classeData['eleves'], function($a, $b) {
+//                 return $b['moyenne_brute'] <=> $a['moyenne_brute'];
+//             });
+            
+//             // Recalcul des rangs
+//             $rang = 1;
+//             $prevMoyenne = null;
+//             foreach ($classeData['eleves'] as $index => &$eleveData) {
+//                 if ($index === 0) {
+//                     $eleveData['rang_general'] = 1;
+//                     $eleveData['exaequo'] = false;
+//                 } else {
+//                     if ($eleveData['moyenne_brute'] == $prevMoyenne) {
+//                         $eleveData['rang_general'] = $rang;
+//                         $eleveData['exaequo'] = true;
+//                         // Marquer l'élève précédent comme exaequo aussi
+//                         $classeData['eleves'][$index - 1]['exaequo'] = true;
+//                     } else {
+//                         $rang = $index + 1;
+//                         $eleveData['rang_general'] = $rang;
+//                         $eleveData['exaequo'] = false;
+//                     }
+//                 }
+//                 $prevMoyenne = $eleveData['moyenne_brute'];
+//                 // Mettre à jour l'affichage de la moyenne avec le bon format
+//                 $eleveData['moyenne'] = number_format($eleveData['moyenne_brute'], 2, ',', '');
+//             }
+//             unset($eleveData);
+            
+//             // Recalculer les statistiques de classe avec les nouvelles moyennes
+//             $classeData['effectif'] = count($classeData['eleves']);
+//             $classeData['moyenne_classe'] = 0;
+//             $classeData['moyenne_max'] = 0;
+//             $classeData['moyenne_min'] = 0;
+            
+//             foreach ($classeData['eleves'] as $eleveData) {
+//                 $classeData['moyenne_classe'] += $eleveData['moyenne_brute'];
+//                 if ($eleveData['moyenne_brute'] > $classeData['moyenne_max']) {
+//                     $classeData['moyenne_max'] = $eleveData['moyenne_brute'];
+//                 }
+//                 if ($classeData['moyenne_min'] == 0 || $eleveData['moyenne_brute'] < $classeData['moyenne_min']) {
+//                     $classeData['moyenne_min'] = $eleveData['moyenne_brute'];
+//                 }
+//             }
+            
+//             if ($classeData['effectif'] > 0) {
+//                 $classeData['moyenne_classe'] = $classeData['moyenne_classe'] / $classeData['effectif'];
+//                 $classeData['moyenne_classe'] = floor($classeData['moyenne_classe'] * 100) / 100;
+//                 $classeData['moyenne_max'] = floor($classeData['moyenne_max'] * 100) / 100;
+//                 $classeData['moyenne_min'] = floor($classeData['moyenne_min'] * 100) / 100;
+//             }
+//         }
+        
+//         $data = array_values($classesTraitees);
+        
+//         $pdf = Pdf::loadView('dashboard.documents.recap_moyenne_annuelle', compact('data'))
+//             ->setPaper('a4', 'landscape');
+        
+//         return $pdf->stream('recap_moyennes_annuelles.pdf');
+//     }
+// }
 
 
 public function generateBulletin(Request $request)
