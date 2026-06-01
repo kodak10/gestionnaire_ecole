@@ -563,8 +563,10 @@ public function generateRecapMoyennes(Request $request)
 {
     $request->validate([
         'type' => 'required|in:mensuel,annuel',
-        'classe_id' => 'required_if:type,mensuel|exists:classes,id',
+        //'classe_id' => 'required_if:type,mensuel|exists:classes,id',
+        'classe_id' => 'required_if:type,mensuel',
         'mois_id' => 'required_if:type,mensuel'
+        //'mois_id' => 'required_if:type,mensuel|exists:mois_scolaires,id'
     ]);
 
     $ecoleId = session('current_ecole_id');
