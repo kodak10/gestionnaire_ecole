@@ -1351,18 +1351,37 @@ public function generateBulletinAnnuel(Request $request)
         $notes = $inscription->notes ?? collect();
         
         // Calcul de la moyenne générale annuelle avec pondération des mois
-        $totalNotesMois = 0;
-        $totalCoeffsMois = 0;
+        // $totalNotesMois = 0;
+        // $totalCoeffsMois = 0;
         
+        // foreach ($moisScolaires as $mois) {
+        //     if (isset($moyennesParMoisGlobale[$mois->id][$inscription->id])) {
+        //         $dataMois = $moyennesParMoisGlobale[$mois->id][$inscription->id];
+        //         $totalNotesMois += $dataMois['moyenne'] * $dataMois['coefficient'];
+        //         $totalCoeffsMois += $dataMois['coefficient'];
+        //     }
+        // }
+        
+        // $moyenneGenerale = $totalCoeffsMois > 0 ? ($totalNotesMois / $totalCoeffsMois) : null;
+
+        // Calcul de la moyenne générale annuelle avec pondération des mois
+        $totalNotesMois = 0;
+        $totalCoeffsTotal = 0; // Somme de tous les coefficients de TOUS les mois sélectionnés
+
         foreach ($moisScolaires as $mois) {
+            $coeffMois = ($mois->id == 10) ? 2 : 1;
+            $totalCoeffsTotal += $coeffMois; // Toujours ajouter le coefficient du mois
+            
             if (isset($moyennesParMoisGlobale[$mois->id][$inscription->id])) {
                 $dataMois = $moyennesParMoisGlobale[$mois->id][$inscription->id];
                 $totalNotesMois += $dataMois['moyenne'] * $dataMois['coefficient'];
-                $totalCoeffsMois += $dataMois['coefficient'];
             }
+            // Si l'élève n'a pas de notes pour ce mois, on ne lui ajoute rien (moyenne = 0 pour ce mois)
         }
-        
-        $moyenneGenerale = $totalCoeffsMois > 0 ? ($totalNotesMois / $totalCoeffsMois) : null;
+
+        // La moyenne est la somme des moyennes pondérées divisée par la somme de TOUS les coefficients
+        $moyenneGenerale = $totalCoeffsTotal > 0 ? ($totalNotesMois / $totalCoeffsTotal) : null;
+
         $moyenneGeneraleArrondie = $moyenneGenerale !== null ? floor($moyenneGenerale * 100) / 100 : null;
         
         // Assiduité
