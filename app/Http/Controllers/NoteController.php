@@ -888,21 +888,56 @@ public function generateRecapMoyennes(Request $request)
                 'mois_notes' => $moisNotesEleve,
                 'rangs_mois' => $rangsMoisEleve
             ];
-            
-            // Mettre à jour les statistiques de classe avec la moyenne recalculée
-            $classesTraitees[$classeId]['effectif']++;
-            $classesTraitees[$classeId]['moyenne_classe'] += $moyenneFinale;
-            if ($moyenneFinale > $classesTraitees[$classeId]['moyenne_max']) {
-                $classesTraitees[$classeId]['moyenne_max'] = $moyenneFinale;
-            }
-            if ($classesTraitees[$classeId]['moyenne_min'] == 0 || $moyenneFinale < $classesTraitees[$classeId]['moyenne_min']) {
-                $classesTraitees[$classeId]['moyenne_min'] = $moyenneFinale;
-            }
         }
         
-        // Finaliser les statistiques
+        // ==================== RECALCUL DES RANGS POUR CHAQUE CLASSE ====================
         foreach ($classesTraitees as &$classeData) {
-            // Calculer la moyenne de classe
+            // Trier les élèves par moyenne brute décroissante
+            usort($classeData['eleves'], function($a, $b) {
+                return $b['moyenne_brute'] <=> $a['moyenne_brute'];
+            });
+            
+            // Recalcul des rangs
+            $rang = 1;
+            $prevMoyenne = null;
+            foreach ($classeData['eleves'] as $index => &$eleveData) {
+                if ($index === 0) {
+                    $eleveData['rang_general'] = 1;
+                    $eleveData['exaequo'] = false;
+                } else {
+                    if ($eleveData['moyenne_brute'] == $prevMoyenne) {
+                        $eleveData['rang_general'] = $rang;
+                        $eleveData['exaequo'] = true;
+                        // Marquer l'élève précédent comme exaequo aussi
+                        $classeData['eleves'][$index - 1]['exaequo'] = true;
+                    } else {
+                        $rang = $index + 1;
+                        $eleveData['rang_general'] = $rang;
+                        $eleveData['exaequo'] = false;
+                    }
+                }
+                $prevMoyenne = $eleveData['moyenne_brute'];
+                // Mettre à jour l'affichage de la moyenne avec le bon format
+                $eleveData['moyenne'] = number_format($eleveData['moyenne_brute'], 2, ',', '');
+            }
+            unset($eleveData);
+            
+            // Recalculer les statistiques de classe avec les nouvelles moyennes
+            $classeData['effectif'] = count($classeData['eleves']);
+            $classeData['moyenne_classe'] = 0;
+            $classeData['moyenne_max'] = 0;
+            $classeData['moyenne_min'] = 0;
+            
+            foreach ($classeData['eleves'] as $eleveData) {
+                $classeData['moyenne_classe'] += $eleveData['moyenne_brute'];
+                if ($eleveData['moyenne_brute'] > $classeData['moyenne_max']) {
+                    $classeData['moyenne_max'] = $eleveData['moyenne_brute'];
+                }
+                if ($classeData['moyenne_min'] == 0 || $eleveData['moyenne_brute'] < $classeData['moyenne_min']) {
+                    $classeData['moyenne_min'] = $eleveData['moyenne_brute'];
+                }
+            }
+            
             if ($classeData['effectif'] > 0) {
                 $classeData['moyenne_classe'] = $classeData['moyenne_classe'] / $classeData['effectif'];
                 $classeData['moyenne_classe'] = floor($classeData['moyenne_classe'] * 100) / 100;
