@@ -120,7 +120,6 @@
                 @endforeach
                 <th rowspan="2" style="width:12%">Moyenne<br><small>/{{ $classeData['moy_base'] }}</small></th>
                 <th rowspan="2" style="width:8%">Rang<br><small>/{{ $classeData['effectif'] }}</small></th>
-                <th rowspan="2" style="width:10%">Décision</th>
             </tr>
             <tr>
                 @foreach($classeData['mois_notes'] as $mois)
@@ -171,13 +170,6 @@
                     <td class="bold">{{ $eleve['moyenne'] }}</td>
                     <td class="bold">
                         {{ $eleve['rang_general'] }}{{ $eleve['exaequo'] ? 'e ex æquo' : 'e' }}
-                    </td>
-                    <td class="bold">
-                        <span class="@if($eleve['decision'] == 'ADMIS' || $eleve['decision'] == 'ADMISE') text-success
-                            @elseif($eleve['decision'] == 'NON ADMIS' || $eleve['decision'] == 'NON ADMISE') text-danger
-                            @endif">
-                            {{ $eleve['decision'] }}
-                        </span>
                     </td>
                 </tr>
             @endforeach
