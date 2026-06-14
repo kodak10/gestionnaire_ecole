@@ -13,10 +13,10 @@ class TypeFraisSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['nom' => "Frais d'inscription", 'obligatoire' => true, 'ecole_id' => 1, 'annee_scolaire_id' => 1],
-            ['nom' => 'Scolarité', 'obligatoire' => true, 'ecole_id' => 1, 'annee_scolaire_id' => 1],
-            ['nom' => 'Cantine', 'obligatoire' => false, 'ecole_id' => 1, 'annee_scolaire_id' => 1],
-            ['nom' => 'Transport', 'obligatoire' => false, 'ecole_id' => 1, 'annee_scolaire_id' => 1],
+            ['nom' => "Frais d'inscription", 'obligatoire' => true, 'ecole_id' => 1, 'annee_scolaire_id' => 3],
+            ['nom' => 'Scolarité', 'obligatoire' => true, 'ecole_id' => 1, 'annee_scolaire_id' => 3],
+            ['nom' => 'Cantine', 'obligatoire' => false, 'ecole_id' => 1, 'annee_scolaire_id' => 3],
+            ['nom' => 'Transport', 'obligatoire' => false, 'ecole_id' => 1, 'annee_scolaire_id' => 3],
         ];
 
         foreach ($types as $type) {

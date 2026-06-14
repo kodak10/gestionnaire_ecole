@@ -14,20 +14,24 @@ class ClasseSeeder extends Seeder
      * Run the database seeds.
      */
     public function run()
-    {
-        $anneeActive = AnneeScolaire::where('est_active', true)->first();
-        $niveaux = Niveau::all();
+{
+    $niveaux = Niveau::where('ecole_id', 1)
+        ->where('annee_scolaire_id', 3)
+        ->orderBy('ordre')
+        ->get();
 
-        foreach ($niveaux as $niveau) {
-            for ($i = 1; $i <= 1; $i++) { 
-                Classe::create([
-                    'niveau_id' => $niveau->id,
-                    'annee_scolaire_id' => $anneeActive->id,
-                    'ecole_id' => 1, // <-- fixer l'école ici
-                    'nom' => $niveau->nom . '_' . chr(64 + $i), // CM2_A, CM2_B, etc.
-                ]);
-            }
-        }
+    foreach ($niveaux as $niveau) {
+        Classe::firstOrCreate(
+            [
+                'niveau_id' => $niveau->id,
+                'annee_scolaire_id' => 3,
+                'ecole_id' => 1,
+            ],
+            [
+                'nom' => $niveau->nom . '_A',
+            ]
+        );
     }
+}
 
 }

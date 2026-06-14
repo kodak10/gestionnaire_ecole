@@ -16,20 +16,20 @@ class AnneeScolaireSeeder extends Seeder
         // École 1 - année scolaire
         AnneeScolaire::create([
             'ecole_id'    => 1,
-            'annee'       => '2025-2026',
-            'date_debut'  => '2025-09-01',
-            'date_fin'    => '2026-06-30',
+            'annee'       => '2026-2027',
+            'date_debut'  => '2026-06-01',
+            'date_fin'    => '2027-06-30',
             'est_active'  => true,
         ]);
 
         // École 2 - année scolaire
-        AnneeScolaire::create([
-            'ecole_id'    => 2,
-            'annee'       => '2025-2026',
-            'date_debut'  => '2025-09-01',
-            'date_fin'    => '2026-06-30',
-            'est_active'  => true,
-        ]);
+        // AnneeScolaire::create([
+        //     'ecole_id'    => 2,
+        //     'annee'       => '2025-2026',
+        //     'date_debut'  => '2025-09-01',
+        //     'date_fin'    => '2026-06-30',
+        //     'est_active'  => true,
+        // ]);
     }
 
 

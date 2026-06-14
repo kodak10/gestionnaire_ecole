@@ -79,7 +79,7 @@
 
                                                     @foreach($anneesScolaires as $index => $annee)
                                                         <option value="{{ $annee->ecole_id }}_{{ $annee->id }}"
-                                                            {{ $index === 0 ? 'selected' : '' }}>
+                                                            {{ $index === 2 ? 'selected' : '' }}>
                                                             {{ $annee->ecole->nom_ecole }} - {{ $annee->annee }}
                                                         </option>
                                                     @endforeach

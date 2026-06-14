@@ -18,14 +18,14 @@ class DatabaseSeeder extends Seeder
         
 
         $this->call([
-            EcolesSeeder::class,
+            //EcolesSeeder::class,
             AnneeScolaireSeeder::class,
             NiveauxSeeder::class,
             TypeFraisSeeder::class,
-            DepenseCategorySeeder::class,
+            //DepenseCategorySeeder::class,
             MoisScolaireSeeder::class,
 
-            UserSeeder::class,
+            //UserSeeder::class,
             
 
             // Pas besoin de re-seeder ces tables si elles sont déjà peuplées

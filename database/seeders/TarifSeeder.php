@@ -23,7 +23,7 @@ class TarifSeeder extends Seeder
                 $obligatoire = in_array($frais->nom, ['Frais d\'inscription', 'Scolarité']);
 
                 Tarif::create([
-                    'annee_scolaire_id' => 1,
+                    'annee_scolaire_id' => 3, // <-- fixer l'année scolaire ici
                     'ecole_id' => 1,
                     'type_frais_id' => $frais->id,
                     'niveau_id' => $niveau->id,

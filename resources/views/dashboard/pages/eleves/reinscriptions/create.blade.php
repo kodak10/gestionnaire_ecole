@@ -81,10 +81,13 @@
                                     <div class="d-block d-md-flex">
                                         <div class="mb-3 flex-fill me-md-3 me-0">
                                             <label class="form-label">Classe</label>
-                                            <select class="form-select" id="classe-origin" required>
+                                            <select id="classe-origin" class="form-select" required>
                                                 <option value="">Sélectionner une classe</option>
-                                                @foreach($classes as $classe)
-                                                    <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+
+                                                @foreach($classesAnciennes as $classe)
+                                                    <option value="{{ $classe->id }}">
+                                                        {{ $classe->nom }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -114,8 +117,11 @@
                                             <label class="form-label">Classe</label>
                                             <select name="classe_id" class="form-select" required>
                                                 <option value="">Sélectionner une classe</option>
-                                                @foreach($classes as $classe)
-                                                    <option value="{{ $classe->id }}">{{ $classe->nom }}</option>
+
+                                                @foreach($classesNouvelles as $classe)
+                                                    <option value="{{ $classe->id }}">
+                                                        {{ $classe->nom }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                         </div>

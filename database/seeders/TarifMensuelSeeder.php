@@ -30,7 +30,7 @@ class TarifMensuelSeeder extends Seeder
                             ],
                             [
                                 'montant' => $montant,
-                                'annee_scolaire_id' => 1, // valeur par défaut
+                                'annee_scolaire_id' => 3, // valeur par défaut
                                 'ecole_id' => 1,          // valeur par défaut
                             ]
                         );

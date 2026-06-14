@@ -20,20 +20,36 @@ class ReinscriptionController extends Controller
     {
         $ecoleId = session('current_ecole_id');
         $anneeId = session('current_annee_scolaire_id');
-
         $annee = session('current_annee_scolaire');
 
-        // Toutes les années scolaires de cette école
         $anneescolaires = AnneeScolaire::where('ecole_id', $ecoleId)
             ->orderBy('annee', 'desc')
             ->get();
 
-        // Classes de cette école
-        $classes = Classe::where('ecole_id', $ecoleId)
+        // Année actuelle = ancienne année (origine)
+        $classesAnciennes = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeId)
             ->orderBy('nom')
             ->get();
 
-        return view('dashboard.pages.eleves.reinscriptions.create', compact('classes', 'anneescolaires', 'annee', 'anneeId'));
+        // Année cible (nouvelle année)
+        $anneeFuture = AnneeScolaire::where('ecole_id', $ecoleId)
+            ->where('id', '!=', $anneeId)
+            ->orderBy('annee', 'desc')
+            ->first();
+
+        $classesNouvelles = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeFuture?->id)
+            ->orderBy('nom')
+            ->get();
+
+        return view('dashboard.pages.eleves.reinscriptions.create', [
+            'anneescolaires' => $anneescolaires,
+            'classesAnciennes' => $classesAnciennes,
+            'classesNouvelles' => $classesNouvelles,
+            'annee' => $annee,
+            'anneeId' => $anneeId,
+        ]);
     }
 
     /**

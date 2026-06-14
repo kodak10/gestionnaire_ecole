@@ -19,7 +19,7 @@ class DepenseCategorySeeder extends Seeder
             DepenseCategorie::firstOrCreate([
                 'nom' => $cat,
                 'ecole_id' => 1,
-                'annee_scolaire_id' => 1, // ajout de l'année scolaire
+                'annee_scolaire_id' => 3, // ajout de l'année scolaire
             ]);
         }
     }
