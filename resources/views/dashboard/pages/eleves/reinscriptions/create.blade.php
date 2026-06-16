@@ -188,11 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Afficher le chargement
         classeSelect.innerHTML = '<option value="">Chargement des classes...</option>';
         classeSelect.disabled = true;
         
-        // Requête AJAX pour récupérer les classes
         const url = "/reinscriptions/get-classes-by-annee?annee_id=" + anneeId;
         console.log("Chargement des classes pour l'année:", anneeId);
         
@@ -261,6 +259,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Supprimer les anciens messages d'information
+        const existingInfo = document.querySelectorAll('.student-info-message');
+        existingInfo.forEach(el => el.remove());
+        
         // Afficher le loader
         const studentsList = document.getElementById('students-list');
         studentsList.innerHTML = `
@@ -275,14 +277,12 @@ document.addEventListener('DOMContentLoaded', function() {
             </tr>
         `;
         
-        // URL correcte : on envoie l'année source
         const url = "/reinscriptions/eleves-by-classe/" + classeId + "?annee_source_id=" + anneeSourceId;
 
         console.log("URL AJAX élèves:", url);
         console.log("Année source ID:", anneeSourceId);
         console.log("Classe ID:", classeId);
 
-        // Charger les élèves via AJAX
         fetch(url, {
             method: 'GET',
             headers: {
@@ -326,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </tr>
                 `;
             } else {
+                // Ajouter les élèves
                 data.forEach(eleve => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -341,15 +342,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     studentsList.appendChild(row);
                 });
                 
-                // Ajouter un message d'information
+                // Ajouter UN SEUL message d'information
                 const infoDiv = document.createElement('div');
-                infoDiv.className = 'alert alert-info mt-2';
+                infoDiv.className = 'alert alert-info mt-2 student-info-message';
                 infoDiv.innerHTML = `
                     <i class="ti ti-users me-2"></i>
                     <strong>${data.length}</strong> élève(s) trouvé(s) dans cette classe.
                     <br><small>Cochez ceux que vous souhaitez réinscrire vers la nouvelle année.</small>
                 `;
-                studentsList.parentElement.parentElement.appendChild(infoDiv);
+                
+                // Insérer après le tableau
+                const tableContainer = studentsList.closest('.table-responsive');
+                if (tableContainer) {
+                    // Vérifier si le parent existe
+                    const parent = tableContainer.parentNode;
+                    if (parent) {
+                        parent.insertBefore(infoDiv, tableContainer.nextSibling);
+                    }
+                }
                 
                 // Mettre à jour le compteur
                 updateCounter();
@@ -436,6 +446,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('students-list').innerHTML = '';
         document.getElementById('select-all').checked = false;
         document.getElementById('submit-reinscription').innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés`;
+        
+        // Supprimer les messages d'information
+        const existingInfo = document.querySelectorAll('.student-info-message');
+        existingInfo.forEach(el => el.remove());
     });
 });
 </script>

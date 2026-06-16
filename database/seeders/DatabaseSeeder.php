@@ -19,11 +19,11 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             //EcolesSeeder::class,
-            AnneeScolaireSeeder::class,
-            NiveauxSeeder::class,
-            TypeFraisSeeder::class,
+            //AnneeScolaireSeeder::class,
+            //NiveauxSeeder::class,
+            //TypeFraisSeeder::class,
             //DepenseCategorySeeder::class,
-            MoisScolaireSeeder::class,
+            //MoisScolaireSeeder::class,
 
             //UserSeeder::class,
             
@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
             // Pas besoin de re-seeder ces tables si elles sont déjà peuplées
             // TarifSeeder::class,
             // TarifMensuelSeeder::class,
-            ClasseSeeder::class,
+            //ClasseSeeder::class,
             // MatiereSeeder::class,
             // MentionSeeder::class,
             // EleveSeeder::class,
