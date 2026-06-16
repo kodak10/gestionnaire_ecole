@@ -9,18 +9,18 @@ class PaiementDetailTransport extends Model
     protected $table = 'paiement_detail_transports';
 
     protected $fillable = [
-        'paiement_id',
-        'mois_id',
+        'paiement_transport_id',
         'montant',
     ];
 
     public function paiement()
     {
-        return $this->belongsTo(PaiementTransport::class, 'paiement_id');
+        return $this->belongsTo(PaiementTransport::class, 'paiement_transport_id');
     }
 
-    public function mois()
+    // AJOUTEZ CETTE RELATION (comme dans PaiementDetail)
+    public function typeFrais()
     {
-        return $this->belongsTo(MoisScolaire::class, 'mois_id');
+        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
 }

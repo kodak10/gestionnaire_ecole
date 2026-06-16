@@ -8,39 +8,46 @@ class PaiementCantine extends Model
 {
     protected $table = 'paiement_cantines';
 
-
     protected $fillable = [
-        'eleve_id', 'type_frais_id', 'mois_id', 'montant', 'mode_paiement', 'reference', 'user_id','annee_scolaire_id'
+        'inscription_id',
+        'user_id',
+        'annee_scolaire_id',
+        'ecole_id',
+        'type_frais_id',
+        'montant',
+        'mode_paiement',
+        'reference',
+        'created_at',
+        'updated_at'
     ];
 
-    public function eleve()
+    public function inscription()
     {
-        return $this->belongsTo(Eleve::class);
+        return $this->belongsTo(Inscription::class);
     }
 
     public function typeFrais()
     {
-        return $this->belongsTo(TypeFrais::class);
+        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
-
-    public function mois()
-    {
-        return $this->belongsToMany(MoisScolaire::class, 'paiement_detail_cantines', 'paiement_cantine_id', 'mois_id')
-                    ->withPivot('montant')
-                    ->withTimestamps();
-    }
-
-
-
-    
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-    public function anneeScolaire()
-{
-    return $this->belongsTo(AnneeScolaire::class, 'annee_scolaire_id');
-}
 
+    public function anneeScolaire()
+    {
+        return $this->belongsTo(AnneeScolaire::class, 'annee_scolaire_id');
+    }
+
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class, 'ecole_id');
+    }
+
+    public function details()
+    {
+        return $this->hasMany(PaiementDetailCantine::class, 'paiement_cantine_id');
+    }
 }

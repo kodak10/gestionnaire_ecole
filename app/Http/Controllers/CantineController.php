@@ -3,14 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Classe;
-use App\Models\Eleve;
 use App\Models\Inscription;
 use App\Models\MoisScolaire;
-use App\Models\Paiement;
 use App\Models\PaiementCantine;
-use App\Models\PaiementDetail;
-use App\Models\Reduction;
-use App\Models\ReductionCantine;
+use App\Models\PaiementDetailCantine;
 use App\Models\Tarif;
 use App\Models\TarifMensuel;
 use App\Models\TypeFrais;
@@ -29,8 +25,6 @@ class CantineController extends Controller
     
     public function index()
     {
-        
-
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
@@ -40,7 +34,7 @@ class CantineController extends Controller
             ->orderBy('id')
             ->get();
 
-        $moisScolaires = MoisScolaire::orderBy('id')->get(); // ajouter la liste des mois
+        $moisScolaires = MoisScolaire::orderBy('id')->get();
 
         return view('dashboard.pages.cantines.index', compact('classes', 'moisScolaires'));
     }
@@ -54,20 +48,17 @@ class CantineController extends Controller
         try {
             $ecoleId = session('current_ecole_id'); 
             $anneeScolaireId = session('current_annee_scolaire_id');
-            $userId = Auth::id();
 
             $eleves = Inscription::with('eleve')
                 ->where('ecole_id', $ecoleId)
                 ->where('annee_scolaire_id', $anneeScolaireId)
                 ->where('classe_id', $request->classe_id)
                 ->where('cantine_active', true)
-            
                 ->get()
                 ->sortBy(function($inscription) {
-                    // Tri par nom puis prénom
                     return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
                 })
-                ->values() // réindexe les clés
+                ->values()
                 ->map(function($inscription) {
                     return [
                         'id' => $inscription->id,
@@ -80,6 +71,7 @@ class CantineController extends Controller
             return response()->json($eleves);
 
         } catch (\Exception $e) {
+            Log::error('Erreur elevesByClasseCantine', ['message' => $e->getMessage()]);
             return response()->json([], 500);
         }
     }
@@ -94,39 +86,53 @@ class CantineController extends Controller
             $inscription = Inscription::with(['eleve', 'classe.niveau'])
                 ->findOrFail($request->inscription_id);
 
-            
             $ecoleId = session('current_ecole_id'); 
             $anneeScolaireId = session('current_annee_scolaire_id');
-            $userId = Auth::id();
 
             $niveauId = $inscription->classe->niveau->id;
 
             $typeCantine = TypeFrais::where('nom', "Cantine")->first();
 
+            if (!$typeCantine) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Type de frais "Cantine" non trouvé.'
+                ]);
+            }
+
+            // Récupérer le tarif Cantine total annuel
             $tarifCantine = Tarif::where([
                 'ecole_id' => $ecoleId,
                 'annee_scolaire_id' => $anneeScolaireId,
                 'niveau_id' => $niveauId,
-                'type_frais_id' => $typeCantine->id ?? 0
+                'type_frais_id' => $typeCantine->id
             ])->first();
 
             $montantCantine = $tarifCantine->montant ?? 0;
 
-            // Récupérer les paiements liés à la Cantine
-            $paiements = Paiement::with('details.typeFrais')
-                ->whereHas('details', function($q) use ($inscription, $typeCantine) {
-                    $q->where('inscription_id', $inscription->id)
-                    ->where('type_frais_id', $typeCantine->id ?? 0);
-                })
+            // Récupérer les paiements CANTINE
+            $paiements = PaiementCantine::with(['details'])
+                ->where('inscription_id', $inscription->id)
+                ->where('type_frais_id', $typeCantine->id)
                 ->orderByDesc('created_at')
                 ->get();
 
-            // Calcul du total payé pour la Cantine
-            $totalPayeCantine = $paiements->sum(function($paiement) use ($typeCantine) {
-                return $paiement->details->where('type_frais_id', $typeCantine->id ?? 0)->sum('montant');
-            });
+            // Calcul du total payé
+            $totalPayeCantine = PaiementDetailCantine::whereHas('paiement', function($q) use ($inscription, $typeCantine) {
+                $q->where('inscription_id', $inscription->id)
+                  ->where('type_frais_id', $typeCantine->id);
+            })->sum('montant');
 
             $resteCantine = max(0, $montantCantine - $totalPayeCantine);
+
+            $paiementsFormatted = $paiements->map(function($paiement) {
+                return [
+                    'id' => $paiement->id,
+                    'montant' => $paiement->montant,
+                    'mode_paiement' => $paiement->mode_paiement,
+                    'created_at' => $paiement->created_at,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
@@ -144,11 +150,15 @@ class CantineController extends Controller
                 'reste_a_payer' => [
                     'cantine' => $resteCantine
                 ],
-                'paiements' => $paiements
+                'paiements' => $paiementsFormatted
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            Log::error('Erreur getEleveCantine', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Erreur: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -166,7 +176,6 @@ class CantineController extends Controller
 
             $ecoleId = session('current_ecole_id'); 
             $anneeScolaireId = session('current_annee_scolaire_id');
-            $userId = Auth::id();
 
             $inscription = Inscription::with('eleve', 'classe.niveau')->findOrFail($request->inscription_id);
 
@@ -201,43 +210,38 @@ class CantineController extends Controller
                 ]);
             }
 
-            $totalPayeCantine = PaiementDetail::where('inscription_id', $request->inscription_id)
-                ->where('type_frais_id', $typeCantine->id)
-                ->sum('montant');
+            $totalPayeCantine = PaiementDetailCantine::whereHas('paiement', function($q) use ($request, $typeCantine) {
+                $q->where('inscription_id', $request->inscription_id)
+                  ->where('type_frais_id', $typeCantine->id);
+            })->sum('montant');
 
             $resteAPayer = max(0, $tarifCantine->montant - $totalPayeCantine);
 
             if ($request->montant_cantine > $resteAPayer) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Le montant saisi dépasse le reste à payer (' . $resteAPayer . ' FCFA).'
+                    'message' => 'Le montant saisi (' . number_format($request->montant_cantine, 0, ',', ' ') . ' F) dépasse le reste à payer (' . number_format($resteAPayer, 0, ',', ' ') . ' F).'
                 ]);
             }
 
-            // Paiement global
-            $paiement = Paiement::create([
-                'user_id' => auth()->id(),
-                'annee_scolaire_id' => $anneeScolaireId,
-                'ecole_id' => $ecoleId,
-                'montant' => $request->montant_cantine,
-                'mode_paiement' => $request->mode_paiement,
-                'reference' => null,
-                'description' => 'Paiement Cantine',
-                'created_at' => $request->date_paiement,
-                'updated_at' => $request->date_paiement
-            ]);
-
-
-            // Paiement détail
-            PaiementDetail::create([
-                'paiement_id' => $paiement->id,
+            // Créer le paiement cantine
+            $paiement = PaiementCantine::create([
                 'inscription_id' => $request->inscription_id,
+                'user_id' => auth()->id(),
                 'annee_scolaire_id' => $anneeScolaireId,
                 'ecole_id' => $ecoleId,
                 'type_frais_id' => $typeCantine->id,
                 'montant' => $request->montant_cantine,
+                'mode_paiement' => $request->mode_paiement,
+                'reference' => null,
                 'created_at' => $request->date_paiement,
                 'updated_at' => $request->date_paiement
+            ]);
+
+            // Créer le détail du paiement - SANS mois_id
+            PaiementDetailCantine::create([
+                'paiement_cantine_id' => $paiement->id,
+                'montant' => $request->montant_cantine
             ]);
 
             DB::commit();
@@ -257,117 +261,36 @@ class CantineController extends Controller
             ]);
         }
     }
-    
-    public function generateReceipt($paiementId)
+
+    public function deletePaiement(Request $request)
     {
-        $paiement = Paiement::with([
-            'details.inscription.eleve',
-            'details.inscription.classe',
-            'details.typeFrais',
-            'user',
-            'anneeScolaire', // probleme
-            'ecole'
-        ])->find($paiementId);
+        $request->validate([
+            'paiement_id' => 'required|exists:paiement_cantines,id'
+        ]);
 
-        if (!$paiement) {
-            abort(404, "Paiement introuvable.");
+        try {
+            DB::beginTransaction();
+
+            PaiementDetailCantine::where('paiement_cantine_id', $request->paiement_id)->delete();
+            
+            $paiement = PaiementCantine::findOrFail($request->paiement_id);
+            $paiement->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paiement supprimé avec succès.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur deletePaiement Cantine', ['message' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression: ' . $e->getMessage()
+            ]);
         }
-
-        $inscription = $paiement->details->first()?->inscription;
-        if (!$inscription) {
-            abort(404, "Inscription introuvable pour ce paiement.");
-        }
-
-        $eleve = $inscription->eleve;
-        $classe = $inscription->classe;
-        $ecole = $paiement->ecole;
-
-        // Récupérer l'année scolaire et niveau
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
-        $userId = Auth::id();
-
-        // On ne prend que le type frais "Cantine"
-        $typeCantine = TypeFrais::where('nom', "Cantine")->first();
-        if (!$typeCantine) {
-            abort(404, "Type de frais 'Cantine' introuvable.");
-        }
-
-        // Récupérer le tarif cantine
-        $tarifCantine = Tarif::where([
-            'ecole_id' => $ecole->id,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'niveau_id' => $classe->niveau->id,
-            'type_frais_id' => $typeCantine->id
-        ])->first();
-
-        $montantCantine = $tarifCantine->montant ?? 0;
-
-        // Déjà payé (uniquement cantine)
-        $totalPayeCantine = PaiementDetail::where('inscription_id', $inscription->id)
-            ->where('type_frais_id', $typeCantine->id)
-            ->sum('montant');
-
-        // Reste à payer
-        $reste_total = max(0, $montantCantine - $totalPayeCantine);
-
-        // Montant total payé sur ce reçu
-        $montant_total = $paiement->details->sum('montant');
-
-        $pdf = Pdf::loadView('dashboard.documents.scolarite.recu_paiement', compact(
-            'paiement',
-            'eleve',
-            'classe',
-            'ecole',
-            'montant_total',
-            'reste_total'
-        ));
-
-        return $pdf->stream("recu_paiement_{$paiement->id}.pdf");
-    }
-
-    public function printScolarite($eleveId)
-    {
-        $eleve = Eleve::with('classe.niveau')->findOrFail($eleveId);
-
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
-        
-        // Récupérer les données de scolarité
-        $typeScolarite = TypeFrais::where('nom', 'like', '%cantine%')->first();
-        $tarifScolarite = Tarif::where('type_frais_id', $typeScolarite->id)
-            ->where('niveau_id', $eleve->classe->niveau_id)
-            ->first();
-
-        $paiements = Paiement::where('eleve_id', $eleve->id)
-            ->where('annee_scolaire_id', $anneeScolaireId->id)
-            ->where('type_frais_id', $typeScolarite->id)
-            ->orderBy('date_paiement', 'desc')
-            ->get();
-
-        $reduction = ReductionCantine::where('eleve_id', $eleve->id)
-            ->where('annee_scolaire_id', $anneeScolaireId->id)
-            ->where('type_frais', 'scolarite')
-            ->sum('montant');
-
-        $totalPaye = $paiements->sum('montant');
-        $montantScolarite = $tarifScolarite ? $tarifScolarite->montant : 0;
-        $montantApresReduction = max($montantScolarite - $reduction, 0);
-        $resteAPayer = max($montantApresReduction - $totalPaye, 0);
-
-        $data = [
-            'eleve' => $eleve,
-            'anneeScolaire' => $anneeScolaireId, // probleme
-            'paiements' => $paiements,
-            'montantScolarite' => $montantScolarite,
-            'reduction' => $reduction,
-            'montantApresReduction' => $montantApresReduction,
-            'totalPaye' => $totalPaye,
-            'resteAPayer' => $resteAPayer
-        ];
-
-        $pdf = PDF::loadView('scolarite.print', $data);
-        return $pdf->stream('scolarite-' . $eleve->matricule . '.pdf');
     }
 
 

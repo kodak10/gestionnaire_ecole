@@ -13,6 +13,7 @@ use App\Models\Tarif;
 use App\Models\TypeFrais;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PDF;
 
 class ScolariteController extends Controller
@@ -32,10 +33,16 @@ class ScolariteController extends Controller
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->orderBy('id')
             ->get();
+        
+            Log::info('Classes chargées pour l\'année ' . $anneeScolaireId, [
+        'classes' => $classes->pluck('id', 'nom'),
+        'total' => $classes->count()
+    ]);
 
         $typesFrais = TypeFrais::orderBy('nom')->get();
 
         $moisScolaires = MoisScolaire::get();
+
 
         return view('dashboard.pages.scolarites.index', compact(
             'classes',
@@ -54,6 +61,7 @@ class ScolariteController extends Controller
             $ecoleId = session('current_ecole_id');
             $anneeId = session('current_annee_scolaire_id');
 
+
             $eleves = Inscription::with(['eleve', 'classe'])
                 ->where('ecole_id', $ecoleId)
                 ->where('annee_scolaire_id', $anneeId)
@@ -68,6 +76,8 @@ class ScolariteController extends Controller
                     'matricule' => $inscription->eleve->matricule,
                     'classe_nom' => $inscription->classe->nom,
                 ]);
+
+            Log::info('Élèves chargés pour la classe ID ' . $request->classe_id, ['eleves' => $eleves]);
 
             return response()->json($eleves);
 

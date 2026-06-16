@@ -43,9 +43,9 @@
                                 @hasanyrole('SuperAdministrateur|Administrateur')
                                 <li><a href="{{ route('eleves.create') }}" class="{{ request()->routeIs('eleves.create') ? 'active' : '' }}">Inscription</a></li>
                                 @endhasanyrole
-                                @hasanyrole('SuperAdministrateur|Administrateur')
+                                {{-- @hasanyrole('SuperAdministrateur|Administrateur')
                                 <li><a href="{{ route('preinscriptions.index') }}" class="{{ request()->routeIs('preinscriptions.index') ? 'active' : '' }}">PréInscription</a></li>
-                                @endhasanyrole
+                                @endhasanyrole --}}
                                 @hasanyrole('SuperAdministrateur|Administrateur')
                                 <li><a href="{{ route('reinscriptions.index') }}" class="{{ request()->routeIs('reinscriptions.index') ? 'active' : '' }}">RéInscription</a></li>
                                 @endhasanyrole
@@ -253,3 +253,6 @@
         </div>
     </div>
 </div>
+
+http://127.0.0.1:8000/eleves-by-classe-cantine?classe_id=14 Request Method GET
+http://127.0.0.1:8000/eleves/by-classe?classe_id=14 GET

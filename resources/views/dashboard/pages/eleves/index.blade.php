@@ -162,7 +162,7 @@
         <div class="col-xxl-3 col-xl-4 col-md-6 d-flex">
             <div class="card flex-fill">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="link-primary">{{ 
+                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="link-primary">{{ 
                         $eleve->eleve->code_national && $eleve->eleve->matricule
                             ? $eleve->eleve->code_national . ' | ' . $eleve->eleve->matricule
                             : ($eleve->eleve->code_national ?? $eleve->eleve->matricule)
@@ -201,7 +201,7 @@
                 <div class="card-body">
                     <div class="bg-light-300 rounded-2 p-3 mb-3">
                         <div class="d-flex align-items-center">
-                            <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="avatar avatar-lg flex-shrink-0">
+                            <a href="{{ route('eleves.edit', $eleve->id) }}" class="avatar avatar-lg flex-shrink-0">
                                 <img 
                                     src="{{ $eleve->eleve->photo_url }}" 
                                     class="img-fluid rounded-circle border border-2
@@ -210,7 +210,7 @@
                             </a>
 
                             <div class="ms-2">
-                                <h5 class="mb-0 text-dark"><a href="{{ route('eleves.show', $eleve->eleve->id) }}">{{ $eleve->eleve->nom_complet }}</a></h5>
+                                <h5 class="mb-0 text-dark"><a href="{{ route('eleves.edit', $eleve->id) }}">{{ $eleve->eleve->nom_complet }}</a></h5>
                                 <p>{{ $eleve->classe->nom }}</p>
                             </div>
                         </div>	
@@ -275,10 +275,10 @@
                             
                             <td class="text-end">
                                 <div class="actions">
-                                    <a href="{{ route('eleves.show', $eleve->eleve->id) }}" class="btn btn-sm bg-success-light me-2">
+                                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="btn btn-sm bg-success-light me-2">
                                         <i class="ti ti-eye"></i>
                                     </a>
-                                    <a href="{{ route('eleves.edit', $eleve->eleve->id) }}" class="btn btn-sm bg-primary-light me-2">
+                                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="btn btn-sm bg-primary-light me-2">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <form action="{{ route('eleves.destroy', $eleve->id) }}" method="POST" style="display: inline-block;">

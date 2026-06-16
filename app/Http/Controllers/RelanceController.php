@@ -36,9 +36,7 @@ class RelanceController extends Controller
             ->orderBy('id')
             ->get();
 
-        $userId = Auth::id();
         $moisScolaires = MoisScolaire::orderBy('numero')->get();
-
         $typeFrais = TypeFrais::get();
 
         return view('dashboard.pages.comptabilites.relances', compact('classes', 'moisScolaires', 'typeFrais'));
@@ -54,7 +52,6 @@ class RelanceController extends Controller
             'montant_max' => 'nullable|numeric|min:0'
         ]);
 
-        // Validation des montants
         if ($request->montant_min && $request->montant_max && 
             $request->montant_min > $request->montant_max) {
             return response()->json([
@@ -66,7 +63,6 @@ class RelanceController extends Controller
         try {
             $ecoleId = session('current_ecole_id'); 
             $anneeScolaireId = session('current_annee_scolaire_id');
-            $userId = Auth::id();
 
             $moisReference = $request->date_reference
                 ? MoisScolaire::find($request->date_reference)
@@ -79,20 +75,17 @@ class RelanceController extends Controller
                 ]);
             }
 
-            // Récupérer toutes les inscriptions actives TRIÉES par nom et prénom
             $inscriptions = Inscription::with(['eleve', 'classe.niveau'])
-            ->where('inscriptions.classe_id', $request->classe_id)
-            ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
-            ->where('inscriptions.ecole_id', $ecoleId)
-            ->where('inscriptions.statut', 'active')
-            ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-            ->orderBy('eleves.nom')
-            ->orderBy('eleves.prenom')
-            ->select('inscriptions.*')
-            ->get();
+                ->where('inscriptions.classe_id', $request->classe_id)
+                ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
+                ->where('inscriptions.ecole_id', $ecoleId)
+                ->where('inscriptions.statut', 'active')
+                ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
+                ->orderBy('eleves.nom')
+                ->orderBy('eleves.prenom')
+                ->select('inscriptions.*')
+                ->get();
 
-
-            // Ordre des mois (année scolaire commence en août)
             $moisScolaires = MoisScolaire::orderByRaw("
                 CASE
                     WHEN numero >= 8 THEN numero + 0
@@ -105,7 +98,6 @@ class RelanceController extends Controller
             foreach ($inscriptions as $inscription) {
                 $niveau = $inscription->classe->niveau;
 
-                // Types de frais à gérer
                 $typesFrais = TypeFrais::whereIn('nom', [
                     'Frais d\'inscription',
                     'Scolarité',
@@ -114,23 +106,27 @@ class RelanceController extends Controller
                 ])->get()->keyBy('nom');
 
                 $fraisData = [];
+                $totalAttenduGlobal = 0;
+                $totalPayeGlobal = 0;
 
                 foreach ($typesFrais as $nom => $type) {
-                    // Si on filtre par type de frais
                     if ($request->type_frais_id && $request->type_frais_id != $type->id) {
                         continue;
                     }
 
-                    // VÉRIFICATION SPÉCIALE POUR CANTINE ET TRANSPORT
+                    // Vérification pour Cantine et Transport
                     if ($nom === 'Cantine' && !$inscription->cantine_active) {
-                        continue; // Ignorer si l'élève n'a pas la cantine active
+                        continue;
                     }
-
                     if ($nom === 'Transport' && !$inscription->transport_active) {
-                        continue; // Ignorer si l'élève n'a pas le transport actif
+                        continue;
                     }
 
-                    // Tarifs mensuels pour le type de frais
+                    // Mois d'inscription pour Cantine et Transport
+                    $moisInscription = (int) $inscription->created_at->format('n');
+                    $jourInscription = (int) $inscription->created_at->format('j');
+
+                    // Récupérer les tarifs mensuels
                     $tarifsQuery = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
                         ->where('ecole_id', $ecoleId)
                         ->where('niveau_id', $niveau->id)
@@ -138,43 +134,84 @@ class RelanceController extends Controller
 
                     $tarifs = $tarifsQuery->get()->keyBy('mois_id');
 
-                    // Total attendu (avant réduction)
-                    $totalAttendu = $tarifs->sum('montant');
+                    // Calculer le total attendu (en tenant compte du demi-tarif pour Cantine/Transport)
+                    $totalAttendu = 0;
+                    foreach ($tarifs as $moisId => $tarif) {
+                        $mois = MoisScolaire::find($moisId);
+                        if (!$mois) continue;
+                        
+                        $montant = $tarif->montant;
+                        
+                        // Demi-tarif pour Cantine et Transport si inscription après le 15
+                        if (in_array($nom, ['Cantine', 'Transport'])) {
+                            if ($mois->numero == $moisInscription && $jourInscription > 15) {
+                                $montant = $tarif->montant / 2;
+                            }
+                            // Ignorer les mois avant l'inscription
+                            if ($mois->numero < $moisInscription) {
+                                continue;
+                            }
+                        }
+                        $totalAttendu += $montant;
+                    }
 
-                    // Vérifier s'il y a une réduction applicable
-                    $reduction = Reduction::where('inscription_id', $inscription->id)
-                        ->where('annee_scolaire_id', $anneeScolaireId)
-                        ->where('ecole_id', $ecoleId)
-                        ->where(function ($query) use ($type) {
-                            $query->whereNull('type_frais_id') // réduction globale
-                                ->orWhere('type_frais_id', $type->id); // ou spécifique
-                        })
-                        ->sum('montant');
-
-                    // Appliquer la réduction uniquement si frais = scolarité (id = 2)
-                    if ($type->id == 2) {
+                    // Vérifier la réduction pour Scolarité
+                    $reduction = 0;
+                    if ($nom === 'Scolarité') {
+                        $reduction = Reduction::where('inscription_id', $inscription->id)
+                            ->where('annee_scolaire_id', $anneeScolaireId)
+                            ->where('ecole_id', $ecoleId)
+                            ->where(function($query) use ($type) {
+                                $query->whereNull('type_frais_id')
+                                    ->orWhere('type_frais_id', $type->id);
+                            })
+                            ->sum('montant');
                         $totalAttendu = max(0, $totalAttendu - $reduction);
                     }
 
-                    // Total payé via paiement_details
+                    // Total payé
                     $totalPaye = PaiementDetail::where('inscription_id', $inscription->id)
                         ->where('type_frais_id', $type->id)
                         ->sum('montant');
+
+                    $resteAPayer = max(0, $totalAttendu - $totalPaye);
 
                     // Détail par mois
                     $detailsMois = [];
                     $cumulAttendu = 0;
 
                     foreach ($moisScolaires as $mois) {
-                        $montantMois = $tarifs->has($mois->id) ? $tarifs[$mois->id]->montant : 0;
+                        $moisId = $mois->id;
+                        $montantMois = 0;
+                        
+                        if ($tarifs->has($moisId)) {
+                            $montantMois = $tarifs[$moisId]->montant;
+                            
+                            // Demi-tarif pour Cantine/Transport
+                            if (in_array($nom, ['Cantine', 'Transport'])) {
+                                if ($mois->numero == $moisInscription && $jourInscription > 15) {
+                                    $montantMois = $tarifs[$moisId]->montant / 2;
+                                }
+                                if ($mois->numero < $moisInscription) {
+                                    $montantMois = 0;
+                                }
+                            }
+                        }
+                        
                         $cumulAttendu += $montantMois;
 
-                        if ($mois->numero <= $moisReference->numero) {
-                            $statut = ($totalPaye >= $cumulAttendu) ? '✅ À jour' : '❌ En retard';
+                        if ($mois->numero <= $moisReference->numero && $mois->numero >= ($moisInscription ?? 8)) {
+                            // Statut du mois
+                            $estPaye = ($totalPaye >= $cumulAttendu);
+                            $statut = $estPaye ? '✅ À jour' : '❌ En retard';
+                            
                             $detailsMois[] = [
                                 'mois' => $mois->nom,
+                                'montant_mois' => $montantMois,
                                 'attendu_cumul' => $cumulAttendu,
-                                'statut' => $statut
+                                'paye_cumul' => min($totalPaye, $cumulAttendu),
+                                'statut' => $statut,
+                                'est_paye' => $estPaye
                             ];
                         }
                     }
@@ -182,25 +219,25 @@ class RelanceController extends Controller
                     $fraisData[$nom] = [
                         'total_attendu' => $totalAttendu,
                         'total_paye' => $totalPaye,
-                        'reste_a_payer' => max(0, $totalAttendu - $totalPaye),
+                        'reste_a_payer' => $resteAPayer,
                         'statut' => $this->determinerStatut($detailsMois),
                         'details_mois' => $detailsMois,
                         'en_retard_depuis' => $this->getMoisRetard($detailsMois)
                     ];
+
+                    $totalAttenduGlobal += $totalAttendu;
+                    $totalPayeGlobal += $totalPaye;
                 }
 
-                // Calcul des totaux globaux
-                $totalAttenduGlobal = collect($fraisData)->sum('total_attendu');
-                $totalPayeGlobal = collect($fraisData)->sum('total_paye');
-                $resteAPayerGlobal = collect($fraisData)->sum('reste_a_payer');
+                $resteAPayerGlobal = max(0, $totalAttenduGlobal - $totalPayeGlobal);
 
-                // Appliquer le filtre par intervalle de montant
+                // Filtre par montant
                 if ($request->montant_min || $request->montant_max) {
                     $montantMin = $request->montant_min ? (float) $request->montant_min : 0;
                     $montantMax = $request->montant_max ? (float) $request->montant_max : PHP_FLOAT_MAX;
                     
                     if ($resteAPayerGlobal < $montantMin || $resteAPayerGlobal > $montantMax) {
-                        continue; // Ne pas inclure cet élève
+                        continue;
                     }
                 }
 
@@ -238,20 +275,25 @@ class RelanceController extends Controller
             ]);
         }
     }
+
     private function determinerStatut($detailsMois)
     {
         if (empty($detailsMois)) {
             return 'Non débuté';
         }
 
-        $dernierMois = end($detailsMois);
-        return strpos($dernierMois['statut'], '✅') !== false ? 'À jour' : 'En retard';
+        foreach ($detailsMois as $detail) {
+            if (!$detail['est_paye']) {
+                return 'En retard';
+            }
+        }
+        return 'À jour';
     }
 
     private function getMoisRetard($detailsMois)
     {
         foreach ($detailsMois as $detail) {
-            if (strpos($detail['statut'], '❌') !== false) {
+            if (!$detail['est_paye']) {
                 return $detail['mois'];
             }
         }

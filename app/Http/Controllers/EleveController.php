@@ -31,6 +31,8 @@ class EleveController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $ecoleId = session('current_ecole_id');
 
+        //dd([$anneeScolaireId, $ecoleId]);
+
         $query = Inscription::with(['eleve', 'classe'])
             ->where('inscriptions.ecole_id', $ecoleId)
             ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
@@ -98,6 +100,14 @@ class EleveController extends Controller
         $classes = Classe::all();
         $fraiss = TypeFrais::all();
         $viewMode = $request->get('view_mode', 'grid');
+
+        Log::info($inscriptions->count() . ' élèves chargés pour l\'index', [
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'filters' => $request->only(['classe_id', 'nom', 'sexe', 'cantine', 'transport']),
+            'sort_by' => $request->get('sort_by'),
+            'sort' => $request->get('sort'),
+        ]   );
 
         return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
     }

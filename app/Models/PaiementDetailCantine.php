@@ -9,18 +9,18 @@ class PaiementDetailCantine extends Model
     protected $table = 'paiement_detail_cantines';
 
     protected $fillable = [
-        'paiement_id',
-        'mois_id',
+        'paiement_cantine_id',
         'montant',
     ];
 
     public function paiement()
     {
-        return $this->belongsTo(PaiementCantine::class, 'paiement_id');
+        return $this->belongsTo(PaiementCantine::class, 'paiement_cantine_id');
     }
 
-    public function mois()
+    // AJOUTEZ CETTE RELATION (comme dans PaiementDetail)
+    public function typeFrais()
     {
-        return $this->belongsTo(MoisScolaire::class, 'mois_id');
+        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
     }
 }

@@ -272,7 +272,7 @@ $(document).ready(function() {
             $('#inscription_id').prop('disabled', false);
 
             $.ajax({
-                url: '{{ route("eleves.by_classe_transport") }}', // Nouvelle route pour les élèves avec Transport
+                url: '{{ route("eleves.by_classe_transport") }}',
                 type: 'GET',
                 data: { classe_id: classeId },
                 success: function(response) {
@@ -284,7 +284,8 @@ $(document).ready(function() {
                         $('#inscription_id').append('<option value="">Aucun élève avec transport dans cette classe</option>');
                     }
                 },
-                error: function() {
+                error: function(xhr) {
+                    console.error('Erreur AJAX:', xhr);
                     toastr.error('Erreur lors du chargement des élèves');
                 }
             });
@@ -305,36 +306,42 @@ $(document).ready(function() {
 
         if (inscriptionId) {
             currentEleveId = inscriptionId;
-
             $('#paiement_inscription_id').val(inscriptionId);
-
             loadEleveTransportData(inscriptionId);
         }
     });
 
-    // Charger les données d'un élève pour la transport
+    // Charger les données d'un élève pour le transport
     function loadEleveTransportData(inscriptionId) {
         $.ajax({
-            url: '{{ route("reglements.eleve_transport_data") }}', // Nouvelle route pour les données transport
+            url: '{{ route("reglements.eleve_transport_data") }}',
             type: 'GET',
             data: { 
                 inscription_id: inscriptionId,
             },
             beforeSend: function() {
                 $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Chargement en cours...</td></tr>');
+                $('#montant_transport').val('...');
+                $('#total_paye_transport').val('...');
+                $('#reste_a_payer_transport').val('...');
             },
             success: function(response) {
                 if (response.success) {
                     updateTransportSummary(response);
                     updatePaiementsTable(response.paiements);
                 } else {
-                    toastr.error(response.message);
-                    $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">' + response.message + '</td></tr>');
+                    toastr.error(response.message || 'Erreur lors du chargement des données');
+                    $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">' + (response.message || 'Aucune donnée disponible') + '</td></tr>');
                 }
             },
-            error: function() {
-                toastr.error('Erreur lors du chargement des données');
-                $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Erreur de chargement</td></tr>');
+            error: function(xhr) {
+                console.error('Erreur loadEleveTransportData:', xhr);
+                let errorMsg = 'Erreur lors du chargement des données';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+                $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center text-danger">Erreur de chargement</td></tr>');
             }
         });
     }
@@ -360,7 +367,7 @@ $(document).ready(function() {
 
     function updatePaiementsTable(paiements) {
         let html = '';
-        if (paiements.length > 0) {
+        if (paiements && paiements.length > 0) {
             $.each(paiements, function(index, paiement) {
                 html += `
                 <tr>
@@ -370,7 +377,7 @@ $(document).ready(function() {
                     <td>${formatModePaiement(paiement.mode_paiement)}</td>
                     <td>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-success btn-reçu" data-id="${paiement.id}">
+                            <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
                                 <i class="ti ti-printer"></i>
                             </button>
                             <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
@@ -386,25 +393,37 @@ $(document).ready(function() {
         }
         $('#paiements-table tbody').html(html);
 
-        $('.btn-reçu').click(function() {
+        // Événements pour les boutons
+        $('.btn-recu').off('click').on('click', function() {
             generateReceipt($(this).data('id'));
         });
-        $('.btn-delete').click(function() {
+        $('.btn-delete').off('click').on('click', function() {
             showDeleteModal($(this).data('id'));
         });
     }
 
     function formatMoney(amount) {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);
+        if (amount === undefined || amount === null) return '0 FCFA';
+        return new Intl.NumberFormat('fr-FR', { 
+            style: 'currency', 
+            currency: 'XOF', 
+            minimumFractionDigits: 0 
+        }).format(amount);
     }
 
     function formatDate(dateString) {
+        if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR');
     }
 
     function formatModePaiement(mode) {
-        const modes = { 'especes':'Espèces', 'cheque':'Chèque', 'virement':'Virement', 'mobile_money':'Mobile Money' };
+        const modes = { 
+            'especes': 'Espèces', 
+            'cheque': 'Chèque', 
+            'virement': 'Virement', 
+            'mobile_money': 'Mobile Money' 
+        };
         return modes[mode] || mode;
     }
 
@@ -412,7 +431,7 @@ $(document).ready(function() {
     $('#montant_transport_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteTransport) {
-            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            toastr.warning('Le montant ne peut pas dépasser le reste à payer');
             $(this).val(currentResteTransport);
         }
     });
@@ -420,6 +439,7 @@ $(document).ready(function() {
     // Soumission du formulaire de paiement
     $('#paiement-form').submit(function(e) {
         e.preventDefault();
+        
         if (!currentEleveId) { 
             toastr.error('Veuillez sélectionner un élève'); 
             return; 
@@ -433,14 +453,16 @@ $(document).ready(function() {
         }
         
         if (montantTransport > currentResteTransport) {
-            toastr.error('Le montant de transport ne peut pas dépasser le reste à payer');
+            toastr.error('Le montant ne peut pas dépasser le reste à payer');
             return;
         }
         
         const formData = $(this).serialize();
+        const submitBtn = $(this).find('button[type="submit"]');
+        submitBtn.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-2"></i>Enregistrement...');
 
         $.ajax({
-            url: '{{ route("reglements.store_paiement_transport") }}', // Nouvelle route pour enregistrer les paiements transport
+            url: '{{ route("reglements.store_paiement_transport") }}',
             type: 'POST',
             data: formData,
             success: function(response) {
@@ -448,27 +470,35 @@ $(document).ready(function() {
                     toastr.success(response.message);
                     $('#paiement-form')[0].reset();
                     $('#date_paiement').val('{{ date("Y-m-d") }}');
+                    $('#montant_transport_input').val(0);
                     loadEleveTransportData(currentEleveId);
 
                     if (response.paiement_id) {
                         window.open(`{{ url('transport/receipt') }}/${response.paiement_id}`, '_blank');
                     }
                 } else {
-                    toastr.error(response.message);
+                    toastr.error(response.message || 'Erreur lors de l\'enregistrement');
                 }
             },
             error: function(xhr) {
+                console.error('Erreur paiement:', xhr);
                 if (xhr.status === 422) {
                     $.each(xhr.responseJSON.errors, function(key, value) {
                         toastr.error(value[0]);
                     });
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    toastr.error(xhr.responseJSON.message);
                 } else {
-                    toastr.error('Une erreur est survenue');
+                    toastr.error('Une erreur est survenue lors de l\'enregistrement');
                 }
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html('<i class="ti ti-check me-2"></i>Enregistrer Paiement');
             }
         });
     });
 
+    // Gestion de la suppression
     function showDeleteModal(paiementId) {
         paiementToDelete = paiementId;
         $('#deleteModal').modal('show');
@@ -477,35 +507,42 @@ $(document).ready(function() {
     $('#confirm-delete').click(function() {
         if (!paiementToDelete) return;
         const button = $(this);
-        button.prop('disabled', true);
+        button.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-2"></i>Suppression...');
 
         $.ajax({
             url: '{{ route("reglements.delete_paiement") }}',
             type: 'DELETE',
-            data: { _token: '{{ csrf_token() }}', paiement_id: paiementToDelete },
+            data: { 
+                _token: '{{ csrf_token() }}', 
+                paiement_id: paiementToDelete 
+            },
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
                 } else {
-                    toastr.error(response.message);
+                    toastr.error(response.message || 'Erreur lors de la suppression');
                 }
                 $('#deleteModal').modal('hide');
-                loadEleveTransportData(currentEleveId);
+                if (currentEleveId) {
+                    loadEleveTransportData(currentEleveId);
+                }
             },
-            error: function() { 
-                toastr.error('Erreur lors de la suppression du paiement'); 
+            error: function(xhr) {
+                console.error('Erreur suppression:', xhr);
+                toastr.error('Erreur lors de la suppression du paiement');
+                $('#deleteModal').modal('hide');
             },
-            complete: function() { 
-                button.prop('disabled', false); 
-                paiementToDelete = null; 
+            complete: function() {
+                button.prop('disabled', false).html('Supprimer');
+                paiementToDelete = null;
             }
         });
     });
 
+    // Génération du reçu
     function generateReceipt(paiementId) {
-        // Ouvrir dans un nouvel onglet
+        if (!paiementId) return;
         window.open(`{{ url('transport/receipt') }}/${paiementId}`, '_blank');
-        
     }
 });
 </script>
