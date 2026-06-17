@@ -77,7 +77,7 @@
 										<div class="overflow-hidden flex-fill">
 											<div class="d-flex align-items-center justify-content-between">
 												<h2 class="counter">{{ $totalEleves }}</h2>
-												<span class="badge bg-danger">1.2%</span>
+												{{-- <span class="badge bg-danger">1.2%</span> --}}
 											</div>
 											<p>Total Eleves</p>
 										</div>
@@ -99,7 +99,7 @@
 										<div class="overflow-hidden flex-fill">
 											<div class="d-flex align-items-center justify-content-between">
 												<h2 class="counter">{{ $totalInscriptions }}</h2>
-												<span class="badge bg-skyblue">1.2%</span>
+												{{-- <span class="badge bg-skyblue">1.2%</span> --}}
 											</div>
 											
 											<p>Total des inscriptions cette année</p>
@@ -123,7 +123,7 @@
 										<div class="overflow-hidden flex-fill">
 											<div class="d-flex align-items-center justify-content-between">
 												<h2 class="counter">{{ $totalGarcons }}</h2>
-												<span class="badge bg-danger">1.2%</span>
+												{{-- <span class="badge bg-danger">1.2%</span> --}}
 											</div>
 											<p>Total Garcons</p>
 										</div>
@@ -145,7 +145,7 @@
 										<div class="overflow-hidden flex-fill">
 											<div class="d-flex align-items-center justify-content-between">
 												<h2 class="counter">{{ $totalFilles }}</h2>
-												<span class="badge bg-skyblue">1.2%</span>
+												{{-- <span class="badge bg-skyblue">1.2%</span> --}}
 											</div>
 											
 											<p>Nombre de Filles</p>
