@@ -39,8 +39,7 @@ class DatabaseSeeder extends Seeder
             TarifMensuelSeeder::class,
             // ClasseSeeder::class,
             // MatiereSeeder::class,
-            // MentionSeeder::class,
-            
+            // MentionSeeder::class,                         
         ]);
 
         // User::factory()->create([
