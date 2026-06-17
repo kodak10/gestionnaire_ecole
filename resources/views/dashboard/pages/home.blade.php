@@ -82,11 +82,7 @@
 											<p>Total Eleves</p>
 										</div>
 									</div>
-									<div class="d-flex align-items-center justify-content-between border-top mt-3 pt-3">
-										<p class="mb-0">Active : <span class="text-dark fw-semibold">254</span></p>
-										<span class="text-light">|</span>
-										<p>Inactive : <span class="text-dark fw-semibold">30</span></p>
-									</div>
+									
 									
 								</div>
 								
@@ -109,11 +105,7 @@
 											<p>Total des inscriptions cette année</p>
 										</div>
 									</div>
-									<div class="d-flex align-items-center justify-content-between border-top mt-3 pt-3">
-										<p class="mb-0">Active : <span class="text-dark fw-semibold">254</span></p>
-										<span class="text-light">|</span>
-										<p>Inactive : <span class="text-dark fw-semibold">30</span></p>
-									</div>
+									
 									
 								</div>
 							</div>
@@ -208,7 +200,7 @@
 				</div>
 				
 
-				<div class="row">
+				{{-- <div class="row">
 
 					<!-- Links -->
 					<div class="col-xl-3 col-md-6 d-flex">
@@ -684,6 +676,6 @@
 						</div>
 					</div>
 				@endhasanyrole
-				
+				 --}}
 				
 @endsection
