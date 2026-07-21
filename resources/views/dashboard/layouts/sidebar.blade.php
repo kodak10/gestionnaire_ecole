@@ -53,6 +53,20 @@
                             </ul>
                         </li>
 
+                        <li class="submenu">
+                            <a href="javascript:void(0);" class="">
+                                <i class="ti ti-users"></i><span>Personnels</span><span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                               
+                                <li><a href="" class="">Salaire</a></li>
+
+                                <li><a href="{{ route('templates.index') }}" class="">Salaire</a></li>
+                                
+                                
+                            </ul>
+                        </li>
+
                          <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['notes*', 'tableaux-honneur.index']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-users"></i><span>Notes</span><span class="menu-arrow"></span>
@@ -253,6 +267,3 @@
         </div>
     </div>
 </div>
-
-http://127.0.0.1:8000/eleves-by-classe-cantine?classe_id=14 Request Method GET
-http://127.0.0.1:8000/eleves/by-classe?classe_id=14 GET

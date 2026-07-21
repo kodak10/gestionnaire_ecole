@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ecole;
 use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Inscription;
@@ -150,71 +151,288 @@ class ReglementController extends Controller
         }
     }
 
-    public function storePaiement(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'montant_inscription' => 'nullable|numeric|min:0',
-            'montant_scolarite' => 'nullable|numeric|min:0',
-            'date_paiement' => 'required|date',
-            'mode_paiement' => 'required|string',
-            'reference' => 'nullable|string|max:255'
+    // public function storePaiement(Request $request)
+    // {
+    //     $request->validate([
+    //         'inscription_id' => 'required|exists:inscriptions,id',
+    //         'montant_inscription' => 'nullable|numeric|min:0',
+    //         'montant_scolarite' => 'nullable|numeric|min:0',
+    //         'date_paiement' => 'required|date',
+    //         'mode_paiement' => 'required|string',
+    //         'reference' => 'nullable|string|max:255'
+    //     ]);
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $inscription = Inscription::findOrFail($request->inscription_id);
+           
+    //         $ecoleId = session('current_ecole_id'); 
+    //         $anneeScolaireId = session('current_annee_scolaire_id');
+
+    //         $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
+
+    //         $paiement = Paiement::create([
+    //             'annee_scolaire_id' => $anneeScolaireId,
+    //             'ecole_id' => $ecoleId,
+    //             'montant' => $total,
+    //             'mode_paiement' => $request->mode_paiement,
+    //             'reference' => $request->reference,
+    //             'user_id' => auth()->id(),
+    //             'created_at' => $request->date_paiement
+    //         ]);
+
+    //         if ($request->montant_inscription > 0) {
+    //             $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+    //             PaiementDetail::create([
+    //                 'paiement_id' => $paiement->id,
+    //                 'annee_scolaire_id' => $anneeScolaireId,
+    //                 'ecole_id' => $ecoleId,
+    //                 'inscription_id' => $request->inscription_id,
+    //                 'type_frais_id' => $typeInscription->id,
+    //                 'montant' => $request->montant_inscription
+    //             ]);
+    //         }
+
+    //         if ($request->montant_scolarite > 0) {
+    //             $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+    //             PaiementDetail::create([
+    //                 'paiement_id' => $paiement->id,
+    //                 'annee_scolaire_id' => $anneeScolaireId,
+    //                 'ecole_id' => $ecoleId,
+    //                 'inscription_id' => $request->inscription_id,
+    //                 'type_frais_id' => $typeScolarite->id,
+    //                 'montant' => $request->montant_scolarite,
+    //                 'created_at' => $request->date_paiement,
+    //                 'updated_at' => $request->date_paiement,
+    //             ]);
+    //         }
+
+    //         DB::commit();
+    //         return response()->json(['success' => true, 'paiement_id' => $paiement->id]);
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json(['success' => false, 'message' => $e->getMessage()]);
+    //     }
+    // }
+
+public function storePaiement(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'montant_inscription' => 'nullable|numeric|min:0',
+        'montant_scolarite' => 'nullable|numeric|min:0',
+        'date_paiement' => 'required|date',
+        'mode_paiement' => 'required|string',
+        'reference' => 'nullable|string|max:255'
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $inscription = Inscription::with(['eleve', 'classe.niveau', 'reductions'])->findOrFail($request->inscription_id);
+        
+        $ecoleId = session('current_ecole_id'); 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
+
+        $paiement = Paiement::create([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'montant' => $total,
+            'mode_paiement' => $request->mode_paiement,
+            'reference' => $request->reference,
+            'user_id' => auth()->id(),
+            'created_at' => $request->date_paiement
         ]);
 
-        try {
-            DB::beginTransaction();
+        $montantPayeInscription = 0;
+        $montantPayeScolarite = 0;
 
-            $inscription = Inscription::findOrFail($request->inscription_id);
-           
-            $ecoleId = session('current_ecole_id'); 
-            $anneeScolaireId = session('current_annee_scolaire_id');
-
-            $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
-
-            $paiement = Paiement::create([
+        if ($request->montant_inscription > 0) {
+            $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+            PaiementDetail::create([
+                'paiement_id' => $paiement->id,
                 'annee_scolaire_id' => $anneeScolaireId,
                 'ecole_id' => $ecoleId,
-                'montant' => $total,
-                'mode_paiement' => $request->mode_paiement,
-                'reference' => $request->reference,
-                'user_id' => auth()->id(),
-                'created_at' => $request->date_paiement
+                'inscription_id' => $request->inscription_id,
+                'type_frais_id' => $typeInscription->id,
+                'montant' => $request->montant_inscription
             ]);
-
-            if ($request->montant_inscription > 0) {
-                $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
-                PaiementDetail::create([
-                    'paiement_id' => $paiement->id,
-                    'annee_scolaire_id' => $anneeScolaireId,
-                    'ecole_id' => $ecoleId,
-                    'inscription_id' => $request->inscription_id,
-                    'type_frais_id' => $typeInscription->id,
-                    'montant' => $request->montant_inscription
-                ]);
-            }
-
-            if ($request->montant_scolarite > 0) {
-                $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
-                PaiementDetail::create([
-                    'paiement_id' => $paiement->id,
-                    'annee_scolaire_id' => $anneeScolaireId,
-                    'ecole_id' => $ecoleId,
-                    'inscription_id' => $request->inscription_id,
-                    'type_frais_id' => $typeScolarite->id,
-                    'montant' => $request->montant_scolarite,
-                    'created_at' => $request->date_paiement,
-                    'updated_at' => $request->date_paiement,
-                ]);
-            }
-
-            DB::commit();
-            return response()->json(['success' => true, 'paiement_id' => $paiement->id]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            $montantPayeInscription = $request->montant_inscription;
         }
+
+        if ($request->montant_scolarite > 0) {
+            $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+            PaiementDetail::create([
+                'paiement_id' => $paiement->id,
+                'annee_scolaire_id' => $anneeScolaireId,
+                'ecole_id' => $ecoleId,
+                'inscription_id' => $request->inscription_id,
+                'type_frais_id' => $typeScolarite->id,
+                'montant' => $request->montant_scolarite,
+                'created_at' => $request->date_paiement,
+                'updated_at' => $request->date_paiement,
+            ]);
+            $montantPayeScolarite = $request->montant_scolarite;
+        }
+
+        // Calculer le reste à payer pour chaque type de frais
+        $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+        $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+
+        $totalPayeInscription = PaiementDetail::where('inscription_id', $inscription->id)
+            ->where('type_frais_id', $typeInscription->id ?? 0)
+            ->sum('montant');
+
+        $totalPayeScolarite = PaiementDetail::where('inscription_id', $inscription->id)
+            ->where('type_frais_id', $typeScolarite->id ?? 0)
+            ->sum('montant');
+
+        // Récupérer les tarifs
+        $tarifInscription = Tarif::where([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'niveau_id' => $inscription->classe->niveau->id,
+            'type_frais_id' => $typeInscription->id ?? 0
+        ])->first();
+
+        $tarifScolarite = Tarif::where([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'niveau_id' => $inscription->classe->niveau->id,
+            'type_frais_id' => $typeScolarite->id ?? 0
+        ])->first();
+
+        $montantTotalInscription = $tarifInscription->montant ?? 0;
+        $montantTotalScolarite = $tarifScolarite->montant ?? 0;
+
+        // Appliquer les réductions
+        $reduction = $inscription->reductions->sum('montant');
+        $montantTotalScolarite = max(0, $montantTotalScolarite - $reduction);
+
+        $resteInscription = max(0, $montantTotalInscription - $totalPayeInscription);
+        $resteScolarite = max(0, $montantTotalScolarite - $totalPayeScolarite);
+
+        // ============================================================
+        // ENVOI DU SMS - AVEC VÉRIFICATION DES CRÉDITS ET COMPTAGE
+        // ============================================================
+        try {
+            // Récupérer l'école pour vérifier les crédits
+            $ecole = Ecole::find($ecoleId);
+            
+            // Vérifier si l'école peut envoyer des SMS
+            if ($ecole && $ecole->canSendSms()) {
+                // Initialiser le service SMS avec l'ID de l'école
+                $smsService = new \App\Services\SmsService($ecoleId);
+                
+                // Récupérer le numéro de téléphone
+                $phoneNumber = $inscription->eleve->parent_telephone ?? 
+                               $inscription->eleve->telephone ?? null;
+                
+                if ($phoneNumber) {
+                    // Nettoyer le numéro
+                    $phoneNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
+                    
+                    // Déterminer quel type de frais a été payé
+                    $typeFrais = '';
+                    $montantPaye = 0;
+                    $resteAPayer = 0;
+                    
+                    if ($montantPayeScolarite > 0) {
+                        $typeFrais = 'Scolarité';
+                        $montantPaye = $montantPayeScolarite;
+                        $resteAPayer = $resteScolarite;
+                    } elseif ($montantPayeInscription > 0) {
+                        $typeFrais = "Frais d'inscription";
+                        $montantPaye = $montantPayeInscription;
+                        $resteAPayer = $resteInscription;
+                    }
+                    
+                    if ($montantPaye > 0) {
+                        $message = $smsService->formatPaymentMessage(
+                            $inscription->eleve,
+                            $inscription->classe,
+                            $montantPaye,
+                            $resteAPayer,
+                            $typeFrais
+                        );
+                        
+                        // Envoyer le SMS (la décrémentation des crédits est automatique)
+                        $result = $smsService->sendSms($phoneNumber, $message, $ecoleId);
+                        
+                        if ($result['success']) {
+                            Log::info('✅ SMS de paiement envoyé avec succès', [
+                                'paiement_id' => $paiement->id,
+                                'inscription_id' => $inscription->id,
+                                'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
+                                'montant_paye' => $montantPaye,
+                                'sms_restant' => $result['sms_restant'] ?? null,
+                                'ecole' => $ecole->nom_ecole
+                            ]);
+                        } else {
+                            Log::warning('⚠️ Échec de l\'envoi du SMS de paiement', [
+                                'paiement_id' => $paiement->id,
+                                'inscription_id' => $inscription->id,
+                                'reason' => $result['message'] ?? 'Unknown error',
+                                'status' => $result['status'] ?? null
+                            ]);
+                        }
+                    }
+                } else {
+                    Log::warning('⚠️ Aucun numéro de téléphone disponible pour l\'envoi du SMS', [
+                        'inscription_id' => $inscription->id,
+                        'eleve_id' => $inscription->eleve->id,
+                        'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom
+                    ]);
+                }
+            } else {
+                // L'école ne peut pas envoyer de SMS
+                $status = $ecole ? $ecole->sms_status : 'École non trouvée';
+                $credits = $ecole ? $ecole->sms_disponible : 0;
+                
+                Log::info('ℹ️ SMS non envoyé - école non configurée ou crédits insuffisants', [
+                    'ecole_id' => $ecoleId,
+                    'ecole_nom' => $ecole ? $ecole->nom_ecole : null,
+                    'sms_notification' => $ecole ? $ecole->sms_notification : null,
+                    'sms_disponible' => $credits,
+                    'sms_status' => $status
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Ne pas bloquer le paiement si le SMS échoue
+            Log::error('❌ Erreur lors de l\'envoi du SMS de paiement', [
+                'paiement_id' => $paiement->id,
+                'inscription_id' => $inscription->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
+        DB::commit();
+        
+        return response()->json([
+            'success' => true, 
+            'paiement_id' => $paiement->id,
+            'sms_envoye' => isset($result) ? $result['success'] : false
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        Log::error('❌ Erreur lors de l\'enregistrement du paiement', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false, 
+            'message' => $e->getMessage()
+        ]);
     }
+}
 
     public function generateReceipt($paiementId)
     {

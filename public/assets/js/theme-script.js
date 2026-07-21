@@ -166,55 +166,7 @@
                         </div>
                     </div>
                 </div>     
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarbgsetting" aria-expanded="true">
-                            Arrière-plan de la barre latérale
-                        </button>
-                    </h2>
-                    <div id="sidebarbgsetting" class="accordion-collapse collapse show"	 >
-                        <div class="accordion-body">
-                           <div class="d-flex align-items-center">
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg1" value="sidebarbg1" checked>
-                                    <label for="sidebarBg1" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-01.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg2" value="sidebarbg2">
-                                    <label for="sidebarBg2" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-02.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg3" value="sidebarbg3">
-                                    <label for="sidebarBg3" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-03.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg4" value="sidebarbg4">
-                                    <label for="sidebarBg4" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-04.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg5" value="sidebarbg5">
-                                    <label for="sidebarBg5" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-05.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                                <div class="theme-sidebarbg me-3">
-                                    <input type="radio" name="sidebarbg" id="sidebarBg6" value="sidebarbg6">
-                                    <label for="sidebarBg6" class="d-block rounded">
-                                        <img src="assets/img/theme/sidebar-bg-06.svg" alt="img" class="rounded">
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>    
+                    
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button text-dark fs-16" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarcolor" aria-expanded="true">

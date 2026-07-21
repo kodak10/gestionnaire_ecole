@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\CantineController;
 use App\Http\Controllers\ClasseController;
 use App\Http\Controllers\CritereNotationController;
+use App\Http\Controllers\DocumentTemplateController;
+
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EcoleController;
@@ -80,6 +82,19 @@ use Illuminate\Support\Facades\Route;
             Route::post('/documents/inscriptions/save', [DocumentController::class, 'inscriptionsModelSave'])->name('documents.inscriptions.save');
             Route::post('/documents/upload-image', [DocumentController::class, 'uploadImage'])->name('documents.upload-image');
 
+        });
+
+
+        Route::prefix('templates')->name('templates.')->group(function () {
+            Route::get('/active-sms', [DocumentTemplateController::class, 'getActiveSms'])->name('getActiveSms');
+
+            Route::get('/', [DocumentTemplateController::class, 'index'])->name('index');
+            Route::get('/create', [DocumentTemplateController::class, 'create'])->name('create');
+            Route::post('/', [DocumentTemplateController::class, 'store'])->name('store');
+            Route::get('/{id}', [DocumentTemplateController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [DocumentTemplateController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [DocumentTemplateController::class, 'update'])->name('update');
+            Route::delete('/{id}', [DocumentTemplateController::class, 'destroy'])->name('destroy');
         });
 
         
@@ -373,6 +388,7 @@ Route::prefix('transport')->group(function () {
             Route::get('/data', [RelanceController::class, 'getRelanceData'])->name('relance.data');
             Route::get('/imprimer', [RelanceController::class, 'imprimerRelance'])->name('relance.imprimer');
             Route::get('/export', [RelanceController::class, 'export'])->name('relance.export');
+            Route::post('/send-sms', [RelanceController::class, 'sendSms'])->name('relance.send.sms');
 
         });
 

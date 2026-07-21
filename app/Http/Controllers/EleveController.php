@@ -97,7 +97,8 @@ class EleveController extends Controller
         });
 
         $inscriptions = $query->paginate(12);
-        $classes = Classe::all();
+        $classes = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)->get();
         $fraiss = TypeFrais::all();
         $viewMode = $request->get('view_mode', 'grid');
 
@@ -334,6 +335,10 @@ class EleveController extends Controller
             abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
         }
 
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $ecoleId = session('current_ecole_id');
+
+
         $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
         $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
 
@@ -342,7 +347,8 @@ class EleveController extends Controller
         $tarifs = Tarif::all();
 
         $eleve = Inscription::findOrFail($id);
-        $classes = Classe::all();
+        $classes = Classe::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)->get();
 
         return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }

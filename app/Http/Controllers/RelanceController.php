@@ -37,7 +37,9 @@ class RelanceController extends Controller
             ->get();
 
         $moisScolaires = MoisScolaire::orderBy('numero')->get();
-        $typeFrais = TypeFrais::get();
+        $typeFrais = TypeFrais::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->get();
 
         return view('dashboard.pages.comptabilites.relances', compact('classes', 'moisScolaires', 'typeFrais'));
     }
@@ -253,7 +255,12 @@ class RelanceController extends Controller
                     'statut' => collect($fraisData)->pluck('statut')->contains('En retard') ? 'En retard' : 'À jour',
                     'details_mois' => collect($fraisData)->pluck('details_mois')->flatten(1),
                     'en_retard_depuis' => collect($fraisData)->pluck('en_retard_depuis')->filter()->first() ?? null,
-                    'frais_details' => $fraisData
+                    'frais_details' => $fraisData,
+                    'telephone' => $inscription->eleve->telephone ?? '',
+        'parent_telephone' => $inscription->eleve->parent_telephone ?? '',
+        'parent_nom' => $inscription->eleve->parent_nom ?? '',
+        'parent_prenom' => $inscription->eleve->parent_prenom ?? '',
+        'id' => $inscription->eleve->id
                 ];
             }
 
@@ -776,4 +783,69 @@ class RelanceController extends Controller
         ];
     }
 
+/**
+ * Envoyer une relance par SMS
+ */
+public function sendSms(Request $request)
+{
+    $request->validate([
+        'phone' => 'required|string',
+        'message' => 'required|string',
+        'eleve_id' => 'nullable|integer'
+    ]);
+
+    try {
+        $ecoleId = session('current_ecole_id');
+        
+        // Log pour déboguer
+        Log::info('📱 Tentative d\'envoi SMS', [
+            'phone' => $request->phone,
+            'eleve_id' => $request->eleve_id,
+            'ecole_id' => $ecoleId,
+            'message_length' => strlen($request->message)
+        ]);
+        
+        // Vérifier que le numéro n'est pas vide
+        if (empty($request->phone)) {
+            Log::error('❌ Numéro de téléphone vide');
+            return response()->json([
+                'success' => false, 
+                'message' => 'Numéro de téléphone vide'
+            ]);
+        }
+        
+        // Utiliser le service SMS
+        $smsService = new \App\Services\SmsService($ecoleId);
+        $result = $smsService->sendSms($request->phone, $request->message, $ecoleId);
+        
+        Log::info('📱 Résultat envoi SMS', [
+            'success' => $result['success'],
+            'phone' => $request->phone,
+            'message' => $result['message'] ?? 'OK'
+        ]);
+        
+        if ($result['success']) {
+            Log::info('✅ SMS de relance envoyé avec succès', [
+                'phone' => $request->phone,
+                'eleve_id' => $request->eleve_id
+            ]);
+            return response()->json(['success' => true, 'message' => 'SMS envoyé']);
+        } else {
+            Log::error('❌ Échec envoi SMS', [
+                'phone' => $request->phone,
+                'error' => $result['message']
+            ]);
+            return response()->json(['success' => false, 'message' => $result['message']]);
+        }
+        
+    } catch (\Exception $e) {
+        Log::error('❌ Exception envoi SMS relance: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'success' => false, 
+            'message' => $e->getMessage()
+        ]);
+    }
+}
 }
