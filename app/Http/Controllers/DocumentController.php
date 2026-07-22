@@ -144,9 +144,9 @@ public function genererFicheInscription(Eleve $eleve)
             ->select('inscriptions.*')
             ->paginate(20);
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('nom')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         return view('dashboard.pages.documents.inscriptions', compact('inscriptions', 'classes'));
     }
@@ -182,9 +182,9 @@ public function genererFicheInscription(Eleve $eleve)
             ->select('inscriptions.*')
             ->paginate(20);
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('nom')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         return view('dashboard.pages.documents.certificats-scolarite', compact('inscriptions', 'classes'));
     }
@@ -252,9 +252,9 @@ public function genererFicheInscription(Eleve $eleve)
             ->select('inscriptions.*')
             ->paginate(20);
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('nom')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         return view('dashboard.pages.documents.fiches-frequentation', compact('inscriptions', 'classes'));
     }

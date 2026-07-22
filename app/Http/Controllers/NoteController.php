@@ -67,7 +67,9 @@ class NoteController extends Controller
         
         $eleves = Eleve::orderBy('nom')->get();
         $matieres = Matiere::orderBy('nom')->get();
-        $classes = Classe::orderBy('nom')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
         $moisScolaire = MoisScolaire::all();
 
         return view('dashboard.pages.eleves.notes.index', compact('notes', 'eleves', 'matieres', 'classes', 'moisScolaire'));
@@ -143,7 +145,9 @@ class NoteController extends Controller
     $classe = Classe::with('niveau.matieres')->findOrFail($validated['classe_id']);
     $matierePivot = $classe->niveau->matieres->firstWhere('id', $validated['matiere_id'])->pivot ?? null;
     $base = $matierePivot->denominateur;
-
+    $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
     foreach ($validated['notes'] as $noteData) {
         $valeur = $noteData['valeur'];
 
@@ -207,7 +211,9 @@ private function generateAppreciation($valeur, $base)
     {
         $eleves = Eleve::orderBy('nom')->get();
         $matieres = Matiere::orderBy('nom')->get();
-        $classes = Classe::orderBy('nom')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
         $inscriptions = Inscription::with('eleve')->orderBy('id')->get();
         $moisScolaire = MoisScolaire::all();
 

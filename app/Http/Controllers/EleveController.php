@@ -31,8 +31,6 @@ class EleveController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $ecoleId = session('current_ecole_id');
 
-        //dd([$anneeScolaireId, $ecoleId]);
-
         $query = Inscription::with(['eleve', 'classe'])
             ->where('inscriptions.ecole_id', $ecoleId)
             ->where('inscriptions.annee_scolaire_id', $anneeScolaireId)
@@ -89,7 +87,6 @@ class EleveController extends Controller
                 return $q->orderBy($request->sort_by, $sort);
             }
         }, function($q) {
-            // Tri par défaut : nom puis prénom
             return $q->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
                     ->orderBy('eleves.nom', 'asc')
                     ->orderBy('eleves.prenom', 'asc')
@@ -97,8 +94,10 @@ class EleveController extends Controller
         });
 
         $inscriptions = $query->paginate(12);
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
+
         $fraiss = TypeFrais::all();
         $viewMode = $request->get('view_mode', 'grid');
 
@@ -108,7 +107,7 @@ class EleveController extends Controller
             'filters' => $request->only(['classe_id', 'nom', 'sexe', 'cantine', 'transport']),
             'sort_by' => $request->get('sort_by'),
             'sort' => $request->get('sort'),
-        ]   );
+        ]);
 
         return view('dashboard.pages.eleves.index', compact('inscriptions', 'classes', 'fraiss', 'viewMode'));
     }
@@ -120,22 +119,18 @@ class EleveController extends Controller
 
     public function export(Request $request)
     {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
             abort(403, 'Vous n\'avez pas la permission d\'exporter la liste des élèves.');
         }
-        //dd($request->all());
 
         $format = $request->format;
-
         $anneeScolaireId = session('current_annee_scolaire_id');
         $ecoleId = session('current_ecole_id');
         
-        // Récupérer les élèves avec les mêmes filtres que l'index
         $query = Inscription::with(['eleve', 'classe'])
             ->where('inscriptions.ecole_id', $ecoleId)
             ->where('inscriptions.annee_scolaire_id', $anneeScolaireId);
 
-        // Appliquer les filtres
         $query->when($request->filled('classe_id'), function($q) use ($request) {
             return $q->where('classe_id', $request->classe_id);
         });
@@ -161,7 +156,6 @@ class EleveController extends Controller
             return $q->where('transport_active', $request->transport == '1');
         });
 
-        // 🔹 Tri toujours par nom puis prénom
         $query->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
             ->orderBy('eleves.nom', 'asc')
             ->orderBy('eleves.prenom', 'asc')
@@ -169,7 +163,6 @@ class EleveController extends Controller
 
         $eleves = $query->get();
 
-        // 🔹 Construire les filtres dynamiquement
         $filters = [
             'classe' => $request->classe_id ? Classe::find($request->classe_id)->nom : 'Toutes',
             'nom'    => $request->nom ?: 'Tous',
@@ -184,12 +177,10 @@ class EleveController extends Controller
             $filters['transport'] = $request->transport == '1' ? 'Oui' : 'Non';
         }
 
-        // 🔹 Export Excel
         if ($format === 'excel') {
             return Excel::download(new ElevesExport($eleves, $filters), 'liste_eleves_' . date('Y-m-d') . '.xlsx');
         }
 
-        // 🔹 Export PDF
         if ($format === 'pdf') {
             $data = [
                 'eleves'  => $eleves,
@@ -202,7 +193,6 @@ class EleveController extends Controller
                     ->setPaper('a4', 'landscape');
 
             return $pdf->stream('liste_eleves_' . date('Y-m-d') . '.pdf');
-
         }
 
         return redirect()->back()->with('error', 'Format non supporté');
@@ -213,13 +203,10 @@ class EleveController extends Controller
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
         
-        // Filtrer et trier les classes
-        $classes = Classe::where('ecole_id', $ecoleId)
-                        ->where('annee_scolaire_id', $anneeScolaireId)
-                        ->orderBy('nom', 'desc')      // tri par nom
-                        ->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
-        // Récupérer les types de frais
         $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
         $scolarite        = TypeFrais::where('nom', 'Scolarité')->first();
         $transports       = TypeFrais::where('nom', 'Transport')->first();
@@ -236,65 +223,100 @@ class EleveController extends Controller
         ));
     }
   
-    public function store(Request $request)
-    {
-        $request->validate([
-            'prenom' => 'required|string|max:255',
-            'nom' => 'required|string|max:255',
-            'num_extrait' => 'nullable|string|max:255',
-            'naissance' => 'required|date',
-            'sexe' => 'required|in:Masculin,Féminin',
-            'classe_id' => 'required|exists:classes,id',
-            'parent_nom' => 'required|string|max:255',
-            'parent_telephone' => 'required|string|max:20',
-            'mode_paiement' => 'nullable|string',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-            'code_national' => 'nullable|string|max:10',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'nom' => 'required|string|max:255',
+        'prenom' => 'required|string|max:255',
+        'num_extrait' => 'nullable|string|max:255',
+        'naissance' => 'required|date',
+        'lieu_naissance' => 'nullable|string|max:255',
+        'sexe' => 'required|in:Masculin,Féminin',
+        'nationalite' => 'nullable|string|max:255',
+        'code_national' => 'nullable|string|max:255',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+        'infos_medicales' => 'nullable|string',
+        'pere_nom' => 'required|string|max:255',
+        'pere_contact' => 'required|string|max:20',
+        'pere_contact02' => 'nullable|string|max:20',
+        'mere_nom' => 'nullable|string|max:255',
+        'mere_contact' => 'nullable|string|max:20',
+        'mere_contact02' => 'nullable|string|max:20',
+        'parent_adresse' => 'nullable|string|max:255',
+        'classe_id' => 'required|exists:classes,id',
+        'transport_active' => 'nullable|boolean',
+        'cantine_active' => 'nullable|boolean',
+        'parent_nom' => 'nullable|string|max:255',
+        'parent_telephone' => 'nullable|string|max:20',
+        'parent_telephone02' => 'nullable|string|max:20',
+        'mode_paiement' => 'nullable|string',
+    ]);
 
-        $classe = Classe::with('ecole')->findOrFail($request->classe_id);
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
+    $matricule = $this->genererMatriculeEleve($ecoleId);
 
-        // Génération du matricule
-        $matricule = $this->genererMatriculeEleve($ecoleId);
-
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('eleves/photos', 'public');
-        }
-
-        $eleve = Eleve::create([
-            'matricule' => $matricule,
-            'nom' => $request->nom,
-            'prenom' => $request->prenom,
-            'num_extrait' => $request->num_extrait,
-            'sexe' => $request->sexe,
-            'naissance' => $request->naissance,
-            'lieu_naissance' => $request->lieu_naissance,
-            'photo_path' => $photoPath,
-            'infos_medicales' => $request->infos_medicales,
-            'parent_nom' => $request->parent_nom,
-            'parent_telephone' => $request->parent_telephone,
-            'parent_telephone02' => $request->parent_telephone02,
-            'code_national' => $request->code_national,
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-        ]);
-
-        // Créer l'inscription
-        $inscription = Inscription::create([
-            'annee_scolaire_id' => $anneeScolaireId,
-            'ecole_id' => $ecoleId,
-            'eleve_id' => $eleve->id,
-            'classe_id' => $request->classe_id,
-            'cantine_active' => $request->has('cantine_active'),
-            'transport_active' => $request->has('transport_active'),
-        ]);
-
-        return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
+    $photoPath = null;
+    if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
+        // Upload dans le dossier "eleves_photos"
+        $photoPath = $request->file('photo')->store('eleves_photos', 'public');
     }
+
+    $transportActive = $request->has('transport_active') && $request->input('transport_active') !== 'off';
+    $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') !== 'off';
+
+    $eleve = Eleve::create([
+        'matricule' => $matricule,
+        'nom' => $request->nom,
+        'prenom' => $request->prenom,
+        'num_extrait' => $request->num_extrait,
+        'sexe' => $request->sexe,
+        'naissance' => $request->naissance,
+        'lieu_naissance' => $request->lieu_naissance,
+        'nationalite' => $request->nationalite ?? 'Ivoirienne',
+        'photo_path' => $photoPath,
+        'infos_medicales' => $request->infos_medicales,
+        'code_national' => $request->code_national,
+        'pere_nom' => $request->pere_nom,
+        'pere_contact' => $request->pere_contact,
+        'pere_contact02' => $request->pere_contact02,
+        'mere_nom' => $request->mere_nom,
+        'mere_contact' => $request->mere_contact,
+        'mere_contact02' => $request->mere_contact02,
+        'parent_adresse' => $request->parent_adresse,
+        'is_active' => true,
+        'parent_nom' => $request->parent_nom ?? $request->pere_nom,
+        'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
+        'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
+        'ecole_id' => $ecoleId,
+        'classe_id' => $request->classe_id,
+        'annee_scolaire_id' => $anneeScolaireId,
+    ]);
+
+    $inscription = Inscription::create([
+        'annee_scolaire_id' => $anneeScolaireId,
+        'ecole_id' => $ecoleId,
+        'eleve_id' => $eleve->id,
+        'classe_id' => $request->classe_id,
+        'cantine_active' => $cantineActive,
+        'transport_active' => $transportActive,
+    ]);
+
+    activity()
+        ->performedOn($eleve)
+        ->causedBy(auth()->user())
+        ->withProperties([
+            'matricule' => $eleve->matricule,
+            'nom' => $eleve->nom,
+            'prenom' => $eleve->prenom,
+            'classe_id' => $request->classe_id,
+            'ip' => $request->ip()
+        ])
+        ->log("Nouvel élève inscrit : {$eleve->nom} {$eleve->prenom}");
+
+    return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
+}
 
     private function genererMatriculeEleve(int $ecoleId): string
     {
@@ -302,10 +324,9 @@ class EleveController extends Controller
         $alias = strtoupper($ecole->sigle_ecole);
 
         do {
-            // Récupérer le dernier numéro
             $dernierEleve = Eleve::where('ecole_id', $ecoleId)
                 ->where('matricule', 'like', $alias . '-%')
-                ->orderByDesc('id') // id est plus fiable que created_at
+                ->orderByDesc('id')
                 ->first();
 
             $dernierNumero = 0;
@@ -317,7 +338,6 @@ class EleveController extends Controller
             $numeroFormate = str_pad($nouveauNumero, 5, '0', STR_PAD_LEFT);
             $matricule = $alias . '-' . $numeroFormate;
 
-            // On boucle tant que le matricule existe déjà
         } while (Eleve::where('matricule', $matricule)->exists());
 
         return $matricule;
@@ -325,122 +345,177 @@ class EleveController extends Controller
 
     public function show($id)
     {
-        $inscription = Inscription::with(['eleve', 'classe', 'anneeScolaire', 'paiements.typeFrais', 'paiements.mois'])->findOrFail($id);
+        $ecoleId = session('current_ecole_id');
+        
+        $inscription = Inscription::with(['eleve', 'classe', 'anneeScolaire', 'paiements.typeFrais', 'paiements.mois'])
+            ->where('ecole_id', $ecoleId)
+            ->findOrFail($id);
+            
         return view('dashboard.pages.eleves.show', compact('inscription'));
     }
 
     public function edit($id)
     {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
             abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
         }
 
         $anneeScolaireId = session('current_annee_scolaire_id');
         $ecoleId = session('current_ecole_id');
 
+        // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
+        $inscription = Inscription::with('eleve')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->findOrFail($id);
+        
+        $eleve = $inscription->eleve;
 
         $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
         $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
-
         $transports = TypeFrais::where('nom', 'Transport')->first();
         $cantines = TypeFrais::where('nom', 'Cantine')->first();
         $tarifs = Tarif::all();
 
-        $eleve = Inscription::findOrFail($id);
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)->get();
+       $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
-        return view('dashboard.pages.eleves.edit', compact('eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
+        return view('dashboard.pages.eleves.edit', compact('inscription', 'eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
     }
 
     public function update(Request $request, $id)
-    {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur|Directeur'])) {
-            abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
-        }
+{
+    if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
+        abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
+    }
 
-        $validatedData = $request->validate([
-            'photo_path' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
-            'naissance' => 'required|date',
-            'lieu_naissance' => 'nullable|string|max:255',
-            'sexe' => 'required|in:Masculin,Féminin',
-            'classe_id' => 'required|exists:classes,id',
-            'parent_nom' => 'required|string|max:255',
-            'parent_telephone' => 'required|string|max:11',
-            'parent_telephone02' => 'nullable|string|max:11',
-            'code_national' => 'nullable|string|max:10',
-        ]);
+    $ecoleId = session('current_ecole_id');
+    $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $inscription = Inscription::with('eleve')->findOrFail($id);
-        $eleve = $inscription->eleve;
+    $request->validate([
+        'nom' => 'required|string|max:255',
+        'prenom' => 'required|string|max:255',
+        'num_extrait' => 'nullable|string|max:255',
+        'naissance' => 'required|date',
+        'lieu_naissance' => 'nullable|string|max:255',
+        'sexe' => 'required|in:Masculin,Féminin',
+        'nationalite' => 'nullable|string|max:255',
+        'code_national' => 'nullable|string|max:255',
+        'photo_path' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+        'infos_medicales' => 'nullable|string',
+        'pere_nom' => 'nullable|string|max:255',
+        'pere_contact' => 'nullable|string|max:20',
+        'pere_contact02' => 'nullable|string|max:20',
+        'mere_nom' => 'nullable|string|max:255',
+        'mere_contact' => 'nullable|string|max:20',
+        'mere_contact02' => 'nullable|string|max:20',
+        'parent_adresse' => 'nullable|string|max:255',
+        'classe_id' => 'required|exists:classes,id',
+        'parent_nom' => 'nullable|string|max:255',
+        'parent_telephone' => 'nullable|string|max:20',
+        'parent_telephone02' => 'nullable|string|max:20',
+    ]);
 
-        // Upload photo si nécessaire
-        if ($request->hasFile('photo_path')) {
+    // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
+    $inscription = Inscription::where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->findOrFail($id);
+    
+    $eleve = $inscription->eleve;
+
+    $transportActive = $request->has('transport_active') && $request->input('transport_active') == '1';
+    $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') == '1';
+
+    $updateData = [
+        'nom' => $request->nom,
+        'prenom' => $request->prenom,
+        'num_extrait' => $request->num_extrait,
+        'sexe' => $request->sexe,
+        'naissance' => $request->naissance,
+        'lieu_naissance' => $request->lieu_naissance,
+        'nationalite' => $request->nationalite ?? 'Ivoirienne',
+        'infos_medicales' => $request->infos_medicales,
+        'code_national' => $request->code_national,
+        'pere_nom' => $request->pere_nom,
+        'pere_contact' => $request->pere_contact,
+        'pere_contact02' => $request->pere_contact02,
+        'mere_nom' => $request->mere_nom,
+        'mere_contact' => $request->mere_contact,
+        'mere_contact02' => $request->mere_contact02,
+        'parent_adresse' => $request->parent_adresse,
+        'classe_id' => $request->classe_id,
+        'parent_nom' => $request->parent_nom ?? $request->pere_nom,
+        'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
+        'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
+    ];
+
+    // Gestion de la photo - avec le bon dossier "eleves_photos"
+    if ($request->hasFile('photo_path') && $request->file('photo_path')->isValid()) {
+        // Supprimer l'ancienne photo si elle existe
         if ($eleve->photo_path && \Storage::disk('public')->exists($eleve->photo_path)) {
             \Storage::disk('public')->delete($eleve->photo_path);
         }
-
-        // Upload nouvelle photo
-        $validatedData['photo_path'] = $request->file('photo_path')->store('eleves_photos', 'public');
+        
+        // Upload nouvelle photo dans le dossier "eleves_photos"
+        $path = $request->file('photo_path')->store('eleves_photos', 'public');
+        $updateData['photo_path'] = $path;
     }
 
-        // Mettre à jour l'élève
-        $eleve->update($validatedData);
+    $eleve->update($updateData);
 
-        // Mettre à jour l'inscription : classe, transport et cantine
-        $inscription->update([
-            'classe_id' => $request->classe_id,
-            'cantine_active' => $request->has('cantine_active'),
-            'transport_active' => $request->has('transport_active'),
-        ]);
+    $inscription->update([
+        'classe_id' => $request->classe_id,
+        'cantine_active' => $cantineActive,
+        'transport_active' => $transportActive,
+    ]);
 
-        return redirect()->route('eleves.index')->with('success', 'Élève mis à jour avec succès');
-    }
+    activity()
+        ->performedOn($eleve)
+        ->causedBy(auth()->user())
+        ->withProperties([
+            'matricule' => $eleve->matricule,
+            'nom' => $eleve->nom,
+            'prenom' => $eleve->prenom,
+            'ip' => $request->ip()
+        ])
+        ->log("Élève modifié : {$eleve->nom} {$eleve->prenom}");
+
+    return redirect()->route('eleves.index')->with('success', 'Élève modifié avec succès!');
+}
 
     public function destroy($id)
     {
         if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur'])) {
-            abort(403, 'Vous n\'avez pas la permission de supprimmer un  élève.');
+            abort(403, 'Vous n\'avez pas la permission de supprimer un élève.');
         }
+
+        $ecoleId = session('current_ecole_id');
+
         try {
             DB::beginTransaction();
 
-            $eleve = Eleve::findOrFail($id);
+            // Vérifier que l'élève appartient bien à l'école de l'utilisateur
+            $eleve = Eleve::where('ecole_id', $ecoleId)->findOrFail($id);
             
-            // Supprimer d'abord les relations enfants
             foreach ($eleve->inscriptions as $inscription) {
-                // Supprimer les paiements_details liés aux inscriptions
                 foreach ($inscription->paiements as $paiement) {
-                    // Supprimer les détails de paiement
                     $paiement->details()->delete();
-                    // Supprimer le paiement
                     $paiement->delete();
                 }
                 
-                // Supprimer les réductions liées
                 $inscription->reductions()->delete();
-                
-                // Supprimer les notes liées
                 $inscription->notes()->delete();
-                
-                // Supprimer l'inscription
                 $inscription->delete();
             }
             
-            // Supprimer les réinscriptions
             $eleve->reinscriptions()->delete();
-            
-            // Supprimer les réductions directes
             $eleve->reductions()->delete();
-            
-            // Finalement supprimer l'élève
             $eleve->delete();
 
             DB::commit();
 
-            Log::info('Élève supprimé', ['eleve_id' => $eleve->id, 'matricule' => $eleve->matricule]);
+            Log::info('Élève supprimé', ['eleve_id' => $eleve->id, 'matricule' => $eleve->matricule, 'ecole_id' => $ecoleId]);
             return redirect()->route('eleves.index')->with('success', 'Élève supprimé avec succès');
 
         } catch (\Exception $e) {
@@ -451,5 +526,4 @@ class EleveController extends Controller
                 ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
     }
-   
 }

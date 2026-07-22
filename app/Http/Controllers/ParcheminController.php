@@ -23,10 +23,9 @@ class ParcheminController extends Controller
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('nom')
-            ->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         return view('dashboard.pages.eleves.notes.parchemin.index', compact('classes'));
     }

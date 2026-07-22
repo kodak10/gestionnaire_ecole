@@ -30,9 +30,9 @@ class ReglementController extends Controller
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('id')->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         return view('dashboard.pages.comptabilites.reglement', compact('classes'));
     }

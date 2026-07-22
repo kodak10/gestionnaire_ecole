@@ -20,10 +20,9 @@ class TableauHonneurController extends Controller
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classes = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('nom')
-            ->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         $moisScolaire = MoisScolaire::orderBy('numero')
             ->get();
@@ -301,11 +300,9 @@ class TableauHonneurController extends Controller
         ->get();
 
     // Récupérer TOUTES les classes sélectionnées
-    $classes = Classe::with(['niveau.matieres', 'enseignant'])
-        ->whereIn('id', $request->classe_ids)
-        ->where('ecole_id', $ecoleId)
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->get();
+    $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
     $tousLesMajors = [];
 

@@ -49,159 +49,163 @@
     <div class="row">
         <!-- Colonne de gauche - Informations Élève/Parents -->
         <div class="col-md-7">
-            <!-- Carte Informations Élève/Parents -->
-            <div class="card">
+            <!-- Carte Informations Élève -->
+            <div class="card mb-3">
                 <div class="card-header bg-light">
-                    <ul class="nav nav-tabs nav-tabs-bottom">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#eleve-tab" data-bs-toggle="tab">Élève</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#parents-tab" data-bs-toggle="tab">Parents</a>
-                        </li>
-                    </ul>
+                    <h5 class="mb-0">Informations de l'Élève</h5>
                 </div>
                 <div class="card-body">
-                    <div class="tab-content">
-                        <!-- Onglet Élève -->
-                        <div class="tab-pane fade show active" id="eleve-tab">
-                            <!-- Photo de profil -->
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <div class="d-flex align-items-center flex-wrap row-gap-3 mb-3">
-                                        <div class="avatar-upload">
-                                            <div class="avatar-edit">
-                                                <input type='file' id="avatarUpload" name="photo" capture="environment" accept=".png, .jpg, .jpeg"/>
-                                                <label for="avatarUpload">
-                                                    <i class="ti ti-camera fs-16"></i>
-                                                </label>
-                                            </div>
-                                            <div class="avatar-preview">
-                                                <div id="avatarPreview" style="background-image: url({{ asset('assets/images/default-avatar.png') }});">
-                                                </div>
-                                            </div>
+                    <!-- Photo de profil -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center flex-wrap row-gap-3 mb-3">
+                                <div class="avatar-upload">
+                                    <div class="avatar-edit">
+                                        <input type='file' id="avatarUpload" name="photo" capture="environment" accept=".png, .jpg, .jpeg"/>
+                                        <label for="avatarUpload">
+                                            <i class="ti ti-camera fs-16"></i>
+                                        </label>
+                                    </div>
+                                    <div class="avatar-preview">
+                                        <div id="avatarPreview" style="background-image: url({{ asset('assets/images/default-avatar.png') }});">
                                         </div>
-                                        <p class="fs-12 ms-3">Format JPG, PNG - Max 4MB</p>
                                     </div>
                                 </div>
+                                <p class="fs-12 ms-3">Format JPG, PNG - Max 4MB</p>
                             </div>
-
-                            <!-- Informations de base -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Nom <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control text-uppercase" name="nom" value="{{ old('nom') }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Prénoms <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control text-uppercase" name="prenom" value="{{ old('prenom') }}" required>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Date de Naissance <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control" name="naissance" value="{{ old('naissance') }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Lieu de Naissance</label>
-                                        <input type="text" class="form-control text-uppercase" name="lieu_naissance" value="{{ old('lieu_naissance') }}">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Sexe <span class="text-danger">*</span></label>
-                                        <select class="form-select" name="sexe" required>
-                                            <option value="">Sélectionner</option>
-                                            <option value="Masculin" {{ old('sexe') == 'Masculin' ? 'selected' : '' }}>Masculin</option>
-                                            <option value="Féminin" {{ old('sexe') == 'Féminin' ? 'selected' : '' }}>Féminin</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Nationalité</label>
-                                        <input type="text" class="form-control text-uppercase" name="nationalite" value="{{ old('nationalite', 'Ivoirienne') }}">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">N° Extrait</label>
-                                        <input type="text" class="form-control text-uppercase" name="extrait" value="{{ old('extrait') }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Code National</label>
-                                        <input type="text" class="form-control text-uppercase" name="code_national" value="{{ old('code_national') }}">
-                                    </div>
-                                </div>
-                            </div>
-
-                            
                         </div>
+                    </div>
 
-                        <!-- Onglet Parents -->
-                        <div class="tab-pane fade" id="parents-tab">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Nom du Parent <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control text-uppercase" name="parent_nom" value="{{ old('parent_nom') }}" required>
-                                    </div>
-                                </div>
+                    <!-- Informations de base -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control text-uppercase" name="nom" value="{{ old('nom') }}" required>
                             </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Téléphone 01<span class="text-danger">*</span></label>
-                                        <input type="tel" class="form-control" name="parent_telephone" value="{{ old('parent_telephone') }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Téléphone 02</label>
-                                        <input type="tel" class="form-control" name="parent_telephone02" value="{{ old('parent_telephone02') }}">
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Prénoms <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control text-uppercase" name="prenom" value="{{ old('prenom') }}" required>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Adresse</label>
-                                        <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse') }}</textarea>
-                                    </div>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Date de Naissance <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="naissance" value="{{ old('naissance') }}" required>
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Lieu de Naissance</label>
+                                <input type="text" class="form-control text-uppercase" name="lieu_naissance" value="{{ old('lieu_naissance') }}">
+                            </div>
+                        </div>
+                    </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Profession</label>
-                                        <input type="text" class="form-control text-uppercase" name="parent_profession" value="{{ old('parent_profession') }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Lien de parenté</label>
-                                        <input type="text" class="form-control" name="parent_lien" value="{{ old('parent_lien', 'Parent') }}">
-                                    </div>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sexe <span class="text-danger">*</span></label>
+                                <select class="form-select" name="sexe" required>
+                                    <option value="">Sélectionner</option>
+                                    <option value="Masculin" {{ old('sexe') == 'Masculin' ? 'selected' : '' }}>Masculin</option>
+                                    <option value="Féminin" {{ old('sexe') == 'Féminin' ? 'selected' : '' }}>Féminin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nationalité</label>
+                                <input type="text" class="form-control text-uppercase" name="nationalite" value="{{ old('nationalite', 'Ivoirienne') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">N° Extrait</label>
+                                <input type="text" class="form-control text-uppercase" name="extrait" value="{{ old('extrait') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Code National</label>
+                                <input type="text" class="form-control text-uppercase" name="code_national" value="{{ old('code_national') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte Informations Parents -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Informations des Parents/Tuteurs</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Père -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom du Père</label>
+                                <input type="text" class="form-control text-uppercase" name="pere_nom" value="{{ old('pere_nom') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 01</label>
+                                <input type="text" class="form-control" name="pere_contact" value="{{ old('pere_contact') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 02</label>
+                                <input type="text" class="form-control" name="pere_contact02" value="{{ old('pere_contact02') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                   
+
+                    <hr>
+
+                    <!-- Mère -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom de la Mère</label>
+                                <input type="text" class="form-control text-uppercase" name="mere_nom" value="{{ old('mere_nom') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 01</label>
+                                <input type="text" class="form-control" name="mere_contact" value="{{ old('mere_contact') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 02</label>
+                                <input type="text" class="form-control" name="mere_contact02" value="{{ old('mere_contact02') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <hr>
+
+                    <!-- Adresse -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Adresse</label>
+                                <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse') }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -214,7 +218,7 @@
             <!-- Carte Scolarité -->
             <div class="card mb-3">
                 <div class="card-header bg-light">
-                    <h4 class="text-dark">Scolarité</h4>
+                    <h5 class="mb-0">Scolarité</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -242,17 +246,23 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" name="transport_active" id="transport_active" {{ old('transport_active') ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" 
+                                    name="transport_active" id="transport_active" 
+                                    value="1"
+                                    {{ old('transport_active') ? 'checked' : '' }}>
                                 <label class="form-check-label" for="transport_active">
-                                    Utilise le transport scolaire
+                                    Transport scolaire
                                 </label>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" name="cantine_active" id="cantine_active" {{ old('cantine_active') ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" 
+                                    name="cantine_active" id="cantine_active" 
+                                    value="1"
+                                    {{ old('cantine_active') ? 'checked' : '' }}>
                                 <label class="form-check-label" for="cantine_active">
-                                    Utilise la cantine scolaire
+                                    Cantine scolaire
                                 </label>
                             </div>
                         </div>
@@ -261,69 +271,97 @@
             </div>
 
             <!-- Carte Paiement -->
-            <div class="card">
-                <div class="card-header bg-light">
-                    <ul class="nav nav-tabs nav-tabs-bottom">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#recap-tab" data-bs-toggle="tab">Récapitulatif</a>
-                        </li>
-                        {{-- <li class="nav-item">
-                            <a class="nav-link" href="#paiement-tab" data-bs-toggle="tab">Paiement</a>
-                        </li> --}}
-                    </ul>
-                </div>
-                <div class="card-body">
-                    <div class="tab-content">
-                        <!-- Onglet Récapitulatif -->
-                        <div class="tab-pane fade show active" id="recap-tab">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frais d'Inscription</label>
-                                        <input type="number" class="form-control" name="frais_inscription" id="frais_inscription" value="{{ old('frais_inscription', 0) }}" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frais de Scolarité</label>
-                                        <input type="number" class="form-control" name="frais_scolarite" id="frais_scolarite" value="{{ old('frais_scolarite', 0) }}" readonly>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frais de Transport</label>
-                                        <input type="number" class="form-control" name="frais_transport" id="frais_transport" value="{{ old('frais_transport', 0) }}" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Frais de Cantine</label>
-                                        <input type="number" class="form-control" name="frais_cantine" id="frais_cantine" value="{{ old('frais_cantine', 0) }}" readonly>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                {{-- <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Reduction</label>
-                                        <input type="number" class="form-control fw-bold fs-16" name="reduction" id="reduction" value="{{ old('reduction', 0) }}">
-                                    </div>
-                                </div> --}}
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Total à Payer</label>
-                                        <input type="number" class="form-control fw-bold fs-16" name="total_paiement" id="total_paiement" value="{{ old('total_paiement', 0) }}" readonly>
-                                    </div>
-                                </div>
-                            </div>
+<div class="card">
+    <div class="card-header bg-light">
+        <ul class="nav nav-tabs nav-tabs-bottom mb-0">
+            <li class="nav-item">
+                <a class="nav-link active" href="#recap-tab" data-bs-toggle="tab">Récapitulatif</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#paiement-tab" data-bs-toggle="tab">Paiement</a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content">
+            <!-- Onglet Récapitulatif (Lecture seule) -->
+            <div class="tab-pane fade show active" id="recap-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais d'Inscription</label>
+                            <input type="number" class="form-control" id="frais_inscription" value="{{ old('frais_inscription', 0) }}" readonly>
                         </div>
-
                     </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Scolarité</label>
+                            <input type="number" class="form-control" id="frais_scolarite" value="{{ old('frais_scolarite', 0) }}" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Transport</label>
+                            <input type="number" class="form-control" id="frais_transport" value="{{ old('frais_transport', 0) }}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Cantine</label>
+                            <input type="number" class="form-control" id="frais_cantine" value="{{ old('frais_cantine', 0) }}" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label class="form-label">Total à Payer</label>
+                            <input type="number" class="form-control fw-bold fs-16" id="total_paiement" value="{{ old('total_paiement', 0) }}" readonly>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Onglet Paiement (Saisie) -->
+            <div class="tab-pane fade" id="paiement-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais d'Inscription</label>
+                            <input type="number" class="form-control" name="frais_inscription" id="frais_inscription_paiement" value="{{ old('frais_inscription', 0) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Scolarité</label>
+                            <input type="number" class="form-control" name="frais_scolarite" id="frais_scolarite_paiement" value="{{ old('frais_scolarite', 0) }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Transport</label>
+                            <input type="number" class="form-control" name="frais_transport" id="frais_transport_paiement" value="{{ old('frais_transport', 0) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Frais de Cantine</label>
+                            <input type="number" class="form-control" name="frais_cantine" id="frais_cantine_paiement" value="{{ old('frais_cantine', 0) }}">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 
@@ -364,33 +402,26 @@
             const fraisCantine = $('#cantine_active').is(':checked') ? parseFloat(classeOption.data('cantine')) || 0 : 0;
             const fraisTransport = $('#transport_active').is(':checked') ? parseFloat(classeOption.data('transport')) || 0 : 0;
 
-            // Récupérer la réduction en cours (parseFloat + gestion NaN)
-            const reduction = parseFloat($('#reduction').val()) || 0;
-
             $('#frais_inscription').val(fraisInscription);
             $('#frais_scolarite').val(fraisScolarite);
             $('#frais_cantine').val(fraisCantine);
             $('#frais_transport').val(fraisTransport);
-            // La réduction est un input modifiable, on ne la reset pas ici
-            // $('#reduction').val(reduction);
 
-            const total = fraisInscription + fraisScolarite + fraisCantine + fraisTransport - reduction;
+            const total = fraisInscription + fraisScolarite + fraisCantine + fraisTransport;
 
-            $('#total_paiement').val(total >= 0 ? total.toFixed(2) : 0);
-            $('#montant_paye').val(total >= 0 ? total.toFixed(2) : 0);
+            $('#total_paiement').val(total.toFixed(0));
+            $('#total_paiement_paiement').val(total.toFixed(0));
         }
 
-        // Écouteurs d'événements
+        // Synchronisation du total dans l'onglet paiement
         $('#classe_id').change(updateFrais);
         $('#transport_active, #cantine_active').change(updateFrais);
-        $('#reduction').on('input', updateFrais);  // Recalcule si réduction changée
 
         // Initialisation
         updateFrais();
     });
-
 </script>
-
+@endsection
 
 <style>
 .avatar-upload {
@@ -443,4 +474,3 @@
     background-position: center;
 }
 </style>
-@endsection

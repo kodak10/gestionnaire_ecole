@@ -32,14 +32,9 @@ class ClasseController extends Controller
                         ->get();
 
         // Récupérer les classes avec relations
-        $classes = Classe::with(['niveau', 'inscriptions'])
-            ->join('niveaux', 'classes.niveau_id', '=', 'niveaux.id')
-            ->where('classes.ecole_id', $ecoleId)          
-            ->where('classes.annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('niveaux.ordre')
-            ->orderBy('classes.nom')
-            ->select('classes.*')
-            ->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
         $niveaux = Niveau::orderBy('ordre')->orderBy('nom')->get();
 
@@ -162,9 +157,10 @@ class ClasseController extends Controller
     public function export($type)
     {
         if ($type == 'pdf') {
-            $classes = Classe::with(['niveau', 'enseignant'])
-                          ->where('annee_scolaire_id', AnneeScolaire::active()->id)
-                          ->get();
+            $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
+    
             $pdf = PDF::loadView('exports.classes-pdf', compact('classes'));
             return $pdf->download('classes-list.pdf');
         }

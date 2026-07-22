@@ -36,6 +36,26 @@ class Classe extends Model
     }
 
     /**
+     * Scope pour trier les classes par ordre du niveau
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->join('niveaux', 'classes.niveau_id', '=', 'niveaux.id')
+                    ->orderBy('niveaux.ordre', 'asc')
+                    ->orderBy('classes.nom', 'asc')
+                    ->select('classes.*');
+    }
+
+    /**
+     * Scope pour filtrer par école et année scolaire
+     */
+    public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)
+    {
+        return $query->where('classes.ecole_id', $ecoleId)
+                    ->where('classes.annee_scolaire_id', $anneeScolaireId);
+    }
+
+    /**
      * Attacher des matières à une classe avec des coefficients spécifiques
      */
     public function attacherMatieres(array $matieresAvecCoefficients)
@@ -52,6 +72,4 @@ class Classe extends Model
     {
         $this->matieres()->sync($matieresAvecCoefficients);
     }
-
-    
 }

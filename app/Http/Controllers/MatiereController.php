@@ -177,7 +177,10 @@ class MatiereController extends Controller
         $matiere = Matiere::findOrFail($id);
         
         if (request()->routeIs('matieres.classes')) {
-            $classes = Classe::with('niveau')->get();
+            //$classes = Classe::with('niveau')->get();
+            $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+            ->ordered()
+            ->get();
             return view('dashboard.matieres.index', [
                 'matieres' => Matiere::all(),
                 'currentMatiere' => $matiere,

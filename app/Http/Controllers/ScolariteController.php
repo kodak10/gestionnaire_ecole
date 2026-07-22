@@ -28,11 +28,9 @@ class ScolariteController extends Controller
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classes = Classe::with('niveau')
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('id')
-            ->get();
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
         
             Log::info('Classes chargées pour l\'année ' . $anneeScolaireId, [
         'classes' => $classes->pluck('id', 'nom'),

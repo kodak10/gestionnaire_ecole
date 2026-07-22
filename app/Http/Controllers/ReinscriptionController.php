@@ -57,10 +57,9 @@ class ReinscriptionController extends Controller
                 return response()->json(['error' => 'Ecole non définie'], 400);
             }
 
-            $classes = Classe::where('ecole_id', $ecoleId)
-                ->where('annee_scolaire_id', $anneeId)
-                ->orderBy('nom')
-                ->get(['id', 'nom']);
+            $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
 
             return response()->json($classes);
             

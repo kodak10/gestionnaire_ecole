@@ -30,12 +30,10 @@ class RelanceController extends Controller
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        $classes = Classe::with('niveau')
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('id')
-            ->get();
-
+        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+    ->ordered()
+    ->get();
+    
         $moisScolaires = MoisScolaire::orderBy('numero')->get();
         $typeFrais = TypeFrais::where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)

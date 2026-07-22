@@ -44,7 +44,7 @@
     @endif
 </div>
         
-<form action="{{ route('eleves.update', $eleve->id) }}" method="POST" enctype="multipart/form-data">
+<form action="{{ route('eleves.update', $inscription->id) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="row">
@@ -57,9 +57,6 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="#eleve-tab" data-bs-toggle="tab">Élève</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#parents-tab" data-bs-toggle="tab">Parents</a>
-                        </li>
                     </ul>
                 </div>
                 <div class="card-body">
@@ -70,37 +67,24 @@
                             <div class="row mb-4">
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center flex-wrap row-gap-3 mb-3">
-                                        {{-- <div class="avatar-upload">
+                                        <div class="avatar-upload">
                                             <div class="avatar-edit">
-                                                <input type='file' id="avatarUpload" name="photo_path" capture="environment" accept=".png, .jpg, .jpeg"/>
+                                                <input 
+                                                    type="file"
+                                                    id="avatarUpload"
+                                                    name="photo_path"
+                                                    accept="image/*"
+                                                />
                                                 <label for="avatarUpload">
-                                                    <i class="ti ti-camera fs-16"></i>
+                                                    <i class="ti ti-file fs-16"></i>
                                                 </label>
                                             </div>
                                             <div class="avatar-preview">
-                                                <div id="avatarPreview" style="background-image: url({{ $eleve->eleve->photo_path ? asset('storage/'.$eleve->eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
+                                                <div id="avatarPreview"
+                                                    style="background-image: url({{ $eleve->photo_url }});">
                                                 </div>
                                             </div>
-                                        </div> --}}
-                                        <div class="avatar-upload">
-  <div class="avatar-edit">
-    <input 
-      type="file"
-      id="avatarUpload"
-      name="photo_path"
-      accept="image/*"
-    />
-    <label for="avatarUpload">
-      <i class="ti ti-file fs-16"></i>
-    </label>
-  </div>
-  <div class="avatar-preview">
-    <div id="avatarPreview"
-      style="background-image: url({{ $eleve->eleve->photo_path ? asset('storage/'.$eleve->eleve->photo_path) : asset('assets/images/default-avatar.png') }});">
-    </div>
-  </div>
-</div>
-
+                                        </div>
                                         <p class="fs-12 ms-3">Format JPG, PNG - Max 4MB</p>
                                     </div>
                                 </div>
@@ -111,13 +95,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Nom <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="nom" value="{{ old('nom', $eleve->eleve->nom) }}" required>
+                                        <input type="text" class="form-control text-uppercase" name="nom" value="{{ old('nom', $eleve->nom) }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Prénoms <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="prenom" value="{{ old('prenom', $eleve->eleve->prenom) }}" required>
+                                        <input type="text" class="form-control text-uppercase" name="prenom" value="{{ old('prenom', $eleve->prenom) }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -130,16 +114,15 @@
                                             type="date" 
                                             class="form-control" 
                                             name="naissance" 
-                                            value="{{ old('naissance', $eleve->eleve->naissance ? $eleve->eleve->naissance->format('Y-m-d') : '') }}" 
+                                            value="{{ old('naissance', $eleve->naissance ? $eleve->naissance->format('Y-m-d') : '') }}" 
                                             required
                                         >
-
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Lieu de Naissance</label>
-                                        <input type="text" class="form-control" name="lieu_naissance" value="{{ old('lieu_naissance', $eleve->eleve->lieu_naissance) }}">
+                                        <input type="text" class="form-control text-uppercase" name="lieu_naissance" value="{{ old('lieu_naissance', $eleve->lieu_naissance) }}">
                                     </div>
                                 </div>
                             </div>
@@ -150,15 +133,15 @@
                                         <label class="form-label">Sexe <span class="text-danger">*</span></label>
                                         <select class="form-select" name="sexe" required>
                                             <option value="">Sélectionner</option>
-                                            <option value="Masculin" {{ old('sexe', $eleve->eleve->sexe) == 'Masculin' ? 'selected' : '' }}>Masculin</option>
-                                            <option value="Féminin" {{ old('sexe', $eleve->eleve->sexe) == 'Féminin' ? 'selected' : '' }}>Féminin</option>
+                                            <option value="Masculin" {{ old('sexe', $eleve->sexe) == 'Masculin' ? 'selected' : '' }}>Masculin</option>
+                                            <option value="Féminin" {{ old('sexe', $eleve->sexe) == 'Féminin' ? 'selected' : '' }}>Féminin</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Nationalité</label>
-                                        <input type="text" class="form-control" name="nationalite" value="{{ old('nationalite', $eleve->eleve->nationalite ?? 'Ivoirienne') }}">
+                                        <input type="text" class="form-control text-uppercase" name="nationalite" value="{{ old('nationalite', $eleve->nationalite ?? 'Ivoirienne') }}">
                                     </div>
                                 </div>
                             </div>
@@ -167,70 +150,85 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">N° Extrait</label>
-                                        <input type="text" class="form-control" name="num_extrait" value="{{ old('num_extrait', $eleve->eleve->num_extrait) }}">
+                                        <input type="text" class="form-control text-uppercase" name="num_extrait" value="{{ old('num_extrait', $eleve->num_extrait) }}">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Matricule National</label>
+                                        <label class="form-label">Code National</label>
                                         <input 
                                             type="text" 
                                             name="code_national"
-                                            class="form-control" 
-                                            value="{{ $eleve->eleve->code_national}}">
+                                            class="form-control text-uppercase" 
+                                            value="{{ old('code_national', $eleve->code_national) }}">
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <!-- Onglet Parents -->
-                        <div class="tab-pane fade" id="parents-tab">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Nom du Parent <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="parent_nom" value="{{ old('parent_nom', $eleve->eleve->parent_nom) }}" required>
-                                    </div>
-                                </div>
+            <!-- Carte Informations Parents -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Informations des Parents/Tuteurs</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Père -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom du Père</label>
+                                <input type="text" class="form-control text-uppercase" name="pere_nom" value="{{ old('pere_nom', $eleve->pere_nom ?? '') }}">
                             </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Téléphone <span class="text-danger">*</span></label>
-                                        <input type="tel" class="form-control" name="parent_telephone" value="{{ old('parent_telephone', $eleve->eleve->parent_telephone) }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Telephone 02</label>
-                                        <input type="tel" class="form-control" name="parent_telephone02" value="{{ old('parent_telephone02', $eleve->eleve->parent_telephone02) }}">
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 01</label>
+                                <input type="text" class="form-control" name="pere_contact" value="{{ old('pere_contact', $eleve->pere_contact ?? '') }}">
                             </div>
-
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Adresse</label>
-                                        <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse', $eleve->eleve->parent_adresse) }}</textarea>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 02</label>
+                                <input type="text" class="form-control" name="pere_contact02" value="{{ old('pere_contact02', $eleve->pere_contact02 ?? '') }}">
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Profession</label>
-                                        <input type="text" class="form-control" name="parent_profession" value="{{ old('parent_profession', $eleve->eleve->parent_profession) }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Lien de parenté</label>
-                                        <input type="text" class="form-control" name="parent_lien" value="{{ old('parent_lien', $eleve->eleve->parent_lien ?? 'Parent') }}">
-                                    </div>
-                                </div>
+                    <hr>
+
+                    <!-- Mère -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom de la Mère</label>
+                                <input type="text" class="form-control text-uppercase" name="mere_nom" value="{{ old('mere_nom', $eleve->mere_nom ?? '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 01</label>
+                                <input type="text" class="form-control" name="mere_contact" value="{{ old('mere_contact', $eleve->mere_contact ?? '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Contact 02</label>
+                                <input type="text" class="form-control" name="mere_contact02" value="{{ old('mere_contact02', $eleve->mere_contact02 ?? '') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Adresse -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Adresse</label>
+                                <textarea class="form-control" name="parent_adresse" rows="2">{{ old('parent_adresse', $eleve->parent_adresse ?? '') }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -259,7 +257,7 @@
                                             data-inscription="{{ $tarifs->where('type_frais_id', $fraisInscription->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
                                             data-cantine="{{ $tarifs->where('type_frais_id', $cantines->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
                                             data-transport="{{ $tarifs->where('type_frais_id', $transports->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
-                                            {{ old('classe_id', $eleve->classe_id) == $classe->id ? 'selected' : '' }}>
+                                            {{ old('classe_id', $inscription->classe_id) == $classe->id ? 'selected' : '' }}>
                                             {{ $classe->nom }}
                                         </option>
                                     @endforeach
@@ -273,9 +271,9 @@
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input"
                                     name="transport_active" id="transport_active" value="1"
-                                    {{ old('transport_active', $eleve->transport_active) ? 'checked' : '' }}>
+                                    {{ old('transport_active', $inscription->transport_active) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="transport_active">
-                                    Utilise le transport scolaire
+                                    Transport scolaire
                                 </label>
                             </div>
                         </div>
@@ -283,9 +281,9 @@
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input"
                                     name="cantine_active" id="cantine_active" value="1"
-                                    {{ old('cantine_active', $eleve->cantine_active) ? 'checked' : '' }}>
+                                    {{ old('cantine_active', $inscription->cantine_active) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="cantine_active">
-                                    Utilise la cantine scolaire
+                                    Cantine scolaire
                                 </label>
                             </div>
                         </div>
@@ -337,7 +335,6 @@
                             </div>
 
                             <div class="row">
-                                
                                 <div class="col-md-12">
                                     <div class="mb-3">
                                         <label class="form-label">Total à Payer</label>
@@ -412,11 +409,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const avatarInput = document.getElementById('avatarUpload');
   const avatarPreview = document.getElementById('avatarPreview');
 
-  // === Supprime ancienne caméra s'il y en a déjà (évite les doublons)
   const existingBtn = avatarEdit.querySelector('.camera-btn');
   if (existingBtn) existingBtn.remove();
 
-  // === Créer le bouton caméra unique ===
   const cameraBtn = document.createElement('button');
   cameraBtn.type = 'button';
   cameraBtn.className = 'btn btn-light p-2 ms-2 camera-btn';
@@ -425,7 +420,6 @@ document.addEventListener("DOMContentLoaded", () => {
   avatarEdit.appendChild(cameraBtn);
 
   cameraBtn.addEventListener('click', async () => {
-    // === Créer la fenêtre modale ===
     const modal = document.createElement('div');
     modal.className = 'camera-modal';
 
@@ -459,7 +453,6 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.appendChild(box);
     document.body.appendChild(modal);
 
-    // === Gestion des caméras ===
     let stream = null;
     let devices = await navigator.mediaDevices.enumerateDevices();
     let cameras = devices.filter(d => d.kind === 'videoinput');
@@ -474,7 +467,6 @@ document.addEventListener("DOMContentLoaded", () => {
       video.srcObject = stream;
     }
 
-    // Démarre la première caméra
     await startCamera(0);
 
     switchBtn.addEventListener('click', async () => {
@@ -482,7 +474,6 @@ document.addEventListener("DOMContentLoaded", () => {
       await startCamera(currentCam);
     });
 
-    // === Capture de la photo ===
     captureBtn.addEventListener('click', () => {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -512,7 +503,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <script>
-// === Prévisualisation de l'image choisie (depuis fichier) ===
 document.addEventListener('DOMContentLoaded', () => {
   const avatarInput = document.getElementById('avatarUpload');
   const avatarPreview = document.getElementById('avatarPreview');
@@ -521,7 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Compression simple avant affichage (optionnelle)
     const reader = new FileReader();
     reader.onload = function (ev) {
       avatarPreview.style.backgroundImage = `url(${ev.target.result})`;
@@ -531,11 +520,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-
 <script>
     $(document).ready(function() {
-
-        // Gestion des frais dynamiques
         function updateFrais() {
             const classeOption = $('#classe_id option:selected');
             const fraisInscription = parseFloat(classeOption.data('inscription')) || 0;
@@ -550,15 +536,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const total = fraisInscription + fraisScolarite + fraisCantine + fraisTransport;
 
-            $('#total_paiement').val(total >= 0 ? total.toFixed(2) : 0);
-            $('#montant_paye').val(total >= 0 ? total.toFixed(2) : 0);
+            $('#total_paiement').val(total >= 0 ? total.toFixed(0) : 0);
         }
 
-        // Écouteurs d'événements
         $('#classe_id').change(updateFrais);
         $('#transport_active, #cantine_active').change(updateFrais);
 
-        // Initialisation
         updateFrais();
     });
 </script>
