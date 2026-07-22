@@ -175,282 +175,294 @@
 
 @section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Charger les classes lorsqu'une année est sélectionnée
-    document.getElementById('annee_source_id').addEventListener('change', function() {
-        const anneeId = this.value;
-        const classeSelect = document.getElementById('classe-origin');
-        
-        if (!anneeId) {
-            classeSelect.innerHTML = '<option value="">Sélectionnez d\'abord une année</option>';
-            classeSelect.disabled = true;
-            return;
-        }
-        
-        classeSelect.innerHTML = '<option value="">Chargement des classes...</option>';
-        classeSelect.disabled = true;
-        
-        const url = "/reinscriptions/get-classes-by-annee?annee_id=" + anneeId;
-        console.log("Chargement des classes pour l'année:", anneeId);
-        
-        fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            console.log("Statut réponse classes:", response.status);
-            if (!response.ok) {
-                throw new Error('Erreur HTTP: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Classes reçues:", data);
-            classeSelect.innerHTML = '<option value="">Sélectionner une classe</option>';
-            
-            if (data.error) {
-                classeSelect.innerHTML += `<option value="">Erreur: ${data.error}</option>`;
-            } else if (data.length === 0) {
-                classeSelect.innerHTML += '<option value="">Aucune classe trouvée</option>';
-            } else {
-                data.forEach(classe => {
-                    const option = document.createElement('option');
-                    option.value = classe.id;
-                    option.textContent = classe.nom;
-                    classeSelect.appendChild(option);
-                });
-            }
-            
-            classeSelect.disabled = false;
-        })
-        .catch(error => {
-            console.error('Erreur détaillée:', error);
-            classeSelect.innerHTML = `<option value="">Erreur: ${error.message}</option>`;
-            classeSelect.disabled = false;
-        });
-    });
-    
-    // Charger les élèves lorsqu'on clique sur le bouton
-    document.getElementById('load-students').addEventListener('click', function() {
-        const anneeSourceId = document.getElementById('annee_source_id').value;
-        const classeId = document.getElementById('classe-origin').value;
-        const classeDestination = document.querySelector('select[name="classe_id"]').value;
+// Utiliser un flag pour éviter l'exécution multiple
+if (typeof window.reinscriptionScriptLoaded === 'undefined') {
+    window.reinscriptionScriptLoaded = true;
 
-        // Validation
-        if (!anneeSourceId) {
-            alert('Veuillez sélectionner l\'année scolaire source');
-            document.getElementById('annee_source_id').focus();
-            return;
-        }
-
-        if (!classeId) {
-            alert('Veuillez sélectionner une classe d\'origine');
-            document.getElementById('classe-origin').focus();
-            return;
-        }
+    document.addEventListener('DOMContentLoaded', function() {
         
-        if (!classeDestination) {
-            alert('Veuillez sélectionner une classe de destination');
-            document.querySelector('select[name="classe_id"]').focus();
-            return;
-        }
-        
-        // Supprimer les anciens messages d'information
-        const existingInfo = document.querySelectorAll('.student-info-message');
-        existingInfo.forEach(el => el.remove());
-        
-        // Afficher le loader
+        // Charger les classes lorsqu'une année est sélectionnée
+        const anneeSourceSelect = document.getElementById('annee_source_id');
+        const classeOriginSelect = document.getElementById('classe-origin');
+        const loadStudentsBtn = document.getElementById('load-students');
         const studentsList = document.getElementById('students-list');
-        studentsList.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
-                    </div>
-                    <br>
-                    <span class="text-muted">Chargement des élèves...</span>
-                </td>
-            </tr>
-        `;
+        const studentsSection = document.getElementById('students-section');
+        const selectAllCheckbox = document.getElementById('select-all');
+        const submitBtn = document.getElementById('submit-reinscription');
+        const reinscriptionForm = document.getElementById('reinscription-form');
+        const resetBtn = document.querySelector('button[type="reset"]');
         
-        const url = "/reinscriptions/eleves-by-classe/" + classeId + "?annee_source_id=" + anneeSourceId;
-
-        console.log("URL AJAX élèves:", url);
-        console.log("Année source ID:", anneeSourceId);
-        console.log("Classe ID:", classeId);
-
-        fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+        // Variable pour empêcher les doublons de confirmation
+        let isSubmitting = false;
+        
+        // Fonction pour mettre à jour le compteur
+        function updateCounter() {
+            const checked = document.querySelectorAll('.student-checkbox:checked');
+            if (checked.length > 0) {
+                submitBtn.innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire ${checked.length} élève(s) sélectionné(s)`;
+            } else {
+                submitBtn.innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés`;
             }
-        })
-        .then(response => {
-            console.log("Statut réponse élèves:", response.status);
-            if (!response.ok) {
-                throw new Error('Erreur HTTP: ' + response.status);
+        }
+        
+        // Charger les classes par année
+        anneeSourceSelect.addEventListener('change', function() {
+            const anneeId = this.value;
+            
+            if (!anneeId) {
+                classeOriginSelect.innerHTML = '<option value="">Sélectionnez d\'abord une année</option>';
+                classeOriginSelect.disabled = true;
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            studentsList.innerHTML = '';
             
-            console.log("Données reçues:", data);
+            classeOriginSelect.innerHTML = '<option value="">Chargement des classes...</option>';
+            classeOriginSelect.disabled = true;
             
-            if (data.error) {
+            const url = "/reinscriptions/get-classes-by-annee?annee_id=" + anneeId;
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                classeOriginSelect.innerHTML = '<option value="">Sélectionner une classe</option>';
+                
+                if (data.error) {
+                    classeOriginSelect.innerHTML += `<option value="">Erreur: ${data.error}</option>`;
+                } else if (data.length === 0) {
+                    classeOriginSelect.innerHTML += '<option value="">Aucune classe trouvée</option>';
+                } else {
+                    data.forEach(classe => {
+                        const option = document.createElement('option');
+                        option.value = classe.id;
+                        option.textContent = classe.nom;
+                        classeOriginSelect.appendChild(option);
+                    });
+                }
+                
+                classeOriginSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                classeOriginSelect.innerHTML = `<option value="">Erreur: ${error.message}</option>`;
+                classeOriginSelect.disabled = false;
+            });
+        });
+        
+        // Charger les élèves
+        loadStudentsBtn.addEventListener('click', function() {
+            const anneeSourceId = anneeSourceSelect.value;
+            const classeId = classeOriginSelect.value;
+            const classeDestination = document.querySelector('select[name="classe_id"]').value;
+
+            if (!anneeSourceId) {
+                alert('Veuillez sélectionner l\'année scolaire source');
+                anneeSourceSelect.focus();
+                return;
+            }
+
+            if (!classeId) {
+                alert('Veuillez sélectionner une classe d\'origine');
+                classeOriginSelect.focus();
+                return;
+            }
+            
+            if (!classeDestination) {
+                alert('Veuillez sélectionner une classe de destination');
+                document.querySelector('select[name="classe_id"]').focus();
+                return;
+            }
+            
+            // Supprimer les anciens messages d'information
+            document.querySelectorAll('.student-info-message').forEach(el => el.remove());
+            
+            // Afficher le loader
+            studentsList.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <br>
+                        <span class="text-muted">Chargement des élèves...</span>
+                    </td>
+                </tr>
+            `;
+            
+            const url = "/reinscriptions/eleves-by-classe/" + classeId + "?annee_source_id=" + anneeSourceId;
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                studentsList.innerHTML = '';
+                
+                if (data.error) {
+                    studentsList.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="alert alert-danger mb-0">
+                                    <i class="ti ti-alert-circle me-2"></i>
+                                    Erreur: ${data.error}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else if (data.length === 0) {
+                    studentsList.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="alert alert-warning mb-0">
+                                    <i class="ti ti-alert-circle me-2"></i>
+                                    Aucun élève trouvé dans cette classe pour l'année sélectionnée.
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    data.forEach(eleve => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <div class="form-check form-check-md">
+                                    <input class="form-check-input student-checkbox" type="checkbox" name="eleves[]" value="${eleve.id}">
+                                </div>
+                            </td>
+                            <td><strong>${eleve.matricule}</strong></td>
+                            <td>${eleve.nom} ${eleve.prenom}</td>
+                            <td><span class="badge bg-info">${eleve.classe}</span></td>
+                        `;
+                        studentsList.appendChild(row);
+                    });
+                    
+                    // Ajouter UN SEUL message d'information
+                    const existingInfo = document.querySelector('.student-info-message');
+                    if (!existingInfo) {
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'alert alert-info mt-2 student-info-message';
+                        infoDiv.innerHTML = `
+                            <i class="ti ti-users me-2"></i>
+                            <strong>${data.length}</strong> élève(s) trouvé(s) dans cette classe.
+                            <br><small>Cochez ceux que vous souhaitez réinscrire vers la nouvelle année.</small>
+                        `;
+                        
+                        const tableContainer = studentsList.closest('.table-responsive');
+                        if (tableContainer) {
+                            const parent = tableContainer.parentNode;
+                            if (parent) {
+                                parent.insertBefore(infoDiv, tableContainer.nextSibling);
+                            }
+                        }
+                    } else {
+                        existingInfo.innerHTML = `
+                            <i class="ti ti-users me-2"></i>
+                            <strong>${data.length}</strong> élève(s) trouvé(s) dans cette classe.
+                            <br><small>Cochez ceux que vous souhaitez réinscrire vers la nouvelle année.</small>
+                        `;
+                    }
+                    
+                    updateCounter();
+                }
+                
+                studentsSection.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
                 studentsList.innerHTML = `
                     <tr>
                         <td colspan="4" class="text-center">
                             <div class="alert alert-danger mb-0">
                                 <i class="ti ti-alert-circle me-2"></i>
-                                Erreur: ${data.error}
+                                <strong>Erreur de chargement</strong><br>
+                                ${error.message}
                             </div>
                         </td>
                     </tr>
                 `;
-            } else if (data.length === 0) {
-                studentsList.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="text-center">
-                            <div class="alert alert-warning mb-0">
-                                <i class="ti ti-alert-circle me-2"></i>
-                                Aucun élève trouvé dans cette classe pour l'année sélectionnée.
-                                <br><small>Vérifiez que des élèves sont inscrits dans cette classe pour l'année sélectionnée.</small>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            } else {
-                // Ajouter les élèves
-                data.forEach(eleve => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>
-                            <div class="form-check form-check-md">
-                                <input class="form-check-input student-checkbox" type="checkbox" name="eleves[]" value="${eleve.id}">
-                            </div>
-                        </td>
-                        <td><strong>${eleve.matricule}</strong></td>
-                        <td>${eleve.nom} ${eleve.prenom}</td>
-                        <td><span class="badge bg-info">${eleve.classe}</span></td>
-                    `;
-                    studentsList.appendChild(row);
-                });
-                
-                // Ajouter UN SEUL message d'information
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'alert alert-info mt-2 student-info-message';
-                infoDiv.innerHTML = `
-                    <i class="ti ti-users me-2"></i>
-                    <strong>${data.length}</strong> élève(s) trouvé(s) dans cette classe.
-                    <br><small>Cochez ceux que vous souhaitez réinscrire vers la nouvelle année.</small>
-                `;
-                
-                // Insérer après le tableau
-                const tableContainer = studentsList.closest('.table-responsive');
-                if (tableContainer) {
-                    // Vérifier si le parent existe
-                    const parent = tableContainer.parentNode;
-                    if (parent) {
-                        parent.insertBefore(infoDiv, tableContainer.nextSibling);
-                    }
-                }
-                
-                // Mettre à jour le compteur
+            });
+        });
+        
+        // Sélectionner/désélectionner tous les élèves
+        selectAllCheckbox.addEventListener('change', function() {
+            document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateCounter();
+        });
+        
+        // Mise à jour du compteur lors du changement de checkbox
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('student-checkbox')) {
                 updateCounter();
             }
+        });
+        
+        // Validation du formulaire avec flag pour éviter les doublons
+        reinscriptionForm.addEventListener('submit', function(e) {
+            // Empêcher les soumissions multiples
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
             
-            // Afficher la section des élèves
-            document.getElementById('students-section').style.display = 'block';
-        })
-        .catch(error => {
-            console.error('Erreur détaillée:', error);
-            studentsList.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center">
-                        <div class="alert alert-danger mb-0">
-                            <i class="ti ti-alert-circle me-2"></i>
-                            <strong>Erreur de chargement</strong><br>
-                            ${error.message}<br>
-                            <small>Vérifiez que vous êtes connecté et que les URLs sont correctes.</small>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-    });
-    
-    // Sélectionner/désélectionner tous les élèves
-    document.getElementById('select-all').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.student-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-        updateCounter();
-    });
-    
-    // Mise à jour du compteur
-    function updateCounter() {
-        const total = document.querySelectorAll('.student-checkbox').length;
-        const checked = document.querySelectorAll('.student-checkbox:checked').length;
-        const submitBtn = document.getElementById('submit-reinscription');
-        
-        if (checked > 0) {
-            submitBtn.innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire ${checked} élève(s) sélectionné(s)`;
-        } else {
-            submitBtn.innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés`;
-        }
-    }
-    
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('student-checkbox')) {
-            updateCounter();
-        }
-    });
-    
-    // Validation du formulaire
-    document.getElementById('reinscription-form').addEventListener('submit', function(e) {
-        const selectedStudents = document.querySelectorAll('.student-checkbox:checked');
-        if (selectedStudents.length === 0) {
-            e.preventDefault();
-            alert('Veuillez sélectionner au moins un élève');
-            return false;
-        }
-        
-        // Confirmation
-        if (selectedStudents.length > 0) {
+            const selectedStudents = document.querySelectorAll('.student-checkbox:checked');
+            
+            if (selectedStudents.length === 0) {
+                e.preventDefault();
+                alert('Veuillez sélectionner au moins un élève');
+                return false;
+            }
+            
+            // Confirmation UNIQUE
+            e.preventDefault(); // Empêcher la soumission immédiate
+            
             const confirmMsg = confirm(
                 `Vous êtes sur le point de réinscrire ${selectedStudents.length} élève(s).\n` +
                 `Confirmez-vous cette opération ?`
             );
-            if (!confirmMsg) {
-                e.preventDefault();
-                return false;
+            
+            if (confirmMsg) {
+                isSubmitting = true;
+                // Soumettre le formulaire manuellement
+                reinscriptionForm.submit();
             }
-        }
-    });
-    
-    // Réinitialisation
-    document.querySelector('button[type="reset"]').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.getElementById('annee_source_id').value = '';
-        document.getElementById('classe-origin').innerHTML = '<option value="">Sélectionnez d\'abord une année</option>';
-        document.getElementById('classe-origin').disabled = true;
-        document.querySelector('select[name="classe_id"]').value = '';
-        document.getElementById('students-section').style.display = 'none';
-        document.getElementById('students-list').innerHTML = '';
-        document.getElementById('select-all').checked = false;
-        document.getElementById('submit-reinscription').innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés`;
+            return false;
+        });
         
-        // Supprimer les messages d'information
-        const existingInfo = document.querySelectorAll('.student-info-message');
-        existingInfo.forEach(el => el.remove());
+        // Réinitialisation
+        resetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            isSubmitting = false;
+            anneeSourceSelect.value = '';
+            classeOriginSelect.innerHTML = '<option value="">Sélectionnez d\'abord une année</option>';
+            classeOriginSelect.disabled = true;
+            document.querySelector('select[name="classe_id"]').value = '';
+            studentsSection.style.display = 'none';
+            studentsList.innerHTML = '';
+            selectAllCheckbox.checked = false;
+            submitBtn.innerHTML = `<i class="ti ti-users me-2"></i>Réinscrire les élèves sélectionnés`;
+            document.querySelectorAll('.student-info-message').forEach(el => el.remove());
+        });
     });
-});
+}
 </script>
 @endsection

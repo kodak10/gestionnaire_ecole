@@ -18,7 +18,14 @@
             </ul>
 
             <ul>
-                <li class="mb-2"><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="ti ti-home"></i><span>Tableau de Bord</span></a></li>
+                <li>
+                    <h6 class="submenu-hdr"></h6>
+                    <ul>
+                                        <li class="mb-2"><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="ti ti-home"></i><span>Tableau de Bord</span></a></li>
+
+                    </ul>
+                </li>
+
 
             
                 

@@ -18,18 +18,16 @@ class ReinscriptionController extends Controller
     public function index()
     {
         $ecoleId = session('current_ecole_id');
-        $anneeId = session('current_annee_scolaire_id'); // Nouvelle année (ID = 3)
+        $anneeId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
 
-        // Récupérer les années scolaires
         $anneescolaires = AnneeScolaire::where('ecole_id', $ecoleId)
             ->orderBy('annee', 'desc')
             ->get();
 
-        // Récupérer toutes les classes pour l'année actuelle (nouvelle année)
-        $classesNouvelles = Classe::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeId)
-            ->orderBy('nom')
+        // Utiliser la même fonction que dans EleveController
+        $classesNouvelles = Classe::forEcoleAndAnnee($ecoleId, $anneeId)
+            ->ordered()
             ->get();
 
         return view('dashboard.pages.eleves.reinscriptions.create', [
@@ -57,9 +55,10 @@ class ReinscriptionController extends Controller
                 return response()->json(['error' => 'Ecole non définie'], 400);
             }
 
-            $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
-    ->ordered()
-    ->get();
+            // Utiliser la même fonction que dans EleveController
+            $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeId)
+                ->ordered()
+                ->get();
 
             return response()->json($classes);
             
@@ -70,39 +69,29 @@ class ReinscriptionController extends Controller
     }
 
     /**
-     * Récupérer les élèves d'une classe et année scolaire (qui ne sont pas encore réinscrits)
+     * Récupérer les élèves d'une classe et année scolaire
      */
-    public function getElevesByClasse(Request $request, Classe $classe)
+    public function getElevesByClasse(Request $request, $classe)
     {
         try {
-            // Récupérer l'année source (celle où sont les élèves actuellement)
             $anneeSourceId = $request->input('annee_source_id');
-            
-            // Récupérer l'année de destination (nouvelle année)
             $anneeDestinationId = session('current_annee_scolaire_id');
 
-            // Vérifier si l'année source est spécifiée
             if (!$anneeSourceId) {
-                Log::warning('Aucune année source spécifiée');
                 return response()->json([]);
             }
 
-            // Récupérer les élèves inscrits dans la classe pour l'année source
-            // qui n'ont pas encore de réinscription pour l'année de destination
             $eleves = Inscription::with(['eleve', 'classe'])
-                ->where('classe_id', $classe->id)
+                ->where('classe_id', $classe)
                 ->where('annee_scolaire_id', $anneeSourceId)
                 ->whereDoesntHave('eleve.reinscriptions', function ($q) use ($anneeDestinationId) {
                     $q->where('annee_scolaire_id', $anneeDestinationId);
                 })
                 ->get()
-
-            ->sortBy(function($inscription) {
-                // Tri par nom puis prénom
-                return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
-            })
-            ->values(); // Réindexer les clés après le tri
-
+                ->sortBy(function($inscription) {
+                    return $inscription->eleve->nom . ' ' . $inscription->eleve->prenom;
+                })
+                ->values();
 
             $result = $eleves->map(function ($inscription) {
                 return [
@@ -131,14 +120,13 @@ class ReinscriptionController extends Controller
             $validated = $request->validate([
                 'eleves'    => 'required|array',
                 'eleves.*'  => 'exists:eleves,id',
-                'classe_id' => 'required|exists:classes,id', // destination
-                'annee_source_id' => 'required|exists:annee_scolaires,id', // Année source
+                'classe_id' => 'required|exists:classes,id',
+                'annee_source_id' => 'required|exists:annee_scolaires,id',
             ]);
 
             $ecoleId = session('current_ecole_id');
-            $anneeDestinationId = session('current_annee_scolaire_id'); // Nouvelle année (3)
+            $anneeDestinationId = session('current_annee_scolaire_id');
 
-            // sécurité : vérifier que la session contient bien ces valeurs
             if (!$ecoleId || !$anneeDestinationId) {
                 return redirect()->back()->withErrors('Ecole ou année scolaire non définie en session.');
             }
@@ -146,18 +134,15 @@ class ReinscriptionController extends Controller
             DB::transaction(function () use ($validated, $ecoleId, $anneeDestinationId) {
                 foreach ($validated['eleves'] as $eleveId) {
 
-                    // Récupérer l'inscription source pour avoir les valeurs de cantine et transport
                     $inscriptionSource = Inscription::where('eleve_id', $eleveId)
                         ->where('annee_scolaire_id', $validated['annee_source_id'])
                         ->first();
 
-                    // Vérifier si l'élève a déjà une réinscription pour cette année
                     $existingReinscription = Reinscription::where('eleve_id', $eleveId)
                         ->where('annee_scolaire_id', $anneeDestinationId)
                         ->first();
 
                     if (!$existingReinscription) {
-                        // Créer la réinscription
                         Reinscription::create([
                             'annee_scolaire_id'  => $anneeDestinationId,
                             'ecole_id'           => $ecoleId,
@@ -168,8 +153,6 @@ class ReinscriptionController extends Controller
                             'date_reinscription' => now(),
                         ]);
 
-                        // Créer la nouvelle inscription pour l'année de destination
-                        // En conservant les valeurs de cantine et transport de l'inscription source
                         Inscription::create([
                             'annee_scolaire_id'  => $anneeDestinationId,
                             'ecole_id'           => $ecoleId,
