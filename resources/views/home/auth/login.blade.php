@@ -108,7 +108,7 @@
                                                                 @foreach($ecole->anneesScolaires as $annee)
                                                                     <option value="{{ $annee->id }}" 
                                                                             {{ old('annee_scolaire_id') == $annee->id ? 'selected' : '' }}>
-                                                                        {{ $annee->annee }} {{ $annee->est_active ? '(Active)' : '' }}
+                                                                        {{ $annee->annee }}
                                                                     </option>
                                                                 @endforeach
                                                             @endif
@@ -232,7 +232,7 @@
                         const isActive = annee.est_active == 1 || annee.est_active === true;
                         const selected = (selectedAnneeId && annee.id == selectedAnneeId) ? 'selected' : '';
                         options += `<option value="${annee.id}" ${selected}>
-                            ${annee.annee} ${isActive ? '(Active)' : ''}
+                            ${annee.annee}
                         </option>`;
                         
                         if (isActive) {
