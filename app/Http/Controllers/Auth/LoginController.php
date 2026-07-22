@@ -9,84 +9,44 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\AnneeScolaire;
 use App\Models\Ecole;
-    use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
     use AuthenticatesUsers;
 
-    /**
-     * Where to redirect users after login.
-     *
-     * @var string
-     */
     protected $redirectTo = '/dashboard';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
     }
 
-    /**
-     * Show the application's login form.
-     *
-     * @return \Illuminate\View\View
-     */
     public function showLoginForm()
     {
-        // Récupérer toutes les années scolaires actives avec les écoles associées
-        $anneesScolaires = AnneeScolaire::with('ecole')->get();
-
-        return view('home.auth.login', compact('anneesScolaires'));
+        $ecoles = Ecole::all();
+        return view('home.auth.login', compact('ecoles'));
     }
 
-    /**
-     * Get the login username to be used by the controller.
-     *
-     * @return string
-     */
     public function username()
     {
         return 'pseudo';
     }
 
-    /**
-     * Validate the user login request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return void
-     */
     protected function validateLogin(Request $request)
     {
         $request->validate([
-            'user_ecole_annee' => 'required|string',
+            'ecole_id' => 'required|exists:ecoles,id',
+            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
             $this->username() => 'required|string',
             'password' => 'required|string',
         ]);
     }
 
-    /**
-     * Attempt to log the user into the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return bool
-     */
-   
-
     protected function attemptLogin(Request $request)
     {
-        // Valider et extraire les informations d'école et année scolaire
-        $userEcoleAnnee = $request->input('user_ecole_annee');
-        if (!str_contains($userEcoleAnnee, '_')) {
-            return false;
-        }
-
-        list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
+        $ecoleId = $request->input('ecole_id');
+        $anneeScolaireId = $request->input('annee_scolaire_id');
 
         // Vérifier que l'école et l'année scolaire existent
         $ecole = Ecole::find($ecoleId);
@@ -96,7 +56,7 @@ class LoginController extends Controller
             return false;
         }
 
-        // Vérifier si l'utilisateur existe
+        // Vérifier si l'utilisateur existe dans cette école
         $user = User::where('pseudo', $request->pseudo)
             ->where('ecole_id', $ecoleId)
             ->where('is_active', 1)
@@ -119,63 +79,50 @@ class LoginController extends Controller
                 'current_annee_scolaire' => $anneeScolaire->annee
             ]);
 
+            // Journaliser la connexion
+            activity()
+                ->causedBy($user)
+                ->withProperties([
+                    'ecole' => $ecole->nom_ecole,
+                    'annee_scolaire' => $anneeScolaire->annee,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ])
+                ->log('Connexion utilisateur');
+
             return true;
         }
 
         return false;
     }
 
-
-    /**
-     * Get the needed authorization credentials from the request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array
-     */
     protected function credentials(Request $request)
     {
-        // Utiliser seulement pseudo et password pour l'authentification
         return $request->only($this->username(), 'password');
     }
 
-    /**
-     * Get the failed login response instance.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
     protected function sendFailedLoginResponse(Request $request)
     {
-        $userEcoleAnnee = $request->input('user_ecole_annee');
+        $ecoleId = $request->input('ecole_id');
+        $anneeScolaireId = $request->input('annee_scolaire_id');
         
-        // Vérifier le format user_ecole_annee
-        if (!str_contains($userEcoleAnnee, '_')) {
-            return redirect()->back()
-                ->withInput($request->only('pseudo', 'remember'))
-                ->withErrors([
-                    'user_ecole_annee' => 'Sélection invalide d\'école et année scolaire.',
-                ]);
-        }
-
-        list($ecoleId, $anneeScolaireId) = explode('_', $userEcoleAnnee);
-
-        // Vérifier l'école et l'année scolaire
+        // Vérifier l'école
         $ecole = Ecole::find($ecoleId);
-        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
-
         if (!$ecole) {
             return redirect()->back()
                 ->withInput($request->only('pseudo', 'remember'))
                 ->withErrors([
-                    'user_ecole_annee' => 'École non trouvée.',
+                    'ecole_id' => 'École non trouvée.',
                 ]);
         }
 
+        // Vérifier l'année scolaire
+        $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
         if (!$anneeScolaire) {
             return redirect()->back()
                 ->withInput($request->only('pseudo', 'remember'))
                 ->withErrors([
-                    'user_ecole_annee' => 'Année scolaire non trouvée.',
+                    'annee_scolaire_id' => 'Année scolaire non trouvée.',
                 ]);
         }
 
@@ -193,6 +140,15 @@ class LoginController extends Controller
         }
 
         if ($user->is_active == 0) {
+            // Journaliser la tentative de connexion d'un compte inactif
+            activity()
+                ->withProperties([
+                    'pseudo' => $request->pseudo,
+                    'ecole' => $ecole->nom_ecole,
+                    'ip' => $request->ip()
+                ])
+                ->log('Tentative de connexion sur compte inactif');
+
             return redirect()->back()
                 ->withInput($request->only('pseudo', 'remember'))
                 ->withErrors([
@@ -200,7 +156,15 @@ class LoginController extends Controller
                 ]);
         }
 
-        // Si tout est bon mais que le mot de passe est incorrect
+        // Journaliser la tentative de connexion échouée
+        activity()
+            ->withProperties([
+                'pseudo' => $request->pseudo,
+                'ecole' => $ecole->nom_ecole,
+                'ip' => $request->ip()
+            ])
+            ->log('Tentative de connexion échouée');
+
         return redirect()->back()
             ->withInput($request->only('pseudo', 'remember'))
             ->withErrors([
@@ -208,27 +172,23 @@ class LoginController extends Controller
             ]);
     }
 
-    /**
-     * The user has been authenticated.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  mixed  $user
-     * @return mixed
-     */
     protected function authenticated(Request $request, $user)
     {
         return redirect()->intended($this->redirectPath());
     }
 
-    /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
-     */
     public function logout(Request $request)
     {
-        // Nettoyer les informations spécifiques avant la déconnexion
+        // Journaliser la déconnexion
+        if (Auth::check()) {
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'ip' => $request->ip()
+                ])
+                ->log('Déconnexion utilisateur');
+        }
+
         session()->forget([
             'current_ecole_id',
             'current_annee_scolaire_id',
@@ -237,9 +197,7 @@ class LoginController extends Controller
         ]);
 
         $this->guard()->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return $this->loggedOut($request) ?: redirect('/');

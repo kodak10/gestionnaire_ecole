@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ecole;
+use App\Models\AnneeScolaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -10,7 +11,8 @@ class EcoleController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['role:SuperAdministrateur']);
+        // Appliquer le middleware à toutes les méthodes SAUF getAnneesScolaires
+        $this->middleware(['role:SuperAdministrateur'])->except(['getAnneesScolaires']);
     }
 
     public function index()
@@ -69,5 +71,26 @@ class EcoleController extends Controller
         $ecole->save();
 
         return redirect()->route('ecoles.index')->with('success', 'Paramètres mis à jour avec succès');
+    }
+
+    public function getAnneesScolaires($ecoleId)
+    {
+        try {
+            // Vérifier que l'école existe
+            $ecole = Ecole::find($ecoleId);
+            if (!$ecole) {
+                return response()->json(['error' => 'École non trouvée'], 404);
+            }
+
+            // Récupérer les années scolaires
+            $annees = AnneeScolaire::where('ecole_id', $ecoleId)
+                ->orderBy('annee', 'desc')
+                ->get();
+
+            return response()->json($annees);
+        } catch (\Exception $e) {
+            \Log::error('Erreur API EcoleController: ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur serveur'], 500);
+        }
     }
 }

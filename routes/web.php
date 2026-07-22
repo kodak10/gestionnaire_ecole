@@ -33,10 +33,14 @@ use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
 use App\Http\Controllers\UserController;
 use App\Models\Eleve;
+use App\Models\AnneeScolaire;
 use Illuminate\Support\Facades\Route;
 
 
-
+    // Route par défaut
+    Route::get('/', function () {
+        return redirect('/login');
+    });
 
 
     // Routes d'authentification personnalisées
@@ -52,10 +56,10 @@ use Illuminate\Support\Facades\Route;
     Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
     Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-    // Route par défaut
-    Route::get('/', function () {
-        return redirect('/login');
-    });
+    Route::get('/ecoles/{ecoleId}/annees-scolaires', [EcoleController::class, 'getAnneesScolaires']);
+
+
+
 
     // Routes protégées
     Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {

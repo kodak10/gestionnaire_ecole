@@ -256,7 +256,7 @@
                                 @hasanyrole('SuperAdministrateur')
                                     <li><a href="{{ route('users.index') }}" class="">Utilisateurs</a></li>
                                     <li>
-                                        <a href="#" class="">Mouchard</a>
+                                        <a href="" class="">Mouchard</a>
                                     </li>
                                 @endhasanyrole
                             </ul>

@@ -145,8 +145,14 @@ class HomeController extends Controller
         return $fraisPercusActuel > 0 ? 100 : 0;
     }
 
-    /**
-     * API pour les données du tableau de bord (utilisé pour AJAX)
-     */
+    // Dans votre contrôleur
+    public function showLogs()
+    {
+        $activities = \Spatie\Activitylog\Models\Activity::with('causer')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        return view('dashboard.pages.mouchard.index', compact('activities'));
+    }
     
 }
