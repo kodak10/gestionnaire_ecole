@@ -15,7 +15,7 @@ class Depense extends Model
         'description',
         'montant',
         'date_depense',
-        'depense_category_id', // 🔹 au lieu de categorie
+        'depense_category_id',
         'mode_paiement',
         'beneficiaire',
         'reference',

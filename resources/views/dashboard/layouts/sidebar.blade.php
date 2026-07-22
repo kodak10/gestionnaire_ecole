@@ -18,19 +18,9 @@
             </ul>
 
             <ul>
-                <li>
-                    <h6 class="submenu-hdr"><span>Main</span></h6>
-                    <ul>
-                        <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs('dashboard') ? 'active subdrop' : '' }}">
-                                <i class="ti ti-home"></i><span>Dashboard</span><span class="menu-arrow"></span>
-                            </a>
-                            <ul>
-                                <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Tableau de Bord</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </li>
+                <li class="mb-2"><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="ti ti-home"></i><span>Tableau de Bord</span></a></li>
+
+            
                 
                 <li>
                     <h6 class="submenu-hdr"><span>GESTIONS</span></h6>

@@ -53,7 +53,7 @@
 									</div>
 									<p class="text-white">
 										<i class="ti ti-refresh me-1"></i>
-										Mise à jour récente le {{ \Carbon\Carbon::parse($user->updated_at)->translatedFormat('d F Y') }}
+										Dernière connexion le {{ \Carbon\Carbon::parse($user->updated_at)->translatedFormat('d F Y') }}
 									</p>
 
 								</div>
