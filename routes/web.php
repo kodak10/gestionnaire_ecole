@@ -120,7 +120,6 @@ use Illuminate\Support\Facades\Route;
 
         // Routes pour les élèves par classe
 Route::get('/eleves-by-classe-cantine', [CantineController::class, 'elevesByClasseCantine'])->name('eleves.by_classe_cantine');
-Route::get('/eleves-by-classe-transport', [TransportController::class, 'elevesByClasseTransport'])->name('eleves.by_classe_transport');
 
 // Routes pour les règlements (cantine et transport)
 Route::prefix('reglements')->group(function () {
@@ -148,9 +147,12 @@ Route::prefix('cantine')->group(function () {
 // Routes pour Transport
 Route::prefix('transport')->group(function () {
     Route::get('/', [TransportController::class, 'index'])->name('transport.index');
+    Route::post('/reglements/store-paiement-transport', [TransportController::class, 'store'])->name('reglements.store_paiement_transport');
+    Route::get('/eleves-by-classe-transport', [TransportController::class, 'elevesByClasseTransport'])->name('eleves.by_classe_transport');
     Route::get('/mois-a-payer', [TransportController::class, 'getMoisAPayer'])->name('transport.mois_a_payer');
     Route::post('/paiement-mensuel', [TransportController::class, 'storePaiementMensuel'])->name('transport.store_paiement_mensuel');
     Route::get('/receipt/{id}', [TransportController::class, 'generateReceipt'])->name('transport.receipt');
+    Route::post('/update-transport-type', [TransportController::class, 'updateTransportType'])->name('transport.update_transport_type');
     Route::delete('/paiement', [TransportController::class, 'deletePaiement'])->name('transport.delete_paiement');
 });
 
@@ -368,6 +370,8 @@ Route::prefix('cantine')->group(function () {
 // Routes pour Transport
 Route::prefix('transport')->group(function () {
     Route::get('/', [TransportController::class, 'index'])->name('transport.index');
+
+    Route::get('/gestion', [TransportController::class, 'GestionTransport'])->name('transport.gestion');
    // Route::get('/eleves', [TransportController::class, 'elevesByClasseTransport'])->name('eleves.by_classe_transport');
     Route::get('/mois-a-payer', [TransportController::class, 'getMoisAPayer'])->name('transport.mois_a_payer');
     Route::post('/paiement-mensuel', [TransportController::class, 'storePaiementMensuel'])->name('transport.store_paiement_mensuel');

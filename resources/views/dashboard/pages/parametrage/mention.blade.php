@@ -70,17 +70,22 @@
                             @endif
                         </td>
                         <td>
-                            <button class="btn btn-white btn-icon btn-sm me-2" data-bs-toggle="modal" data-bs-target="#editMentionModal_{{ $mention->id }}" title="Modifier">
-                                <i class="ti ti-edit-circle"></i>
+                            <!-- Bouton Modifier -->
+                            <button class="btn btn-white btn-icon btn-sm me-2 bg-success" data-bs-toggle="modal" data-bs-target="#editMentionModal_{{ $mention->id }}" title="Modifier">
+                                <i class="ti ti-edit-circle text-white"></i>
                             </button>
-                            <form action="{{ route('mentions.destroy', $mention->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cette mention ?');">
+
+                            <!-- Bouton Supprimer -->
+                            <form action="{{ route('mentions.destroy', $mention->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cette matière ?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-white btn-icon btn-sm" title="Supprimer">
+                                <button type="submit" class="btn btn-white btn-icon btn-sm bg-danger text-white" title="Supprimer">
                                     <i class="ti ti-trash-x"></i>
                                 </button>
                             </form>
                         </td>
+
+                        
                     </tr>
 
                     <!-- Modal édition -->

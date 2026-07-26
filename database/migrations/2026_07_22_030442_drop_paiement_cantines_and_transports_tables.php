@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,9 +10,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('classe_matiere', function (Blueprint $table) {
-            $table->integer('ordre')->default(0)->after('coefficient'); 
-        });
+        Schema::dropIfExists('paiement_detail_transports');
+        Schema::dropIfExists('paiement_transports');
+
+        Schema::dropIfExists('paiement_detail_cantines');
+        Schema::dropIfExists('paiement_cantines');
     }
 
     /**
@@ -21,8 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('classe_matiere', function (Blueprint $table) {
-            //
-        });
+        // Les tables seront recréées par les migrations d'origine
     }
 };

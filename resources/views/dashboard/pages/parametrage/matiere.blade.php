@@ -87,32 +87,21 @@
                         </td>
 
                         <td>{{ $matiere->nom }}</td>
+
                         <td>
-                            <div class="d-flex align-items-center">
-                                <div class="dropdown">
-                                    <a href="#" class="btn btn-white btn-icon btn-sm d-flex align-items-center justify-content-center rounded-circle p-0" data-bs-toggle="dropdown">
-                                        <i class="ti ti-dots-vertical fs-14"></i>
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-right p-3">
-                                        <li>
-                                            <a class="dropdown-item rounded-1" href="#" data-bs-toggle="modal" data-bs-target="#edit_matiere_{{ $matiere->id }}">
-                                                <i class="ti ti-edit-circle me-2"></i>Modifier
-                                            </a>
-                                        </li>
-                                        
-                                        
-                                        <li>
-                                            <form action="{{ route('matieres.destroy', $matiere->id) }}" method="POST" id="delete-form-{{ $matiere->id }}">
-                                                @csrf
-                                                @method('DELETE')
-                                                <a class="dropdown-item rounded-1" href="#" onclick="event.preventDefault(); if(confirm('Êtes-vous sûr de vouloir supprimer cette matière ?')) document.getElementById('delete-form-{{ $matiere->id }}').submit();">
-                                                    <i class="ti ti-trash-x me-2"></i>Supprimer
-                                                </a>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                            <!-- Bouton Modifier -->
+                            <button class="btn btn-white btn-icon btn-sm me-2 bg-success" data-bs-toggle="modal" data-bs-target="#edit_matiere_{{ $matiere->id }}" title="Modifier">
+                                <i class="ti ti-edit-circle text-white"></i>
+                            </button>
+
+                            <!-- Bouton Supprimer -->
+                            <form action="{{ route('matieres.destroy', $matiere->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cette matière ?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-white btn-icon btn-sm bg-danger text-white" title="Supprimer">
+                                    <i class="ti ti-trash-x"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     @endforeach

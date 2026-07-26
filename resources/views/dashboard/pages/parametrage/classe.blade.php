@@ -85,32 +85,24 @@
                             <td>{{ $classe->nom }}</td>
                             <td>{{ $classe->capacite }}</td>
                             <td>{{ $classe->inscriptions->count() }}</td>
-                            
+
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="dropdown">
-                                        <a href="#" class="btn btn-white btn-icon btn-sm d-flex align-items-center justify-content-center rounded-circle p-0" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ti ti-dots-vertical fs-14"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-right p-3">
-                                            <li>
-                                                <a class="dropdown-item rounded-1" href="#" data-bs-toggle="modal" data-bs-target="#edit_class_{{ $classe->id }}">
-                                                    <i class="ti ti-edit-circle me-2"></i>Modifier
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <form action="{{ route('classes.destroy', $classe->id) }}" method="POST" id="delete-form-{{ $classe->id }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <a class="dropdown-item rounded-1" href="#" onclick="event.preventDefault(); if(confirm('Êtes-vous sûr de vouloir supprimer cette classe ?')) document.getElementById('delete-form-{{ $classe->id }}').submit();">
-                                                        <i class="ti ti-trash-x me-2"></i>Supprimer
-                                                    </a>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
+                                <!-- Bouton Modifier -->
+                                <button class="btn btn-white btn-icon btn-sm me-2 bg-success" data-bs-toggle="modal" data-bs-target="#edit_class_{{ $classe->id }}" title="Modifier">
+                                    <i class="ti ti-edit-circle text-white"></i>
+                                </button>
+
+                                <!-- Bouton Supprimer -->
+                                <form action="{{ route('classes.destroy', $classe->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cette classe ?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-white btn-icon btn-sm  bg-danger text-white" title="Supprimer">
+                                        <i class="ti ti-trash-x"></i>
+                                    </button>
+                                </form>
                             </td>
+                            
+                            
                         </tr>
                         @endforeach
                     </tbody>

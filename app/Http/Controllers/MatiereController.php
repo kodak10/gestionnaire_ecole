@@ -21,7 +21,6 @@ class MatiereController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
 
         $niveaux = Niveau::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -40,6 +39,7 @@ class MatiereController extends Controller
 
     public function getMatieres($id)
 {
+    
     $niveau = Niveau::findOrFail($id);
 
     $matieres = $niveau->matieres()
@@ -58,8 +58,6 @@ class MatiereController extends Controller
 
     return response()->json($matieres);
 }
-
-
 
     public function store(Request $request)
     {

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Classe extends Model
 {
-    protected $fillable = ['ecole_id', 'niveau_id', 'annee_scolaire_id', 'nom','capacite' , 'moy_base', 'enseignant_id'];
+    protected $fillable = ['ecole_id', 'niveau_id', 'annee_scolaire_id', 'nom', 'capacite', 'moy_base', 'enseignant_id'];
 
     public function niveau()
     {
@@ -53,6 +53,14 @@ class Classe extends Model
     {
         return $query->where('classes.ecole_id', $ecoleId)
                     ->where('classes.annee_scolaire_id', $anneeScolaireId);
+    }
+
+    /**
+     * Scope pour filtrer par école (sans année scolaire)
+     */
+    public function scopeForEcole($query, $ecoleId)
+    {
+        return $query->where('classes.ecole_id', $ecoleId);
     }
 
     /**

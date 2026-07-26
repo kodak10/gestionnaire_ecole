@@ -52,7 +52,7 @@
 
                         <li class="submenu">
                             <a href="javascript:void(0);" class="">
-                                <i class="ti ti-users"></i><span>Personnels</span><span class="menu-arrow"></span>
+                                <i class="ti ti-users"></i><span>Dropdowns</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
                                
@@ -105,6 +105,8 @@
                             </ul>
                         </li>
                         @endhasanyrole
+
+                        
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
                         <li class="submenu">
@@ -112,6 +114,9 @@
                                 <i class="ti ti-truck"></i><span>Transport</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
+                                @hasanyrole('SuperAdministrateur|Administrateur')
+                                <li><a href="{{ route('transport.gestion') }}" class="{{ request()->routeIs('transport.gestion') ? 'active' : '' }}">Gestion</a></li>
+                                @endhasanyrole
                                 <li><a href="{{ route('transport.index') }}" class="{{ request()->routeIs('transport.index') ? 'active' : '' }}">Règlements</a></li>
                             </ul>
                         </li>
@@ -200,7 +205,7 @@
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                         <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs(['classes*', 'matieres*', 'mentions*']) ? 'active subdrop' : '' }}">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['classes*', 'matieres*', 'mentions*', 'enseignants*']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-book"></i><span>Scolaires</span><span class="menu-arrow"></span>
                             </a>
                             <ul>

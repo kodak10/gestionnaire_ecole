@@ -23,7 +23,7 @@ class ClasseController extends Controller
     {
         $user = auth()->user();
 
-        // Récupérer l'école et l'année depuis la session
+        // Récupérer l'école depuis la session
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
@@ -33,10 +33,11 @@ class ClasseController extends Controller
 
         // Récupérer les classes avec relations
         $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
-    ->ordered()
-    ->get();
+            ->ordered()
+            ->get();
 
-        $niveaux = Niveau::orderBy('ordre')->orderBy('nom')->get();
+        // Récupérer les niveaux par ordre
+        $niveaux = Niveau::ordered()->get();
 
         // On peut passer les infos de l'année active depuis la session
         $anneeActive = [
@@ -61,8 +62,7 @@ class ClasseController extends Controller
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
             'moy_base' => 'required|integer|min:10',
-            'enseignant_id'=> 'required|exists:enseignants,id',
-
+            'enseignant_id' => 'required|exists:enseignants,id',
         ]);
 
         $niveau = Niveau::findOrFail($request->niveau_id);
@@ -89,7 +89,7 @@ class ClasseController extends Controller
             'nom' => $nomComplet,
             'capacite' => $request->capacite,
             'moy_base' => $request->moy_base,
-            'enseignant_id'     => $request->enseignant_id,
+            'enseignant_id' => $request->enseignant_id,
         ]);
 
         return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
@@ -97,14 +97,12 @@ class ClasseController extends Controller
 
     public function update(Request $request, $id)
     {
-        //dd($request->all());
         $request->validate([
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
             'capacite' => 'required|integer|min:1',
             'moy_base' => 'required|integer|min:10',
-            'enseignant_id'=> 'required|exists:enseignants,id',
-
+            'enseignant_id' => 'required|exists:enseignants,id',
         ]);
 
         $classe = Classe::findOrFail($id);
@@ -142,12 +140,12 @@ class ClasseController extends Controller
         return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $classe = Classe::findOrFail($id);
         
         if ($classe->inscriptions()->count() > 0) {
-            return redirect()->back()>with('error', 'Impossible de supprimer une classe avec des élèves');
+            return redirect()->back()->with('error', 'Impossible de supprimer une classe avec des élèves');
         }
 
         $classe->delete();
@@ -156,10 +154,13 @@ class ClasseController extends Controller
 
     public function export($type)
     {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
         if ($type == 'pdf') {
             $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
-    ->ordered()
-    ->get();
+                ->ordered()
+                ->get();
     
             $pdf = PDF::loadView('exports.classes-pdf', compact('classes'));
             return $pdf->download('classes-list.pdf');

@@ -64,15 +64,15 @@
                         <td>{{ $enseignant->telephone }}</td>
                         <td>
                             <!-- Bouton Modifier -->
-                            <button class="btn btn-white btn-icon btn-sm me-2" data-bs-toggle="modal" data-bs-target="#editEnseignantModal_{{ $enseignant->id }}" title="Modifier">
-                                <i class="ti ti-edit-circle"></i>
+                            <button class="btn btn-white btn-icon btn-sm me-2 bg-success" data-bs-toggle="modal" data-bs-target="#editEnseignantModal_{{ $enseignant->id }}" title="Modifier">
+                                <i class="ti ti-edit-circle text-white"></i>
                             </button>
 
                             <!-- Bouton Supprimer -->
                             <form action="{{ route('enseignants.destroy', $enseignant->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cet enseignant ?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-white btn-icon btn-sm" title="Supprimer">
+                                <button type="submit" class="btn btn-white btn-icon btn-sm bg-danger text-white" title="Supprimer">
                                     <i class="ti ti-trash-x"></i>
                                 </button>
                             </form>

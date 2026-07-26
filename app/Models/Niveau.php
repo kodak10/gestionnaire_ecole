@@ -6,12 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Niveau extends Model
 {
-    protected $fillable = ['nom', 'ordre', 'ecole_id', 'annee_scolaire_id'];
-
-    public function anneeScolaire() 
-    {
-        return $this->belongsTo(AnneeScolaire::class);
-    }
+    protected $fillable = ['nom', 'ordre', 'ecole_id'];
 
     public function classes()
     {
@@ -26,8 +21,13 @@ class Niveau extends Model
     public function matieres()
     {
         return $this->belongsToMany(Matiere::class, 'niveau_matiere')
-                    ->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id', 'annee_scolaire_id')
+                    ->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id')
                     ->withTimestamps();
+    }
+
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class);
     }
 
     /**
@@ -39,11 +39,10 @@ class Niveau extends Model
     }
 
     /**
-     * Scope pour filtrer par école et année scolaire
+     * Scope pour filtrer par école
      */
-    public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)
+    public function scopeForEcole($query, $ecoleId)
     {
-        return $query->where('ecole_id', $ecoleId)
-                    ->where('annee_scolaire_id', $anneeScolaireId);
+        return $query->where('ecole_id', $ecoleId);
     }
 }
