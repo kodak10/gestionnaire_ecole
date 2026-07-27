@@ -354,38 +354,82 @@
             </div>
 
             <!-- Onglet Paiement (Saisie) -->
-            <div class="tab-pane fade" id="paiement-tab">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Frais d'Inscription</label>
-                            <input type="number" class="form-control" name="frais_inscription" id="frais_inscription_paiement" value="{{ old('frais_inscription', 0) }}">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Frais de Scolarité</label>
-                            <input type="number" class="form-control" name="frais_scolarite" id="frais_scolarite_paiement" value="{{ old('frais_scolarite', 0) }}">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Frais de Transport</label>
-                            <input type="number" class="form-control" name="frais_transport" id="frais_transport_paiement" value="{{ old('frais_transport', 0) }}">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Frais de Cantine</label>
-                            <input type="number" class="form-control" name="frais_cantine" id="frais_cantine_paiement" value="{{ old('frais_cantine', 0) }}">
-                        </div>
-                    </div>
-                </div>
-
+<!-- Onglet Paiement (Saisie) -->
+<div class="tab-pane fade" id="paiement-tab">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Frais d'Inscription</label>
+                <input type="number" class="form-control" name="frais_inscription" id="frais_inscription_paiement" value="{{ old('frais_inscription', 0) }}" min="0" step="100">
             </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Frais de Scolarité</label>
+                <input type="number" class="form-control" name="frais_scolarite" id="frais_scolarite_paiement" value="{{ old('frais_scolarite', 0) }}" min="0" step="100">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Frais de Transport</label>
+                <input type="number" class="form-control" name="frais_transport" id="frais_transport_paiement" value="{{ old('frais_transport', 0) }}" min="0" step="100">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Frais de Cantine</label>
+                <input type="number" class="form-control" name="frais_cantine" id="frais_cantine_paiement" value="{{ old('frais_cantine', 0) }}" min="0" step="100">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Mode de paiement</label>
+                <select class="form-select" name="mode_paiement" id="mode_paiement">
+                    <option value="especes">Espèces</option>
+                    <option value="cheque">Chèque</option>
+                    <option value="virement">Virement</option>
+                    <option value="mobile_money">Mobile Money</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Date de paiement</label>
+                <input type="date" class="form-control" name="date_paiement" id="date_paiement" value="{{ old('date_paiement', date('Y-m-d')) }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="mb-3">
+                <label class="form-label">Référence</label>
+                <input type="text" class="form-control" name="reference" id="reference" value="{{ old('reference') }}" placeholder="N° de transaction...">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="mb-3">
+                <label class="form-label">Total à Payer</label>
+                <input type="number" class="form-control fw-bold fs-16" id="total_paiement_paiement" value="{{ old('total_paiement', 0) }}" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-2">
+        <i class="ti ti-info-circle me-1"></i>
+        Laissez les champs à 0 si aucun paiement n'est effectué maintenant.
+    </div>
+</div>
+
         </div>
     </div>
 </div>
@@ -421,7 +465,7 @@
             readURL(this);
         });
 
-        // Gestion des frais dynamiques
+        // Fonction pour mettre à jour les frais
         function updateFrais() {
             const classeOption = $('#classe_id option:selected');
             const fraisInscription = parseFloat(classeOption.data('inscription')) || 0;
@@ -429,23 +473,92 @@
             const fraisCantine = $('#cantine_active').is(':checked') ? parseFloat(classeOption.data('cantine')) || 0 : 0;
             const fraisTransport = $('#transport_active').is(':checked') ? parseFloat(classeOption.data('transport')) || 0 : 0;
 
+            // Mettre à jour l'onglet Récapitulatif
             $('#frais_inscription').val(fraisInscription);
             $('#frais_scolarite').val(fraisScolarite);
             $('#frais_cantine').val(fraisCantine);
             $('#frais_transport').val(fraisTransport);
 
-            const total = fraisInscription + fraisScolarite + fraisCantine + fraisTransport;
+            // Mettre à jour l'onglet Paiement (seulement si les champs sont vides ou à 0)
+            const inscriptionPaiement = $('#frais_inscription_paiement').val();
+            const scolaritePaiement = $('#frais_scolarite_paiement').val();
+            const transportPaiement = $('#frais_transport_paiement').val();
+            const cantinePaiement = $('#frais_cantine_paiement').val();
 
+            // Si les champs sont vides ou à 0, on les remplit avec les valeurs par défaut
+            if (!inscriptionPaiement || parseFloat(inscriptionPaiement) === 0) {
+                $('#frais_inscription_paiement').val(fraisInscription);
+            }
+            if (!scolaritePaiement || parseFloat(scolaritePaiement) === 0) {
+                $('#frais_scolarite_paiement').val(fraisScolarite);
+            }
+            if (!transportPaiement || parseFloat(transportPaiement) === 0) {
+                $('#frais_transport_paiement').val(fraisTransport);
+            }
+            if (!cantinePaiement || parseFloat(cantinePaiement) === 0) {
+                $('#frais_cantine_paiement').val(fraisCantine);
+            }
+
+            // Calculer le total
+            calculateTotal();
+        }
+
+        // Fonction pour calculer le total
+        function calculateTotal() {
+            const inscription = parseFloat($('#frais_inscription_paiement').val()) || 0;
+            const scolarite = parseFloat($('#frais_scolarite_paiement').val()) || 0;
+            const transport = parseFloat($('#frais_transport_paiement').val()) || 0;
+            const cantine = parseFloat($('#frais_cantine_paiement').val()) || 0;
+
+            const total = inscription + scolarite + transport + cantine;
+
+            // Mettre à jour les deux totaux
             $('#total_paiement').val(total.toFixed(0));
             $('#total_paiement_paiement').val(total.toFixed(0));
         }
 
-        // Synchronisation du total dans l'onglet paiement
-        $('#classe_id').change(updateFrais);
-        $('#transport_active, #cantine_active').change(updateFrais);
+        // Fonction pour mettre à jour le total quand un champ change
+        function updateTotalOnChange() {
+            calculateTotal();
+        }
+
+        // Écouteurs d'événements pour les changements de classe et checkboxes
+        $('#classe_id').change(function() {
+            updateFrais();
+        });
+
+        $('#transport_active, #cantine_active').change(function() {
+            updateFrais();
+        });
+
+        // Écouteurs d'événements pour les champs de paiement
+        $('#frais_inscription_paiement, #frais_scolarite_paiement, #frais_transport_paiement, #frais_cantine_paiement').on('input', function() {
+            calculateTotal();
+        });
 
         // Initialisation
         updateFrais();
+
+        // Fonction de validation du formulaire (optionnelle)
+        $('#inscription-form').on('submit', function(e) {
+            // Vérifier si au moins un montant est saisi pour le paiement
+            const inscription = parseFloat($('#frais_inscription_paiement').val()) || 0;
+            const scolarite = parseFloat($('#frais_scolarite_paiement').val()) || 0;
+            const transport = parseFloat($('#frais_transport_paiement').val()) || 0;
+            const cantine = parseFloat($('#frais_cantine_paiement').val()) || 0;
+            const total = inscription + scolarite + transport + cantine;
+
+            if (total > 0) {
+                // Vérifier que le mode de paiement est sélectionné
+                const modePaiement = $('#mode_paiement').val();
+                if (!modePaiement) {
+                    e.preventDefault();
+                    alert('Veuillez sélectionner un mode de paiement.');
+                    return false;
+                }
+            }
+            return true;
+        });
     });
 </script>
 @endsection

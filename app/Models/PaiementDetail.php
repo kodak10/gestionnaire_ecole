@@ -7,7 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class PaiementDetail extends Model
 {
     protected $fillable = [
-        'paiement_id', 'montant', 'inscription_id', 'type_frais_id'
+        'paiement_id', 
+        'montant', 
+        'inscription_id', 
+        'tarif_id'
+    ];
+
+    protected $casts = [
+        'montant' => 'decimal:2'
     ];
 
     public function paiement()
@@ -15,17 +22,23 @@ class PaiementDetail extends Model
         return $this->belongsTo(Paiement::class);
     }
 
-    public function typeFrais()
+    public function tarif()
     {
-        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
+        return $this->belongsTo(Tarif::class);
     }
-    public function eleve()
-{
-    return $this->inscription->eleve ?? null;
-}
-public function inscription()
+
+    public function inscription()
     {
         return $this->belongsTo(Inscription::class);
     }
 
+    public function eleve()
+    {
+        return $this->inscription->eleve ?? null;
+    }
+
+    public function getTypeFraisAttribute()
+    {
+        return $this->tarif?->typeFrais;
+    }
 }

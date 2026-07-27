@@ -8,14 +8,16 @@ use App\Models\Ecole;
 use App\Models\Eleve;
 use App\Models\Inscription;
 use App\Models\MoisScolaire;
-use App\Models\Paiement;
-use App\Models\Tarif;
-use App\Models\TypeFrais;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Paiement;
+use App\Models\PaiementDetail;
+use App\Models\TypeFrais;
+use App\Models\Tarif;
+
 use PDF;
 use Illuminate\Support\Facades\Auth;
 
@@ -229,6 +231,101 @@ class EleveController extends Controller
     ));
 }
   
+// public function store(Request $request)
+// {
+//     $request->validate([
+//         'nom' => 'required|string|max:255',
+//         'prenom' => 'required|string|max:255',
+//         'num_extrait' => 'nullable|string|max:255',
+//         'naissance' => 'required|date',
+//         'lieu_naissance' => 'nullable|string|max:255',
+//         'sexe' => 'required|in:Masculin,Féminin',
+//         'nationalite' => 'nullable|string|max:255',
+//         'code_national' => 'nullable|string|max:255',
+//         'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+//         'infos_medicales' => 'nullable|string',
+//         'pere_nom' => 'required|string|max:255',
+//         'pere_contact' => 'required|string|max:20',
+//         'pere_contact02' => 'nullable|string|max:20',
+//         'mere_nom' => 'nullable|string|max:255',
+//         'mere_contact' => 'nullable|string|max:20',
+//         'mere_contact02' => 'nullable|string|max:20',
+//         'parent_adresse' => 'nullable|string|max:255',
+//         'classe_id' => 'required|exists:classes,id',
+//         'transport_active' => 'nullable|boolean',
+//         'cantine_active' => 'nullable|boolean',
+//         'parent_nom' => 'nullable|string|max:255',
+//         'parent_telephone' => 'nullable|string|max:20',
+//         'parent_telephone02' => 'nullable|string|max:20',
+//         'mode_paiement' => 'nullable|string',
+//     ]);
+
+//     $ecoleId = session('current_ecole_id'); 
+//     $anneeScolaireId = session('current_annee_scolaire_id');
+
+//     $matricule = $this->genererMatriculeEleve($ecoleId);
+
+//     $photoPath = null;
+//     if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
+//         // Upload dans le dossier "eleves_photos"
+//         $photoPath = $request->file('photo')->store('eleves_photos', 'public');
+//     }
+
+//     $transportActive = $request->has('transport_active') && $request->input('transport_active') !== 'off';
+//     $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') !== 'off';
+
+//     $eleve = Eleve::create([
+//         'matricule' => $matricule,
+//         'nom' => $request->nom,
+//         'prenom' => $request->prenom,
+//         'num_extrait' => $request->num_extrait,
+//         'sexe' => $request->sexe,
+//         'naissance' => $request->naissance,
+//         'lieu_naissance' => $request->lieu_naissance,
+//         'nationalite' => $request->nationalite ?? 'Ivoirienne',
+//         'photo_path' => $photoPath,
+//         'infos_medicales' => $request->infos_medicales,
+//         'code_national' => $request->code_national,
+//         'pere_nom' => $request->pere_nom,
+//         'pere_contact' => $request->pere_contact,
+//         'pere_contact02' => $request->pere_contact02,
+//         'mere_nom' => $request->mere_nom,
+//         'mere_contact' => $request->mere_contact,
+//         'mere_contact02' => $request->mere_contact02,
+//         'parent_adresse' => $request->parent_adresse,
+//         'is_active' => true,
+//         'parent_nom' => $request->parent_nom ?? $request->pere_nom,
+//         'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
+//         'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
+//         'ecole_id' => $ecoleId,
+//         'classe_id' => $request->classe_id,
+//         'annee_scolaire_id' => $anneeScolaireId,
+//     ]);
+
+//     $inscription = Inscription::create([
+//         'annee_scolaire_id' => $anneeScolaireId,
+//         'ecole_id' => $ecoleId,
+//         'eleve_id' => $eleve->id,
+//         'classe_id' => $request->classe_id,
+//         'cantine_active' => $cantineActive,
+//         'transport_active' => $transportActive,
+//     ]);
+
+//     activity()
+//         ->performedOn($eleve)
+//         ->causedBy(auth()->user())
+//         ->withProperties([
+//             'matricule' => $eleve->matricule,
+//             'nom' => $eleve->nom,
+//             'prenom' => $eleve->prenom,
+//             'classe_id' => $request->classe_id,
+//             'ip' => $request->ip()
+//         ])
+//         ->log("Nouvel élève inscrit : {$eleve->nom} {$eleve->prenom}");
+
+//     return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
+// }
+
 public function store(Request $request)
 {
     $request->validate([
@@ -256,6 +353,11 @@ public function store(Request $request)
         'parent_telephone' => 'nullable|string|max:20',
         'parent_telephone02' => 'nullable|string|max:20',
         'mode_paiement' => 'nullable|string',
+        'frais_inscription' => 'nullable|numeric|min:0',
+        'frais_scolarite' => 'nullable|numeric|min:0',
+        'frais_transport' => 'nullable|numeric|min:0',
+        'frais_cantine' => 'nullable|numeric|min:0',
+        'date_paiement' => 'nullable|date',
     ]);
 
     $ecoleId = session('current_ecole_id'); 
@@ -265,63 +367,216 @@ public function store(Request $request)
 
     $photoPath = null;
     if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
-        // Upload dans le dossier "eleves_photos"
         $photoPath = $request->file('photo')->store('eleves_photos', 'public');
     }
 
     $transportActive = $request->has('transport_active') && $request->input('transport_active') !== 'off';
     $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') !== 'off';
 
-    $eleve = Eleve::create([
-        'matricule' => $matricule,
-        'nom' => $request->nom,
-        'prenom' => $request->prenom,
-        'num_extrait' => $request->num_extrait,
-        'sexe' => $request->sexe,
-        'naissance' => $request->naissance,
-        'lieu_naissance' => $request->lieu_naissance,
-        'nationalite' => $request->nationalite ?? 'Ivoirienne',
-        'photo_path' => $photoPath,
-        'infos_medicales' => $request->infos_medicales,
-        'code_national' => $request->code_national,
-        'pere_nom' => $request->pere_nom,
-        'pere_contact' => $request->pere_contact,
-        'pere_contact02' => $request->pere_contact02,
-        'mere_nom' => $request->mere_nom,
-        'mere_contact' => $request->mere_contact,
-        'mere_contact02' => $request->mere_contact02,
-        'parent_adresse' => $request->parent_adresse,
-        'is_active' => true,
-        'parent_nom' => $request->parent_nom ?? $request->pere_nom,
-        'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
-        'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
-        'ecole_id' => $ecoleId,
-        'classe_id' => $request->classe_id,
-        'annee_scolaire_id' => $anneeScolaireId,
-    ]);
+    DB::beginTransaction();
 
-    $inscription = Inscription::create([
-        'annee_scolaire_id' => $anneeScolaireId,
-        'ecole_id' => $ecoleId,
-        'eleve_id' => $eleve->id,
-        'classe_id' => $request->classe_id,
-        'cantine_active' => $cantineActive,
-        'transport_active' => $transportActive,
-    ]);
-
-    activity()
-        ->performedOn($eleve)
-        ->causedBy(auth()->user())
-        ->withProperties([
-            'matricule' => $eleve->matricule,
-            'nom' => $eleve->nom,
-            'prenom' => $eleve->prenom,
+    try {
+        // 1. Création de l'élève
+        $eleve = Eleve::create([
+            'matricule' => $matricule,
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'num_extrait' => $request->num_extrait,
+            'sexe' => $request->sexe,
+            'naissance' => $request->naissance,
+            'lieu_naissance' => $request->lieu_naissance,
+            'nationalite' => $request->nationalite ?? 'Ivoirienne',
+            'photo_path' => $photoPath,
+            'infos_medicales' => $request->infos_medicales,
+            'code_national' => $request->code_national,
+            'pere_nom' => $request->pere_nom,
+            'pere_contact' => $request->pere_contact,
+            'pere_contact02' => $request->pere_contact02,
+            'mere_nom' => $request->mere_nom,
+            'mere_contact' => $request->mere_contact,
+            'mere_contact02' => $request->mere_contact02,
+            'parent_adresse' => $request->parent_adresse,
+            'is_active' => true,
+            'parent_nom' => $request->parent_nom ?? $request->pere_nom,
+            'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
+            'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
+            'ecole_id' => $ecoleId,
             'classe_id' => $request->classe_id,
-            'ip' => $request->ip()
-        ])
-        ->log("Nouvel élève inscrit : {$eleve->nom} {$eleve->prenom}");
+            'annee_scolaire_id' => $anneeScolaireId,
+        ]);
 
-    return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
+        // 2. Récupérer le niveau de la classe
+        $classe = Classe::with('niveau')->find($request->classe_id);
+        $niveauId = $classe->niveau_id;
+
+        // 3. Création de l'inscription
+        $inscription = Inscription::create([
+            'annee_scolaire_id' => $anneeScolaireId,
+            'ecole_id' => $ecoleId,
+            'eleve_id' => $eleve->id,
+            'classe_id' => $request->classe_id,
+            'cantine_active' => $cantineActive,
+            'transport_active' => $transportActive,
+        ]);
+
+        // 4. Gestion du paiement
+        $fraisInscription = floatval($request->frais_inscription ?? 0);
+        $fraisScolarite = floatval($request->frais_scolarite ?? 0);
+        $fraisTransport = floatval($request->frais_transport ?? 0);
+        $fraisCantine = floatval($request->frais_cantine ?? 0);
+        
+        $totalPaiement = $fraisInscription + $fraisScolarite + $fraisTransport + $fraisCantine;
+
+        Log::info('Montants de paiement reçus', [
+            'inscription' => $fraisInscription,
+            'scolarite' => $fraisScolarite,
+            'transport' => $fraisTransport,
+            'cantine' => $fraisCantine,
+            'total' => $totalPaiement
+        ]);
+
+        if ($totalPaiement > 0) {
+            $datePaiement = $request->date_paiement ?? now();
+            $modePaiement = $request->mode_paiement ?? 'especes';
+
+            // 4.1 Créer le paiement
+            $paiement = Paiement::create([
+                'annee_scolaire_id' => $anneeScolaireId,
+                'ecole_id' => $ecoleId,
+                'montant' => $totalPaiement,
+                'mode_paiement' => $modePaiement,
+                'reference' => $request->reference ?? null,
+                'user_id' => auth()->id(),
+                'created_at' => $datePaiement,
+                'updated_at' => $datePaiement
+            ]);
+
+            Log::info('Paiement créé', ['paiement_id' => $paiement->id, 'montant' => $totalPaiement]);
+
+            // Récupérer les types de frais
+            $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+            $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+            $typeTransport = TypeFrais::where('nom', "Transport")->first();
+            $typeCantine = TypeFrais::where('nom', "Cantine")->first();
+
+            // 4.2 Récupérer les tarifs correspondants
+            $tarifInscription = Tarif::where('type_frais_id', $typeInscription->id ?? 0)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId)
+                ->where(function($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId)
+                      ->orWhereNull('niveau_id');
+                })
+                ->first();
+
+            $tarifScolarite = Tarif::where('type_frais_id', $typeScolarite->id ?? 0)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId)
+                ->where(function($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId)
+                      ->orWhereNull('niveau_id');
+                })
+                ->first();
+
+            $tarifTransport = Tarif::where('type_frais_id', $typeTransport->id ?? 0)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId)
+                ->where(function($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId)
+                      ->orWhereNull('niveau_id');
+                })
+                ->first();
+
+            $tarifCantine = Tarif::where('type_frais_id', $typeCantine->id ?? 0)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('ecole_id', $ecoleId)
+                ->where(function($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId)
+                      ->orWhereNull('niveau_id');
+                })
+                ->first();
+
+            // 4.3 Détail pour l'inscription
+            if ($fraisInscription > 0 && $tarifInscription) {
+                PaiementDetail::create([
+                    'paiement_id' => $paiement->id,
+                    'inscription_id' => $inscription->id,
+                    'tarif_id' => $tarifInscription->id,
+                    'montant' => $fraisInscription
+                ]);
+                Log::info('Détail inscription créé', ['montant' => $fraisInscription]);
+            }
+
+            // 4.4 Détail pour la scolarité
+            if ($fraisScolarite > 0 && $tarifScolarite) {
+                PaiementDetail::create([
+                    'paiement_id' => $paiement->id,
+                    'inscription_id' => $inscription->id,
+                    'tarif_id' => $tarifScolarite->id,
+                    'montant' => $fraisScolarite
+                ]);
+                Log::info('Détail scolarité créé', ['montant' => $fraisScolarite]);
+            }
+
+            // 4.5 Détail pour le transport
+            if ($fraisTransport > 0 && $tarifTransport) {
+                PaiementDetail::create([
+                    'paiement_id' => $paiement->id,
+                    'inscription_id' => $inscription->id,
+                    'tarif_id' => $tarifTransport->id,
+                    'montant' => $fraisTransport
+                ]);
+                Log::info('Détail transport créé', ['montant' => $fraisTransport]);
+            }
+
+            // 4.6 Détail pour la cantine
+            if ($fraisCantine > 0 && $tarifCantine) {
+                PaiementDetail::create([
+                    'paiement_id' => $paiement->id,
+                    'inscription_id' => $inscription->id,
+                    'tarif_id' => $tarifCantine->id,
+                    'montant' => $fraisCantine
+                ]);
+                Log::info('Détail cantine créé', ['montant' => $fraisCantine]);
+            }
+
+            Log::info('Paiement complet enregistré', [
+                'eleve_id' => $eleve->id,
+                'inscription_id' => $inscription->id,
+                'total' => $totalPaiement
+            ]);
+        } else {
+            Log::info('Aucun paiement enregistré (total = 0)');
+        }
+
+        DB::commit();
+
+        activity()
+            ->performedOn($eleve)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'matricule' => $eleve->matricule,
+                'nom' => $eleve->nom,
+                'prenom' => $eleve->prenom,
+                'classe_id' => $request->classe_id,
+                'paiement' => $totalPaiement > 0 ? $totalPaiement : 'Aucun',
+                'ip' => $request->ip()
+            ])
+            ->log("Nouvel élève inscrit : {$eleve->nom} {$eleve->prenom}");
+
+        $message = 'Élève inscrit avec succès!';
+        if ($totalPaiement > 0) {
+            $message .= ' Paiement de ' . number_format($totalPaiement, 0, ',', ' ') . ' FCFA enregistré.';
+        }
+
+        return redirect()->route('eleves.index')->with('success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur lors de l\'inscription: ' . $e->getMessage());
+        Log::error('Trace: ' . $e->getTraceAsString());
+        return redirect()->back()->with('error', 'Erreur lors de l\'inscription: ' . $e->getMessage());
+    }
 }
 
     private function genererMatriculeEleve(int $ecoleId): string

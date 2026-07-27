@@ -231,13 +231,15 @@ public function storePaiement(Request $request)
     try {
         DB::beginTransaction();
 
-        $inscription = Inscription::with(['eleve', 'classe.niveau', 'reductions'])->findOrFail($request->inscription_id);
+        $inscription = Inscription::with(['eleve', 'classe.niveau', 'reductions'])
+            ->findOrFail($request->inscription_id);
         
         $ecoleId = session('current_ecole_id'); 
         $anneeScolaireId = session('current_annee_scolaire_id');
 
         $total = ($request->montant_inscription ?? 0) + ($request->montant_scolarite ?? 0);
 
+        // Créer le paiement
         $paiement = Paiement::create([
             'annee_scolaire_id' => $anneeScolaireId,
             'ecole_id' => $ecoleId,
@@ -245,18 +247,18 @@ public function storePaiement(Request $request)
             'mode_paiement' => $request->mode_paiement,
             'reference' => $request->reference,
             'user_id' => auth()->id(),
-            'created_at' => $request->date_paiement
+            'created_at' => $request->date_paiement,
+            'updated_at' => $request->date_paiement
         ]);
 
         $montantPayeInscription = 0;
         $montantPayeScolarite = 0;
 
+        // Détail pour l'inscription
         if ($request->montant_inscription > 0) {
             $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
             PaiementDetail::create([
                 'paiement_id' => $paiement->id,
-                'annee_scolaire_id' => $anneeScolaireId,
-                'ecole_id' => $ecoleId,
                 'inscription_id' => $request->inscription_id,
                 'type_frais_id' => $typeInscription->id,
                 'montant' => $request->montant_inscription
@@ -264,22 +266,19 @@ public function storePaiement(Request $request)
             $montantPayeInscription = $request->montant_inscription;
         }
 
+        // Détail pour la scolarité
         if ($request->montant_scolarite > 0) {
             $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
             PaiementDetail::create([
                 'paiement_id' => $paiement->id,
-                'annee_scolaire_id' => $anneeScolaireId,
-                'ecole_id' => $ecoleId,
                 'inscription_id' => $request->inscription_id,
                 'type_frais_id' => $typeScolarite->id,
-                'montant' => $request->montant_scolarite,
-                'created_at' => $request->date_paiement,
-                'updated_at' => $request->date_paiement,
+                'montant' => $request->montant_scolarite
             ]);
             $montantPayeScolarite = $request->montant_scolarite;
         }
 
-        // Calculer le reste à payer pour chaque type de frais
+        // Calculer les totaux déjà payés
         $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
         $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
 
@@ -316,27 +315,19 @@ public function storePaiement(Request $request)
         $resteInscription = max(0, $montantTotalInscription - $totalPayeInscription);
         $resteScolarite = max(0, $montantTotalScolarite - $totalPayeScolarite);
 
-        // ============================================================
-        // ENVOI DU SMS - AVEC VÉRIFICATION DES CRÉDITS ET COMPTAGE
-        // ============================================================
+        // ENVOI DU SMS
         try {
-            // Récupérer l'école pour vérifier les crédits
             $ecole = Ecole::find($ecoleId);
             
-            // Vérifier si l'école peut envoyer des SMS
             if ($ecole && $ecole->canSendSms()) {
-                // Initialiser le service SMS avec l'ID de l'école
                 $smsService = new \App\Services\SmsService($ecoleId);
                 
-                // Récupérer le numéro de téléphone
                 $phoneNumber = $inscription->eleve->parent_telephone ?? 
                                $inscription->eleve->telephone ?? null;
                 
                 if ($phoneNumber) {
-                    // Nettoyer le numéro
                     $phoneNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
                     
-                    // Déterminer quel type de frais a été payé
                     $typeFrais = '';
                     $montantPaye = 0;
                     $resteAPayer = 0;
@@ -360,7 +351,6 @@ public function storePaiement(Request $request)
                             $typeFrais
                         );
                         
-                        // Envoyer le SMS (la décrémentation des crédits est automatique)
                         $result = $smsService->sendSms($phoneNumber, $message, $ecoleId);
                         
                         if ($result['success']) {
@@ -369,45 +359,21 @@ public function storePaiement(Request $request)
                                 'inscription_id' => $inscription->id,
                                 'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
                                 'montant_paye' => $montantPaye,
-                                'sms_restant' => $result['sms_restant'] ?? null,
-                                'ecole' => $ecole->nom_ecole
+                                'sms_restant' => $result['sms_restant'] ?? null
                             ]);
                         } else {
                             Log::warning('⚠️ Échec de l\'envoi du SMS de paiement', [
                                 'paiement_id' => $paiement->id,
-                                'inscription_id' => $inscription->id,
-                                'reason' => $result['message'] ?? 'Unknown error',
-                                'status' => $result['status'] ?? null
+                                'reason' => $result['message'] ?? 'Unknown error'
                             ]);
                         }
                     }
-                } else {
-                    Log::warning('⚠️ Aucun numéro de téléphone disponible pour l\'envoi du SMS', [
-                        'inscription_id' => $inscription->id,
-                        'eleve_id' => $inscription->eleve->id,
-                        'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom
-                    ]);
                 }
-            } else {
-                // L'école ne peut pas envoyer de SMS
-                $status = $ecole ? $ecole->sms_status : 'École non trouvée';
-                $credits = $ecole ? $ecole->sms_disponible : 0;
-                
-                Log::info('ℹ️ SMS non envoyé - école non configurée ou crédits insuffisants', [
-                    'ecole_id' => $ecoleId,
-                    'ecole_nom' => $ecole ? $ecole->nom_ecole : null,
-                    'sms_notification' => $ecole ? $ecole->sms_notification : null,
-                    'sms_disponible' => $credits,
-                    'sms_status' => $status
-                ]);
             }
         } catch (\Exception $e) {
-            // Ne pas bloquer le paiement si le SMS échoue
-            Log::error('❌ Erreur lors de l\'envoi du SMS de paiement', [
+            Log::error('❌ Erreur lors de l\'envoi du SMS', [
                 'paiement_id' => $paiement->id,
-                'inscription_id' => $inscription->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
         }
 
@@ -416,7 +382,7 @@ public function storePaiement(Request $request)
         return response()->json([
             'success' => true, 
             'paiement_id' => $paiement->id,
-            'sms_envoye' => isset($result) ? $result['success'] : false
+            'message' => 'Paiement enregistré avec succès'
         ]);
 
     } catch (\Exception $e) {
@@ -433,6 +399,7 @@ public function storePaiement(Request $request)
         ]);
     }
 }
+
 
     public function generateReceipt($paiementId)
     {
