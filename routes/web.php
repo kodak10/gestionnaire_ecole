@@ -147,7 +147,7 @@ Route::prefix('cantine')->group(function () {
 // Routes pour Transport
 Route::prefix('transport')->group(function () {
     Route::get('/', [TransportController::class, 'index'])->name('transport.index');
-    Route::post('/reglements/store-paiement-transport', [TransportController::class, 'store'])->name('reglements.store_paiement_transport');
+    //Route::post('/reglements/store-paiement-transport', [TransportController::class, 'store'])->name('reglements.store_paiement_transport');
     Route::get('/eleves-by-classe-transport', [TransportController::class, 'elevesByClasseTransport'])->name('eleves.by_classe_transport');
     Route::get('/mois-a-payer', [TransportController::class, 'getMoisAPayer'])->name('transport.mois_a_payer');
     Route::post('/paiement-mensuel', [TransportController::class, 'storePaiementMensuel'])->name('transport.store_paiement_mensuel');
@@ -156,26 +156,19 @@ Route::prefix('transport')->group(function () {
     Route::delete('/paiement', [TransportController::class, 'deletePaiement'])->name('transport.delete_paiement');
 });
 
-        Route::prefix('scolarite')->group(function() {
-            Route::get('/', [ScolariteController::class, 'index'])->name('scolarite.index');
+Route::prefix('scolarite')->group(function() {
+    Route::get('/', [ScolariteController::class, 'index'])->name('scolarite.index');
 
-            Route::resource('tarifs', TarifScolariteController::class);
-            Route::resource('tarifs-mensuels', TarifMensuelController::class)->except(['show']);
+    // Route resource pour les tarifs annuels
+    Route::resource('tarifs', TarifScolariteController::class);
 
-            Route::post('/tarifs-mensuels/check-existing', [TarifMensuelController::class, 'checkExistingTarif'])->name('tarifs-mensuels.check-existing');
-            Route::get('/tarifs-mensuels/get-tarifs', [TarifMensuelController::class, 'getTarifsByTypeAndNiveau'])->name('tarifs-mensuels.get-tarifs');
-            Route::get('/tarifs-mensuels/niveaux-by-type', [TarifMensuelController::class, 'getNiveauxByTypeFrais'])->name('tarifs-mensuels.niveaux-by-type');
-            Route::post('/tarifs-mensuels/sync-filters', [TarifMensuelController::class, 'syncFilters'])->name('tarifs-mensuels.sync-filters');
-            Route::get('/tarifs-mensuels/all-niveaux', [TarifMensuelController::class, 'getAllNiveauxWithTarifs'])->name('tarifs-mensuels.all-niveaux');
-        
-            Route::get('/eleve-paiements', [ScolariteController::class, 'getElevePaiements'])->name('paiements.eleve_data');
-            Route::post('/store-paiement', [ScolariteController::class, 'storePaiement'])->name('paiements.store');
-            Route::post('/apply-reduction', [ScolariteController::class, 'applyReduction'])->name('eleves.apply_reduction');
-            Route::get('/print/{eleveId}/{anneeId}', [ScolariteController::class, 'printScolarite'])->name('scolarite.print');
-            Route::get('/receipt/{paiementId}', [ScolariteController::class, 'generateReceipt'])->name('scolarite.receipt');
-            Route::delete('/paiements/{paiement}', [ScolariteController::class, 'destroyPaiement'])->name('paiements.destroy');
-            
-        });
+    // Route resource pour les tarifs mensuels (sans show)
+    Route::resource('tarifs-mensuels', TarifMensuelController::class)->except(['show']);
+
+    // Routes personnalisées pour les tarifs mensuels
+    Route::get('/tarifs-mensuels/get-tarifs', [TarifMensuelController::class, 'getTarifsMensuels'])->name('tarifs-mensuels.get-tarifs');
+    
+});
         
         Route::get('/eleves/export', [EleveController::class, 'export'])->name('eleves.export');
 

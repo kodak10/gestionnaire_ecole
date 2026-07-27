@@ -2,7 +2,7 @@
 @section('content')
     <div class="d-md-flex d-block align-items-center justify-content-between border-bottom pb-3">
         <div class="my-auto mb-2">
-            <h3 class="page-title mb-1">Profile</h3>
+            <h3 class="page-title mb-1">Profil</h3>
             <nav>
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item">
@@ -43,43 +43,6 @@
     @endif
     
     <div class="d-md-flex d-block mt-3">
-        <div class="settings-right-sidebar me-md-3 border-0">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Photo de profil</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" id="photo-form">
-                        @csrf
-                        @method('PUT')
-
-                        <input type="hidden" name="update_type" value="photo">
-
-                        <div class="settings-profile-upload">
-                            <span class="profile-pic">
-                                <img src="{{ $user->photo ? asset('storage/' . $user->photo) : asset('assets/img/profiles/avatar-27.jpg') }}" alt="Profile" id="profile-preview" class="rounded-circle" width="120" height="120">
-                            </span>
-                            <div class="title-upload">
-                                <h5>Modifier votre photo</h5>
-                                <a href="#" class="me-2 text-danger" id="delete-photo">Supprimer</a>
-                                <button type="submit" class="text-primary btn btn-link p-0">Mettre à jour</button>
-                            </div>
-                        </div>
-                        <div class="profile-uploader profile-uploader-two mb-0">
-                            <span class="upload-icon"><i class="ti ti-upload"></i></span>
-                            <div class="drag-upload-btn bg-transparent me-0 border-0">
-                                <p class="upload-btn"><span>Cliquez pour télécharger</span> ou glisser-déposer
-                                </p>
-                                <h6>JPG ou PNG</h6>
-                                <h6>(Max 450 x 450 px)</h6>
-                            </div>
-                            <input type="file" name="photo" class="form-control" id="photo-upload" accept="image/*">
-                            <div id="frames"></div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
         <div class="flex-fill ps-0 border-0">
             <form action="{{ route('profile.update') }}" method="POST" id="profile-form">
                 @csrf

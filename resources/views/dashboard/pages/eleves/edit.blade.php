@@ -249,19 +249,46 @@
                             <div class="mb-3">
                                 <label class="form-label">Classe <span class="text-danger">*</span></label>
                                 <select class="form-select" name="classe_id" required id="classe_id">
-                                    <option value="">Sélectionner</option>
-                                    @foreach($classes as $classe)
-                                        <option value="{{ $classe->id }}" 
-                                            data-niveau="{{ $classe->niveau_id }}"
-                                            data-scolarite="{{ $tarifs->where('type_frais_id', $scolarite->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
-                                            data-inscription="{{ $tarifs->where('type_frais_id', $fraisInscription->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
-                                            data-cantine="{{ $tarifs->where('type_frais_id', $cantines->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
-                                            data-transport="{{ $tarifs->where('type_frais_id', $transports->id)->where('niveau_id', $classe->niveau_id)->first()->montant ?? 0 }}"
-                                            {{ old('classe_id', $inscription->classe_id) == $classe->id ? 'selected' : '' }}>
-                                            {{ $classe->nom }}
-                                        </option>
-                                    @endforeach
-                                </select>
+    <option value="">Sélectionner</option>
+    @foreach($classes as $classe)
+        @php
+            $niveauId = $classe->niveau_id;
+            
+            // Frais d'inscription
+            $inscriptionTarif = $tarifs->get($fraisInscription->id ?? 0)?->first(function($t) use ($niveauId) {
+                return $t->niveau_id == $niveauId || $t->niveau_id === null;
+            });
+            $inscriptionMontant = $inscriptionTarif->montant ?? 0;
+            
+            // Scolarité
+            $scolariteTarif = $tarifs->get($scolarite->id ?? 0)?->first(function($t) use ($niveauId) {
+                return $t->niveau_id == $niveauId || $t->niveau_id === null;
+            });
+            $scolariteMontant = $scolariteTarif->montant ?? 0;
+            
+            // Transport
+            $transportTarif = $tarifs->get($transports->id ?? 0)?->first(function($t) use ($niveauId) {
+                return $t->niveau_id == $niveauId || $t->niveau_id === null;
+            });
+            $transportMontant = $transportTarif->montant ?? 0;
+            
+            // Cantine
+            $cantineTarif = $tarifs->get($cantines->id ?? 0)?->first(function($t) use ($niveauId) {
+                return $t->niveau_id == $niveauId || $t->niveau_id === null;
+            });
+            $cantineMontant = $cantineTarif->montant ?? 0;
+        @endphp
+        <option value="{{ $classe->id }}" 
+            data-niveau="{{ $classe->niveau_id }}"
+            data-scolarite="{{ $scolariteMontant }}"
+            data-inscription="{{ $inscriptionMontant }}"
+            data-cantine="{{ $cantineMontant }}"
+            data-transport="{{ $transportMontant }}"
+            {{ old('classe_id', $inscription->classe_id) == $classe->id ? 'selected' : '' }}>
+            {{ $classe->nom }}
+        </option>
+    @endforeach
+</select>
                             </div>
                         </div>
                     </div>

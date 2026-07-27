@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Paiement extends Model
 {
     protected $fillable = [
-        'inscription_id', 'type_frais_id', 'mois_id', 'montant', 'mode_paiement', 
-        'reference', 'user_id', 'annee_scolaire_id', 'est_frais_inscription', 'ecole_id'
+        'inscription_id', 'montant', 'mode_paiement', 
+        'reference', 'user_id', 'annee_scolaire_id',  'ecole_id'
     ];
 
     public function inscription()
@@ -16,10 +16,6 @@ class Paiement extends Model
         return $this->belongsTo(Inscription::class);
     }
 
-    public function typeFrais()
-    {
-        return $this->belongsTo(TypeFrais::class, 'type_frais_id');
-    }
 
 public function ecole()
 {
@@ -29,12 +25,6 @@ public function ecole()
     
     
 
-    public function mois()
-    {
-        return $this->belongsToMany(MoisScolaire::class, 'paiement_details', 'paiement_id', 'mois_id')
-                    ->withPivot('montant')
-                    ->withTimestamps();
-    }
 
     public function user()
     {

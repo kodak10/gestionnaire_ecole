@@ -46,9 +46,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center">
-                            <div class="avatar avatar-md me-3">
-                                <img src="{{ $user->photo ? asset('storage/' . $user->photo) : asset('assets/img/profiles/avatar-27.jpg') }}" alt="Avatar" class="rounded-circle">
-                            </div>
+                           
                             <div>
                                 <h5 class="mb-0">{{ $user->name }}</h5>
                                 <span class="text-muted">{{ $user->pseudo }}</span>

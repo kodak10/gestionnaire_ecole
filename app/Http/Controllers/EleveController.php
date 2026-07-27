@@ -198,30 +198,36 @@ class EleveController extends Controller
         return redirect()->back()->with('error', 'Format non supporté');
     }
 
-    public function create(Request $request)
-    {
-        $ecoleId = session('current_ecole_id'); 
-        $anneeScolaireId = session('current_annee_scolaire_id');
-        
-        $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
-    ->ordered()
-    ->get();
+   public function create(Request $request)
+{
+    $ecoleId = session('current_ecole_id'); 
+    $anneeScolaireId = session('current_annee_scolaire_id');
+    
+    $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+        ->ordered()
+        ->get();
 
-        $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
-        $scolarite        = TypeFrais::where('nom', 'Scolarité')->first();
-        $transports       = TypeFrais::where('nom', 'Transport')->first();
-        $cantines         = TypeFrais::where('nom', 'Cantine')->first();
-        $tarifs           = Tarif::all();
+    // Récupérer les types de frais
+    $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
+    $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
+    $transports = TypeFrais::where('nom', 'Transport')->first();
+    $cantines = TypeFrais::where('nom', 'Cantine')->first();
+    
+    // Récupérer TOUS les tarifs (avec niveau_id = NULL pour les génériques)
+    $tarifs = Tarif::where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->get()
+        ->groupBy('type_frais_id');
 
-        return view('dashboard.pages.eleves.create', compact(
-            'classes',
-            'fraisInscription',
-            'scolarite',
-            'transports',
-            'cantines',
-            'tarifs'
-        ));
-    }
+    return view('dashboard.pages.eleves.create', compact(
+        'classes',
+        'fraisInscription',
+        'scolarite',
+        'transports',
+        'cantines',
+        'tarifs'
+    ));
+}
   
 public function store(Request $request)
 {
@@ -354,35 +360,40 @@ public function store(Request $request)
         return view('dashboard.pages.eleves.show', compact('inscription'));
     }
 
-    public function edit($id)
-    {
-        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
-            abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
-        }
-
-        $anneeScolaireId = session('current_annee_scolaire_id');
-        $ecoleId = session('current_ecole_id');
-
-        // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
-        $inscription = Inscription::with('eleve')
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->findOrFail($id);
-        
-        $eleve = $inscription->eleve;
-
-        $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
-        $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
-        $transports = TypeFrais::where('nom', 'Transport')->first();
-        $cantines = TypeFrais::where('nom', 'Cantine')->first();
-        $tarifs = Tarif::all();
-
-       $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
-    ->ordered()
-    ->get();
-
-        return view('dashboard.pages.eleves.edit', compact('inscription', 'eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
+   public function edit($id)
+{
+    if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
+        abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
     }
+
+    $anneeScolaireId = session('current_annee_scolaire_id');
+    $ecoleId = session('current_ecole_id');
+
+    // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
+    $inscription = Inscription::with('eleve')
+        ->where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->findOrFail($id);
+    
+    $eleve = $inscription->eleve;
+
+    $fraisInscription = TypeFrais::where('nom', 'Frais d\'inscription')->first();
+    $scolarite = TypeFrais::where('nom', 'Scolarité')->first();
+    $transports = TypeFrais::where('nom', 'Transport')->first();
+    $cantines = TypeFrais::where('nom', 'Cantine')->first();
+    
+    // Récupérer TOUS les tarifs (avec niveau_id = NULL pour les génériques)
+    $tarifs = Tarif::where('ecole_id', $ecoleId)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->get()
+        ->groupBy('type_frais_id');
+
+    $classes = Classe::forEcoleAndAnnee($ecoleId, $anneeScolaireId)
+        ->ordered()
+        ->get();
+
+    return view('dashboard.pages.eleves.edit', compact('inscription', 'eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
+}
 
     public function update(Request $request, $id)
 {
