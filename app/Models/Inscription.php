@@ -12,17 +12,18 @@ class Inscription extends Model
         'ecole_id',
         'annee_scolaire_id',
         'cantine_active',
-        'cantine_type_id',   
+        'cantine_tarif_id',   
         'transport_active',
-        'transport_type_id',
+        'transport_tarif_id',
         'transport_start_date',
         'statut',
     ];
 
     protected $casts = [
-        'statut' => 'boolean',
+        'statut' => 'string',
         'cantine_active' => 'boolean',
         'transport_active' => 'boolean',
+        'transport_start_date' => 'date',  // Ajouté car c'est une date
         'date_inscription' => 'datetime',
     ];
 
@@ -58,15 +59,16 @@ class Inscription extends Model
         return $this->hasMany(Note::class);
     }
 
-    // Relations pour les types
-    public function transportType() {
-        return $this->belongsTo(TypeFrais::class, 'transport_type_id');
+    public function transportTarif()
+    {
+        return $this->belongsTo(Tarif::class, 'transport_tarif_id');
     }
 
-    public function cantineType() {
-        return $this->belongsTo(TypeFrais::class, 'cantine_type_id');
+    public function cantineTarif()
+    {
+        return $this->belongsTo(Tarif::class, 'cantine_tarif_id');
     }
-
+    
     // Accesseurs
     public function getNaissanceFormatteeAttribute() {
         return $this->naissance ? $this->naissance->format('d/m/Y') : 'N/A';

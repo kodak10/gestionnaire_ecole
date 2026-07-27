@@ -81,12 +81,12 @@
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
                         <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs(['scolairite*', 'reglements*']) ? 'active subdrop' : '' }}">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['reductions*', 'reglements*']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-wallet"></i><span>Comptabilités</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
                                 @hasanyrole('SuperAdministrateur|Administrateur')
-                                <li><a href="{{ route('scolarite.index') }}" class="{{ request()->routeIs('scolarite.index*') ? 'active' : '' }}">Scolarités</a></li>
+                                <li><a href="{{ route('reductions.index') }}" class="{{ request()->routeIs('reductions.index*') ? 'active' : '' }}">Réductions</a></li>
                                 @endhasanyrole
                                 <li><a href="{{ route('reglements.index') }}" class="{{ request()->routeIs('reglements.index*') ? 'active' : '' }}">Règlements</a></li>
                             </ul>

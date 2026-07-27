@@ -32,6 +32,7 @@ use App\Http\Controllers\TarifMensuelController;
 use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ReductionController;
 use App\Models\Eleve;
 use App\Models\AnneeScolaire;
 use Illuminate\Support\Facades\Route;
@@ -274,81 +275,14 @@ Route::prefix('scolarite')->group(function() {
             Route::get('/receipt/{paiement}', [ReglementController::class, 'generateReceipt']) ->name('reglements.receipt');
         });
 
-        // Route pour charger les élèves par classe
-        // Route::get('/eleves/by-classe', [ReglementController::class, 'elevesByClasse'])->name('eleves.by_classe');
-
-        
-
-                    // Routes pour la gestion des règlements 
-//         Route::prefix('cantine')->group(function() {
-
-//             Route::get('/', [CantineController::class, 'index'])->name('cantine.index');
-
-
-
-// // Routes pour la gestion des cantines par mois
-// Route::get('/gestion', [CantineController::class, 'gestion'])->name('cantine.gestion');
-// Route::get('/eleves-by-classe-gestion', [CantineController::class, 'elevesByClasseGestion'])->name('cantine.eleves_by_classe_gestion');
-// Route::get('/eleve-mois-data', [CantineController::class, 'getEleveCantineMois'])->name('cantine.eleve_mois_data');
-// Route::post('/save-configuration', [CantineController::class, 'saveConfigurationCantine'])->name('cantine.save_configuration');
-
-
-
-// Route::get('/mois-a-payer', [CantineController::class, 'getMoisAPayer'])->name('cantine.mois_a_payer');
-// Route::post('/store-paiement-mensuel', [CantineController::class, 'storePaiementMensuel'])->name('cantine.store_paiement_mensuel');
-// // Récupérer les élèves d'une classe
-//             // Route::get('/eleves/by-classe', [CantineController::class, 'getElevesByClasse'])->name('cantine.eleves.by_classe');
-
-//             // Récupérer les données de scolarité d'un élève
-//             // Route::get('/eleve_data', [CantineController::class, 'getEleveScolarite'])->name('cantine.eleve_data'); kodak
-
-//             // Enregistrer un paiement
-//             Route::post('/store_paiement', [CantineController::class, 'storePaiement'])->name('cantine.store_paiement');
-
-//             // Appliquer une réduction
-//             Route::post('/apply_reduction', [CantineController::class, 'applyReduction'])->name('cantine.apply_reduction');
-
-//             // Supprimer un paiement
-//             Route::delete('/paiement/delete', [CantineController::class, 'delete'])->name('cantine.delete_paiement');
-
-
-//             // Générer le reçu
-//             Route::get('/receipt/{paiement}', [CantineController::class, 'generateReceipt']) ->name('cantine.receipt');
-
-//             // Imprimer la scolarité d'un élève
-//             Route::get('/print/{eleve}/{annee}', [CantineController::class, 'printScolarite'])->name('cantine.print');
-
-//         });
-
-
-//         // Routes pour la gestion des règlements 
-//         Route::prefix('transport')->group(function() {
-
-//             Route::get('/', [TransportController::class, 'index'])->name('transport.index');
-
-//             // Récupérer les élèves d'une classe
-//             // Route::get('/eleves/by-classe', [TransportController::class, 'getElevesByClasse'])->name('transport.eleves.by_classe');
-
-//             // Récupérer les données de scolarité d'un élève
-//             Route::get('/eleve_data', [TransportController::class, 'getEleveScolarite'])->name('transport.eleve_data');
-
-//             // Enregistrer un paiement
-//             Route::post('/store_paiement', [TransportController::class, 'storePaiement'])->name('transport.store_paiement');
-
-//             // Appliquer une réduction
-//             Route::post('/apply_reduction', [TransportController::class, 'applyReduction'])->name('transport.apply_reduction');
-
-//             // Supprimer un paiement
-//             Route::delete('/paiement/delete', [TransportController::class, 'delete'])->name('transport.delete_paiement');
-
-//             // Générer le reçu
-//             Route::get('/receipt/{paiement}', [TransportController::class, 'generateReceipt']) ->name('transport.receipt');
-
-//             // Imprimer la scolarité d'un élève
-//             Route::get('/print/{eleve}/{annee}', [TransportController::class, 'printScolarite'])->name('transport.print');
-
-//         });
-        
+Route::prefix('reductions')->group(function () {
+    Route::get('/', [ReductionController::class, 'index'])->name('reductions.index');
+    Route::get('/get-eleve-data', [ReductionController::class, 'getEleveData'])->name('reductions.get_eleve_data');
+    Route::post('/store', [ReductionController::class, 'store'])->name('reductions.store');
+    Route::delete('/{id}', [ReductionController::class, 'destroy'])->name('reductions.destroy');
+    Route::post('/update-transport-tarif', [ReductionController::class, 'updateTransportTarif'])->name('reductions.update_transport_tarif');
+    Route::post('/update-cantine-tarif', [ReductionController::class, 'updateCantineTarif'])->name('reductions.update_cantine_tarif');
+});
 
 // Routes pour Cantine
 Route::prefix('cantine')->group(function () {
