@@ -50,19 +50,7 @@
                             </ul>
                         </li>
 
-                        <li class="submenu">
-                            <a href="javascript:void(0);" class="">
-                                <i class="ti ti-users"></i><span>Dropdowns</span><span class="menu-arrow"></span>
-                            </a>
-                            <ul>
-                               
-                                <li><a href="" class="">Salaire</a></li>
-
-                                <li><a href="{{ route('templates.index') }}" class="">Salaire</a></li>
-                                
-                                
-                            </ul>
-                        </li>
+                        
 
                          <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['notes*', 'tableaux-honneur.index']) ? 'active subdrop' : '' }}">
@@ -81,7 +69,7 @@
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
                         <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs(['reductions*', 'reglements*']) ? 'active subdrop' : '' }}">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['reductions*', 'reglements*', 'depenses*']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-wallet"></i><span>Comptabilités</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
@@ -89,46 +77,19 @@
                                 <li><a href="{{ route('reductions.index') }}" class="{{ request()->routeIs('reductions.index*') ? 'active' : '' }}">Réductions</a></li>
                                 @endhasanyrole
                                 <li><a href="{{ route('reglements.index') }}" class="{{ request()->routeIs('reglements.index*') ? 'active' : '' }}">Règlements</a></li>
-                            </ul>
-                        </li>
-                        @endhasanyrole
-                        
-                        @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
-                        <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs('cantine*') ? 'active subdrop' : '' }}">
-                                <i class="ti ti-coffee"></i><span>Cantine</span><span class="menu-arrow"></span>
-                            </a>
-                            <ul>
-                                {{-- <li><a href="{{ route('cantine.gestion') }}" class="{{ request()->routeIs('cantine.gestion') ? 'active' : '' }}">Gestion</a></li> --}}
+                                <li><a href="{{ route('depenses.index') }}" class="{{ request()->routeIs('depenses.index') ? 'active' : '' }}">Dépenses</a></li>
 
-                                <li><a href="{{ route('cantine.index') }}" class="{{ request()->routeIs('cantine.index') ? 'active' : '' }}">Règlements</a></li>
                             </ul>
                         </li>
                         @endhasanyrole
-
                         
                         
-                        @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
-                        <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs('transport*') ? 'active subdrop' : '' }}">
-                                <i class="ti ti-truck"></i><span>Transport</span><span class="menu-arrow"></span>
-                            </a>
-                            <ul>
-                                @hasanyrole('SuperAdministrateur|Administrateur')
-                                <li><a href="{{ route('transport.gestion') }}" class="{{ request()->routeIs('transport.gestion') ? 'active' : '' }}">Gestion</a></li>
-                                @endhasanyrole
-                                <li><a href="{{ route('transport.index') }}" class="{{ request()->routeIs('transport.index') ? 'active' : '' }}">Règlements</a></li>
-                            </ul>
-                        </li>
-                        @endhasanyrole
                         
                         @hasanyrole('SuperAdministrateur|Administrateur')
                         <li><a href="{{ route('relance.index') }}" class="{{ request()->routeIs('relance.index') ? 'active' : '' }}"><i class="ti ti-bell"></i><span>Relances</span></a></li>
                         @endhasanyrole
                         
-                        @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
-                        <li><a href="{{ route('depenses.index') }}" class="{{ request()->routeIs('depenses.index') ? 'active' : '' }}"><i class="ti ti-credit-card"></i><span>Depenses</span></a></li>
-                        @endhasanyrole
+                       
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                         <li><a href="#" class=""><i class="ti ti-mail"></i><span>Messages</span></a></li>
@@ -152,10 +113,6 @@
                         <li><a href="#" class=""><i class="ti ti-bar-chart"></i><span>Bilan Scolaire</span></a></li>
                         @endhasanyrole
                         
-                        @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
-                        <li><a href="#" class=""><i class="ti ti-archive"></i><span>Archivages</span></a></li>
-                        @endhasanyrole
-
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
                         <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs('documents*') ? 'active subdrop' : '' }}">
@@ -216,6 +173,18 @@
                             </ul>
                         </li>
                         @endhasanyrole
+
+                        <li class="submenu">
+                            <a href="javascript:void(0);" class="">
+                                <i class="ti ti-users"></i><span>Relances</span><span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+
+                                <li><a href="{{ route('templates.index') }}" class="">Relance SMS</a></li>
+                                <li><a href="#" class="">Relance PAPIER</a></li>
+                                
+                            </ul>
+                        </li>
 
                         @hasanyrole('SuperAdministrateur')
                         <li class="submenu">
