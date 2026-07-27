@@ -82,7 +82,7 @@
                         @hasanyrole('SuperAdministrateur|Administrateur|Caissiere')
                         <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['scolairite*', 'reglements*']) ? 'active subdrop' : '' }}">
-                                <i class="ti ti-wallet"></i><span>Scolarités</span><span class="menu-arrow"></span>
+                                <i class="ti ti-wallet"></i><span>Comptabilités</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
                                 @hasanyrole('SuperAdministrateur|Administrateur')

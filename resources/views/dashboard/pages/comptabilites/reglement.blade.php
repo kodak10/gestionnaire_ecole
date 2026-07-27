@@ -73,26 +73,66 @@
                 </button>
             </div>
         </div>
-
         
-
-        <!-- Carte Récapitulatif - Scolarité -->
-        <div class="card mt-3">
+        <!-- Card Scolarité -->
+        <div class="card mt-2" id="card-scolarite" style="display:none;">
             <div class="card-header bg-light">
-                <h4 class="text-dark">Récapitulatif - Scolarité</h4>
+                <h5 class="mb-0 text-dark">Scolarité</h5>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Montant Scolarité</label>
-                    <input type="text" class="form-control" id="montant_scolarite" readonly>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Montant Total</label>
+                    <input type="text" class="form-control fw-bold" id="montant_scolarite" readonly>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Total Payé</label>
-                    <input type="text" class="form-control" id="total_paye_scolarite" readonly>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Total Payé</label>
+                    <input type="text" class="form-control text-success" id="total_paye_scolarite" readonly>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Reste à Payer</label>
+                <div class="mb-0">
+                    <label class="form-label text-muted small">Reste à Payer</label>
                     <input type="text" class="form-control fw-bold text-danger" id="reste_a_payer_scolarite" readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Transport -->
+        <div class="card mt-2" id="card-transport" style="display:none;">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 text-dark">Transport</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Montant Total</label>
+                    <input type="text" class="form-control fw-bold" id="montant_transport" readonly>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Total Payé</label>
+                    <input type="text" class="form-control text-success" id="total_paye_transport" readonly>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label text-muted small">Reste à Payer</label>
+                    <input type="text" class="form-control fw-bold text-danger" id="reste_a_payer_transport" readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Cantine -->
+        <div class="card mt-2" id="card-cantine" style="display:none;">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 text-dark">Cantine</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Montant Total</label>
+                    <input type="text" class="form-control fw-bold" id="montant_cantine" readonly>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Total Payé</label>
+                    <input type="text" class="form-control text-success" id="total_paye_cantine" readonly>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label text-muted small">Reste à Payer</label>
+                    <input type="text" class="form-control fw-bold text-danger" id="reste_a_payer_cantine" readonly>
                 </div>
             </div>
         </div>
@@ -105,11 +145,6 @@
                 <h4 class="text-dark">Détails des Paiements</h4>
             </div>
             <div class="card-body">
-                <div id="eleve-info" class="alert alert-info d-none">
-                    <h5 class="mb-1" id="eleve-nom"></h5>
-                    <p class="mb-0" id="eleve-details"></p>
-                </div>
-
                 <div class="table-responsive">
                     <table class="table table-hover" id="paiements-table">
                         <thead>
@@ -123,7 +158,7 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="6" class="text-center">Veuillez sélectionner un élève pour voir les paiements</td>
+                                <td colspan="5" class="text-center">Veuillez sélectionner un élève pour voir les paiements</td>
                             </tr>
                         </tbody>
                     </table>
@@ -138,33 +173,41 @@
                         
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Inscription</h6>
-                                    </div>
+                                <div class="card mb-2">
                                     <div class="card-body">
-                                        <div class="mb-3">
-                                            <label class="form-label">Montant à payer</label>
-                                            <input type="number" class="form-control" id="montant_inscription_input" name="montant_inscription" min="0" value="0">
+                                        <h6 class="mb-2">Inscription</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Reste à payer: <span id="reste_inscription_label" class="fw-bold text-danger">0 FCFA</span></label>
+                                            <input type="number" class="form-control" id="montant_inscription_input" name="montant_inscription" min="0" value="0" step="100">
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Reste à payer: <span id="reste_inscription_label" class="fw-bold">0 FCFA</span></label>
+                                    </div>
+                                </div>
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <h6 class="mb-2">Transport</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Reste à payer: <span id="reste_transport_label" class="fw-bold text-danger">0 FCFA</span></label>
+                                            <input type="number" class="form-control" id="montant_transport_input" name="montant_transport" min="0" value="0" step="100">
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Scolarité</h6>
-                                    </div>
+                                <div class="card mb-2">
                                     <div class="card-body">
-                                        <div class="mb-3">
-                                            <label class="form-label">Montant à payer</label>
-                                            <input type="number" class="form-control" id="montant_scolarite_input" name="montant_scolarite" min="0" value="0">
+                                        <h6 class="mb-2">Scolarité</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Reste à payer: <span id="reste_scolarite_label" class="fw-bold text-danger">0 FCFA</span></label>
+                                            <input type="number" class="form-control" id="montant_scolarite_input" name="montant_scolarite" min="0" value="0" step="100">
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Reste à payer: <span id="reste_scolarite_label" class="fw-bold">0 FCFA</span></label>
+                                    </div>
+                                </div>
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <h6 class="mb-2">Cantine</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small">Reste à payer: <span id="reste_cantine_label" class="fw-bold text-danger">0 FCFA</span></label>
+                                            <input type="number" class="form-control" id="montant_cantine_input" name="montant_cantine" min="0" value="0" step="100">
                                         </div>
                                     </div>
                                 </div>
@@ -187,6 +230,15 @@
                                 <div class="mb-3">
                                     <label class="form-label">Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" id="date_paiement" name="date_paiement" value="{{ date('Y-m-d') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Référence</label>
+                                    <input type="text" class="form-control" id="reference" name="reference" placeholder="N° de transaction, chèque...">
                                 </div>
                             </div>
                         </div>
@@ -230,32 +282,14 @@
     height: 38px;
     padding: 5px 10px;
 }
-
 .select2-container--default .select2-selection--single .select2-selection__arrow {
     height: 36px;
 }
-
 .table-hover tbody tr:hover {
     background-color: rgba(0, 0, 0, 0.02);
 }
-
 .fw-bold {
     font-weight: 600;
-}
-
-#save-reduction-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.reduction-loading {
-    background-color: #f8f9fa;
-    border-color: #007bff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v4'/%3E%3Cpath d='m16.24 7.76 2.83-2.83'/%3E%3Cpath d='M17 12h4'/%3E%3Cpath d='m16.24 16.24 2.83 2.83'/%3E%3Cpath d='M12 17v4'/%3E%3Cpath d='m7.76 16.24-2.83 2.83'/%3E%3Cpath d='M7 12H3'/%3E%3Cpath d='m7.76 7.76-2.83-2.83'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 16px;
-    padding-right: 32px;
 }
 </style>
 @endsection
@@ -277,43 +311,44 @@ $(document).ready(function() {
         allowClear: true
     });
 
-    let currentEleveId = null;
+    let currentInscriptionId = null;
     let paiementToDelete = null;
     let currentResteInscription = 0;
     let currentResteScolarite = 0;
-    
+    let currentResteTransport = 0;
+    let currentResteCantine = 0;
 
     // Charger les élèves quand une classe est sélectionnée
-    $('#classe_id').change(function() {
-        const classeId = $(this).val();
-        $('#inscription_id').empty().append('<option value="">Sélectionner un élève</option>');
+    // Charger les élèves quand une classe est sélectionnée
+$('#classe_id').change(function() {
+    const classeId = $(this).val();
+    $('#inscription_id').empty().append('<option value="">Sélectionner un élève</option>');
 
-        if (classeId) {
-            $('#inscription_id').prop('disabled', false);
+    if (classeId) {
+        $('#inscription_id').prop('disabled', false);
 
-            $.ajax({
-                url: '{{ route("eleves.by_classe") }}',
-                type: 'GET',
-                data: { classe_id: classeId },
-                success: function(response) {
-                    if (response.length > 0) {
-                        $.each(response, function(index, eleve) {
-                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
-                        });
-
-                    } else {
-                        $('#inscription_id').append('<option value="">Aucun élève dans cette classe</option>');
-                    }
-                },
-                error: function() {
-                    toastr.error('Erreur lors du chargement des élèves');
+        $.ajax({
+            url: '{{ route("eleves.by_classe") }}',
+            type: 'GET',
+            data: { classe_id: classeId },
+            success: function(response) {
+                if (response.length > 0) {
+                    $.each(response, function(index, eleve) {
+                        $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
+                    });
+                } else {
+                    $('#inscription_id').append('<option value="">Aucun élève dans cette classe</option>');
                 }
-            });
-        } else {
-            $('#inscription_id').prop('disabled', true);
-        }
-        $('#load-btn').prop('disabled', true);
-    });
+            },
+            error: function() {
+                toastr.error('Erreur lors du chargement des élèves');
+            }
+        });
+    } else {
+        $('#inscription_id').prop('disabled', true);
+    }
+    $('#load-btn').prop('disabled', true);
+});
 
     // Activer le bouton de chargement quand un élève est sélectionné
     $('#inscription_id').change(function() {
@@ -325,10 +360,8 @@ $(document).ready(function() {
         const inscriptionId = $('#inscription_id').val();
 
         if (inscriptionId) {
-            currentEleveId = inscriptionId;
-
+            currentInscriptionId = inscriptionId;
             $('#paiement_inscription_id').val(inscriptionId);
-
             loadEleveData(inscriptionId);
         }
     });
@@ -342,7 +375,7 @@ $(document).ready(function() {
                 inscription_id: inscriptionId,
             },
             beforeSend: function() {
-                $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Chargement en cours...</td></tr>');
+                $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Chargement en cours...</td></tr>');
             },
             success: function(response) {
                 if (response.success) {
@@ -350,93 +383,134 @@ $(document).ready(function() {
                     updatePaiementsTable(response.paiements);
                 } else {
                     toastr.error(response.message);
-                    $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Aucun paiement trouvé</td></tr>');
+                    $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>');
                 }
             },
             error: function() {
                 toastr.error('Erreur lors du chargement des données');
-                $('#paiements-table tbody').html('<tr><td colspan="6" class="text-center">Erreur de chargement</td></tr>');
+                $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Erreur de chargement</td></tr>');
             }
         });
     }
 
-    function updateSummary(data) {
-        // Mise à jour des informations de l'élève
-        $('#eleve-nom').text(data.eleve.nom_complet);
-        $('#eleve-details').text(`Matricule: ${data.eleve.matricule} | Classe: ${data.eleve.classe}`);
-        $('#eleve-info').removeClass('d-none');
+function updateSummary(data) {
+    // Mise à jour des informations de l'élève
+    $('#eleve-nom').text(data.eleve.nom_complet);
+    $('#eleve-details').text(`Matricule: ${data.eleve.matricule} | Classe: ${data.eleve.classe}`);
+    $('#eleve-info').removeClass('d-none');
 
-        // Mise à jour des informations d'inscription
-        $('#montant_inscription').val(formatMoney(data.frais.inscription));
-        $('#total_paye_inscription').val(formatMoney(data.total_paye.inscription));
-        $('#reste_a_payer_inscription').val(formatMoney(data.reste_a_payer.inscription));
-        
-        // Stocker les valeurs pour validation
-        currentResteInscription = data.reste_a_payer.inscription;
-        $('#reste_inscription_label').text(formatMoney(data.reste_a_payer.inscription));
+    let totalReste = 0;
 
-        // Mise à jour des informations de scolarité
-        $('#montant_scolarite').val(formatMoney(data.frais.scolarite));
-        $('#total_paye_scolarite').val(formatMoney(data.total_paye.scolarite));
-        $('#reste_a_payer_scolarite').val(formatMoney(data.reste_a_payer.scolarite));
-        
-        // Stocker les valeurs pour validation
-        currentResteScolarite = data.reste_a_payer.scolarite;
-        $('#reste_scolarite_label').text(formatMoney(data.reste_a_payer.scolarite));
-        
-        // Réinitialiser les champs de saisie
-        $('#montant_inscription_input').val(0).attr('max', currentResteInscription);
-        $('#montant_scolarite_input').val(0).attr('max', currentResteScolarite);
+    // ---- Scolarité ----
+    const montantScolarite = parseFloat(data.frais.scolarite) || 0;
+    const payeScolarite = parseFloat(data.total_paye.scolarite) || 0;
+    const resteScolarite = parseFloat(data.reste_a_payer.scolarite) || 0;
+
+    if (montantScolarite > 0) {
+        $('#card-scolarite').show();
+        $('#montant_scolarite').val(formatMoney(montantScolarite));
+        $('#total_paye_scolarite').val(formatMoney(payeScolarite));
+        $('#reste_a_payer_scolarite').val(formatMoney(resteScolarite));
+        totalReste += resteScolarite;
+        currentResteScolarite = resteScolarite;
+        $('#reste_scolarite_label').text(formatMoney(resteScolarite));
+        $('#montant_scolarite_input').val(0).attr('max', resteScolarite);
+    } else {
+        $('#card-scolarite').hide();
     }
 
-    function updatePaiementsTable(paiements) {
-        let html = '';
-        if (paiements.length > 0) {
-            $.each(paiements, function(index, paiement) {
-                // Calculer le total du paiement
-                let totalMontant = paiement.details.reduce((sum, detail) => sum + parseFloat(detail.montant), 0);
+    // ---- Transport ----
+    const montantTransport = parseFloat(data.frais.transport) || 0;
+    const payeTransport = parseFloat(data.total_paye.transport) || 0;
+    const resteTransport = parseFloat(data.reste_a_payer.transport) || 0;
 
-                // Construire la chaîne des types
-                let types = paiement.details.map(detail => detail.type_frais.nom).join(' + ');
-
-                html += `
-                <tr>
-                    <td>${formatDate(paiement.created_at)}</td>
-                    <td>${types}</td>
-                    <td>${formatMoney(totalMontant)}</td>
-                    <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
-                                <i class="ti ti-printer"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
-                                <i class="ti ti-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                `;
-            });
-
-
-        } else {
-            html = '<tr><td colspan="6" class="text-center">Aucun paiement trouvé</td></tr>';
-        }
-        $('#paiements-table tbody').html(html);
-
-        $('.btn-recu').click(function() {
-            generateReceipt($(this).data('id'));
-        });
-        $('.btn-delete').click(function() {
-            showDeleteModal($(this).data('id'));
-        });
+    if (montantTransport > 0) {
+        $('#card-transport').show();
+        $('#montant_transport').val(formatMoney(montantTransport));
+        $('#total_paye_transport').val(formatMoney(payeTransport));
+        $('#reste_a_payer_transport').val(formatMoney(resteTransport));
+        totalReste += resteTransport;
+        currentResteTransport = resteTransport;
+        $('#reste_transport_label').text(formatMoney(resteTransport));
+        $('#montant_transport_input').val(0).attr('max', resteTransport);
+    } else {
+        $('#card-transport').hide();
     }
 
+    // ---- Cantine ----
+    const montantCantine = parseFloat(data.frais.cantine) || 0;
+    const payeCantine = parseFloat(data.total_paye.cantine) || 0;
+    const resteCantine = parseFloat(data.reste_a_payer.cantine) || 0;
 
+    if (montantCantine > 0) {
+        $('#card-cantine').show();
+        $('#montant_cantine').val(formatMoney(montantCantine));
+        $('#total_paye_cantine').val(formatMoney(payeCantine));
+        $('#reste_a_payer_cantine').val(formatMoney(resteCantine));
+        totalReste += resteCantine;
+        currentResteCantine = resteCantine;
+        $('#reste_cantine_label').text(formatMoney(resteCantine));
+        $('#montant_cantine_input').val(0).attr('max', resteCantine);
+    } else {
+        $('#card-cantine').hide();
+    }
+
+    // ---- Total Reste ----
+    if (totalReste > 0) {
+        $('#card-total-reste').show();
+        $('#total_reste').val(formatMoney(totalReste));
+    } else {
+        $('#card-total-reste').hide();
+    }
+}
+
+function updatePaiementsTable(paiements) {
+    let html = '';
+    if (paiements.length > 0) {
+        $.each(paiements, function(index, paiement) {
+            let totalMontant = parseFloat(paiement.montant) || 0;
+            
+            // Récupérer les libellés depuis les détails
+            let types = paiement.details.map(function(detail) {
+                return detail.libelle || 'Inconnu';
+            }).join(' + ');
+
+            html += `
+            <tr>
+                <td>${formatDate(paiement.created_at)}</td>
+                <td>${types}</td>
+                <td>${formatMoney(totalMontant)}</td>
+                <td>${formatModePaiement(paiement.mode_paiement)}</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
+                            <i class="ti ti-printer"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            `;
+        });
+    } else {
+        html = '<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>';
+    }
+    $('#paiements-table tbody').html(html);
+
+    $('.btn-recu').click(function() {
+        const paiementId = $(this).data('id');
+        window.open(`{{ url('reglements/receipt') }}/${paiementId}`, '_blank');
+    });
+    
+    $('.btn-delete').click(function() {
+        showDeleteModal($(this).data('id'));
+    });
+}
 
     function formatMoney(amount) {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount || 0);
     }
 
     function formatDate(dateString) {
@@ -466,18 +540,36 @@ $(document).ready(function() {
         }
     });
 
+    $('#montant_transport_input').on('input', function() {
+        const montant = parseFloat($(this).val()) || 0;
+        if (montant > currentResteTransport) {
+            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            $(this).val(currentResteTransport);
+        }
+    });
+
+    $('#montant_cantine_input').on('input', function() {
+        const montant = parseFloat($(this).val()) || 0;
+        if (montant > currentResteCantine) {
+            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            $(this).val(currentResteCantine);
+        }
+    });
+
     // Soumission du formulaire de paiement
     $('#paiement-form').submit(function(e) {
         e.preventDefault();
-        if (!currentEleveId) { 
+        if (!currentInscriptionId) { 
             toastr.error('Veuillez sélectionner un élève'); 
             return; 
         }
         
         const montantInscription = parseFloat($('#montant_inscription_input').val()) || 0;
         const montantScolarite = parseFloat($('#montant_scolarite_input').val()) || 0;
+        const montantTransport = parseFloat($('#montant_transport_input').val()) || 0;
+        const montantCantine = parseFloat($('#montant_cantine_input').val()) || 0;
         
-        if (montantInscription === 0 && montantScolarite === 0) {
+        if (montantInscription === 0 && montantScolarite === 0 && montantTransport === 0 && montantCantine === 0) {
             toastr.error('Veuillez saisir au moins un montant');
             return;
         }
@@ -492,6 +584,16 @@ $(document).ready(function() {
             return;
         }
         
+        if (montantTransport > currentResteTransport) {
+            toastr.error('Le montant de transport ne peut pas dépasser le reste à payer');
+            return;
+        }
+        
+        if (montantCantine > currentResteCantine) {
+            toastr.error('Le montant de cantine ne peut pas dépasser le reste à payer');
+            return;
+        }
+        
         const formData = $(this).serialize();
 
         $.ajax({
@@ -501,9 +603,12 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    $('#paiement-form')[0].reset();
-                    $('#date_paiement').val('{{ date("Y-m-d") }}');
-                    loadEleveData(currentEleveId);
+                    $('#montant_inscription_input').val(0);
+                    $('#montant_scolarite_input').val(0);
+                    $('#montant_transport_input').val(0);
+                    $('#montant_cantine_input').val(0);
+                    $('#reference').val('');
+                    loadEleveData(currentInscriptionId);
 
                     if (response.paiement_id) {
                         window.open(`{{ url('reglements/receipt') }}/${response.paiement_id}`, '_blank');
@@ -517,8 +622,10 @@ $(document).ready(function() {
                     $.each(xhr.responseJSON.errors, function(key, value) {
                         toastr.error(value[0]);
                     });
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    toastr.error(xhr.responseJSON.message);
                 } else {
-                    toastr.error('Une erreur est survenue');
+                    toastr.error('Une erreur est survenue lors de l\'enregistrement');
                 }
             }
         });
@@ -545,7 +652,7 @@ $(document).ready(function() {
                     toastr.error(response.message);
                 }
                 $('#deleteModal').modal('hide');
-                loadEleveData(currentEleveId);
+                loadEleveData(currentInscriptionId);
             },
             error: function() { 
                 toastr.error('Erreur lors de la suppression du paiement'); 
@@ -556,14 +663,6 @@ $(document).ready(function() {
             }
         });
     });
-
-    function generateReceipt(paiementId) {
-        // Ouvrir dans un nouvel onglet
-        window.open(`{{ url('reglements/receipt') }}/${paiementId}`, '_blank');
-        
-    }
 });
-
-    
 </script>
 @endsection
