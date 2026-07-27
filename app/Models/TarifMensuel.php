@@ -12,7 +12,7 @@ class TarifMensuel extends Model
     protected $table = 'tarifs_mensuels';
 
     protected $fillable = [
-        'tarif_id',      // Nouveau champ
+        'tarif_id',     
         'niveau_id',
         'mois_id',
         'montant',

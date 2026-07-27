@@ -1,4 +1,5 @@
 @extends('dashboard.layouts.master')
+
 @section('content')
 <!-- Page Header -->
 <div class="d-md-flex d-block align-items-center justify-content-between mb-3">
@@ -47,7 +48,7 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label">Classe</label>
+                    <label class="form-label">Classe <span class="text-danger">*</span></label>
                     <select class="form-select" id="classe_id" name="classe_id">
                         <option value="">Sélectionner une classe</option>
                         @foreach($classes as $classe)
@@ -55,22 +56,26 @@
                         @endforeach
                     </select>
                 </div>
+
                 <div class="mb-3">
-                    <label class="form-label">Type</label>
-                    <select class="form-select" id="type_frais_id" name="type_frais_id">
-                        <option value="">Sélectionner un type de frais</option>
-                        @foreach($typeFrais as $type)
-                            <option value="{{ $type->id }}">{{ $type->nom }}</option>
+                    <label class="form-label">Mois <span class="text-danger">*</span></label>
+                    <select class="form-select" id="date_reference" name="date_reference">
+                        <option value="">-- Sélectionnez un mois --</option>
+                        @foreach($moisScolaires as $mois)
+                            <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Mois</label>
-                    <select class="form-select" id="date_reference" name="date_reference" required>
-                        <option value="" selected>-- Sélectionnez un mois --</option>
-                        @foreach($moisScolaires as $mois)
-                            <option value="{{ $mois->id }}">{{ $mois->nom }}</option>
+                    <label class="form-label">Tarif</label>
+                    <select class="form-select" id="tarif_id" name="tarif_id">
+                        <option value="">-- Tous les tarifs --</option>
+                        @foreach($tarifs as $tarif)
+                            <option value="{{ $tarif->id }}">
+                                {{ $tarif->typeFrais->nom ?? 'Frais' }} - {{ $tarif->libelle }} 
+                                ({{ number_format($tarif->montant, 0, ',', ' ') }} F)
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -105,18 +110,6 @@
                 </button>
             </div>
         </div>
-
-        <!-- Modèles SMS disponibles -->
-        {{-- <div class="card mt-3">
-            <div class="card-header bg-light">
-                <h4 class="text-dark">📱 Modèles SMS disponibles</h4>
-            </div>
-            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                <div id="sms-templates-list">
-                    <p class="text-muted text-center">Chargement des modèles...</p>
-                </div>
-            </div>
-        </div> --}}
     </div>
 
     <!-- Résultats -->
@@ -147,9 +140,13 @@
                                     <th><input type="checkbox" id="select-all"></th>
                                     <th>Élève</th>
                                     <th>Classe</th>
-                                    <th>Total Attendu</th>
-                                    <th>Total Payé</th>
-                                    <th>Reste à Payer</th>
+                                    <th>Type de Frais</th>
+                                    <th>Tarif</th>
+                                    <th>Montant Mois</th>
+                                    <th>Cumul Attendu</th>
+                                    <th>Cumul Payé</th>
+                                    <th>Reste Mois</th>
+                                    <th>Reste Cumulé</th>
                                     <th>Statut</th>
                                 </tr>
                             </thead>
@@ -162,7 +159,7 @@
 
                 <div id="no-data" class="text-center py-5">
                     <i class="ti ti-search fs-1 text-muted"></i>
-                    <p class="text-muted mt-2">Veuillez sélectionner une classe, type de frais et cliquer sur "Générer la Relance"</p>
+                    <p class="text-muted mt-2">Veuillez sélectionner une classe, un mois et cliquer sur "Générer la Relance"</p>
                 </div>
             </div>
         </div>
@@ -302,29 +299,19 @@
     height: 8px;
 }
 
-.sms-template-item {
-    cursor: pointer;
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    background: #fff;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    transition: all 0.2s ease;
-}
-
-.sms-template-item:hover {
-    background: #e9ecef;
-    border-color: #007bff;
-}
-
-.sms-template-item.active {
-    background: #d4edda;
-    border-color: #28a745;
-}
-
 #sms-preview-content {
     white-space: pre-wrap;
     word-wrap: break-word;
+}
+
+.table th {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.table td {
+    font-size: 0.9rem;
+    vertical-align: middle;
 }
 </style>
 @endsection
@@ -337,88 +324,25 @@ $(document).ready(function() {
     let smsTemplates = [];
 
     // ============================================
-    // 1. CHARGEMENT DES MODÈLES SMS
-    // ============================================
-    function loadSmsTemplates() {
-        $.ajax({
-            url: '{{ route("templates.getActiveSms") }}',
-            type: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    smsTemplates = response.data;
-                    displaySmsTemplates(smsTemplates);
-                } else {
-                    $('#sms-templates-list').html(
-                        '<p class="text-warning text-center">Aucun modèle SMS actif trouvé</p>'
-                    );
-                }
-            },
-            error: function() {
-                $('#sms-templates-list').html(
-                    '<p class="text-danger text-center">Erreur lors du chargement des modèles</p>'
-                );
-            }
-        });
-    }
-
-    function displaySmsTemplates(templates) {
-        if (templates.length === 0) {
-            $('#sms-templates-list').html(
-                '<p class="text-warning text-center">Aucun modèle SMS disponible</p>'
-            );
-            return;
-        }
-
-        let html = '';
-        templates.forEach(function(template, index) {
-            const activeClass = index === 0 ? 'active' : '';
-            html += `
-                <div class="sms-template-item ${activeClass}" 
-                     data-id="${template.id}" 
-                     data-name="${template.nom}"
-                     data-content="${encodeURIComponent(template.content)}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${template.nom}</strong>
-                            <br>
-                            <small class="text-muted">${template.type_label}</small>
-                        </div>
-                        ${template.is_default ? '<span class="badge bg-warning">⭐ Défaut</span>' : ''}
-                    </div>
-                </div>
-            `;
-        });
-        
-        $('#sms-templates-list').html(html);
-
-        const firstTemplate = templates[0];
-        if (firstTemplate) {
-            selectedTemplateId = firstTemplate.id;
-            $('#sms-template-name').text(firstTemplate.nom);
-        }
-
-        $('.sms-template-item').click(function() {
-            $('.sms-template-item').removeClass('active');
-            $(this).addClass('active');
-            selectedTemplateId = $(this).data('id');
-            const name = $(this).data('name');
-            $('#sms-template-name').text(name);
-            previewSmsMessage();
-        });
-    }
-
-    // ============================================
-    // 2. GÉNÉRATION DE LA RELANCE
+    // 1. GÉNÉRATION DE LA RELANCE
     // ============================================
     $('#filter-btn').click(function(e) {
         e.preventDefault();
         chargerRelance();
     });
 
+    // Appuyer sur Entrée pour générer la relance
+    $('#classe_id, #date_reference, #tarif_id, #montant_min, #montant_max').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            chargerRelance();
+        }
+    });
+
     function chargerRelance() {
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
-        const typeFraisId = $('#type_frais_id').val();
+        const tarifId = $('#tarif_id').val();
         const montantMin = $('#montant_min').val();
         const montantMax = $('#montant_max').val();
         
@@ -429,11 +353,13 @@ $(document).ready(function() {
         
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
+            $('#classe_id').focus();
             return;
         }
 
         if (!dateRef) {
             toastr.error('Veuillez sélectionner un mois');
+            $('#date_reference').focus();
             return;
         }
 
@@ -447,7 +373,7 @@ $(document).ready(function() {
             data: { 
                 classe_id: classeId,
                 date_reference: dateRef,
-                type_frais_id: typeFraisId,
+                tarif_id: tarifId,
                 montant_min: montantMin,
                 montant_max: montantMax
             },
@@ -464,36 +390,70 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 $('#loading').addClass('d-none');
-                toastr.error('Erreur lors du chargement des données');
+                let errorMsg = 'Erreur lors du chargement des données';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
                 $('#no-data').removeClass('d-none');
             }
         });
     }
 
     function afficherResultats(data) {
-        $('#result-title').text(data.classe);
+        const classeNom = data.classe || 'Classe';
+        const moisNom = data.mois_reference || 'Mois';
+        const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
         
-        let summaryText = `Relance générée pour la classe ${data.classe} du mois de ${data.mois_reference}`;
-        if (data.type_frais_id) {
-            const typeFraisName = $('#type_frais_id option:selected').text();
-            summaryText += ` - ${typeFraisName}`;
+        $('#result-title').text(classeNom);
+        
+        let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
+        if (data.tarif_id) {
+            summaryText += ` - Tarif: ${tarifLibelle}`;
+        }
+        if (data.montant_min) {
+            summaryText += ` - Min: ${formatMoney(data.montant_min)}`;
+        }
+        if (data.montant_max) {
+            summaryText += ` - Max: ${formatMoney(data.montant_max)}`;
         }
         $('#result-summary').text(summaryText);
         
         const tbody = $('#relance-table tbody');
         tbody.empty();
         
-        let totalAttendu = 0;
-        let totalPaye = 0;
-        let totalReste = 0;
+        if (!data.data || data.data.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="11" class="text-center py-4">
+                        <i class="ti ti-inbox fs-3 text-muted"></i>
+                        <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
+                    </td>
+                </tr>
+            `);
+            $('#relance-results').removeClass('d-none');
+            return;
+        }
+        
+        let totalMontantMois = 0;
+        let totalCumulAttendu = 0;
+        let totalCumulPaye = 0;
+        let totalResteMois = 0;
+        let totalResteCumul = 0;
+        let totalEnRetard = 0;
         
         data.data.forEach(function(eleve, index) {
-            totalAttendu += eleve.total_attendu || 0;
-            totalPaye += eleve.total_paye || 0;
-            totalReste += eleve.reste_a_payer || 0;
+            totalMontantMois += eleve.montant_mois || 0;
+            totalCumulAttendu += eleve.cumul_attendu || 0;
+            totalCumulPaye += eleve.cumul_paye || 0;
+            totalResteMois += eleve.reste_mois || 0;
+            totalResteCumul += eleve.reste_cumul || 0;
+            if (eleve.statut === 'En retard') totalEnRetard++;
             
             const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
             const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
+            const typeFrais = eleve.type_frais || '-';
+            const tarifLibelle = eleve.tarif_libelle || '-';
             
             tbody.append(`
                 <tr>
@@ -503,205 +463,50 @@ $(document).ready(function() {
                     </td>
                     <td><div class="fw-semibold">${eleveNom}</div></td>
                     <td>${eleve.classe || ''}</td>
-                    <td class="fw-bold">${formatMoney(eleve.total_attendu || 0)}</td>
-                    <td class="text-success">${formatMoney(eleve.total_paye || 0)}</td>
-                    <td class="text-danger">${formatMoney(eleve.reste_a_payer || 0)}</td>
+                    <td>${typeFrais}</td>
+                    <td>${tarifLibelle}</td>
+                    <td class="fw-bold">${formatMoney(eleve.montant_mois || 0)}</td>
+                    <td>${formatMoney(eleve.cumul_attendu || 0)}</td>
+                    <td class="text-success">${formatMoney(eleve.cumul_paye || 0)}</td>
+                    <td class="text-danger">${formatMoney(eleve.reste_mois || 0)}</td>
+                    <td class="text-danger fw-bold">${formatMoney(eleve.reste_cumul || 0)}</td>
                     <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
                 </tr>
             `);
         });
         
-        if (data.data.length > 0) {
-            tbody.append(`
-                <tr class="table-active fw-bold">
-                    <td colspan="2">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
-                    <td></td>
-                    <td>${formatMoney(totalAttendu)}</td>
-                    <td class="text-success">${formatMoney(totalPaye)}</td>
-                    <td class="text-danger">${formatMoney(totalReste)}</td>
-                    <td></td>
-                </tr>
-            `);
-        }
+        // Ligne de total
+        const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
+        tbody.append(`
+            <tr class="table-active fw-bold">
+                <td colspan="5" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
+                <td>${formatMoney(totalMontantMois)}</td>
+                <td>${formatMoney(totalCumulAttendu)}</td>
+                <td class="text-success">${formatMoney(totalCumulPaye)}</td>
+                <td class="text-danger">${formatMoney(totalResteMois)}</td>
+                <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
+                <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
+            </tr>
+        `);
         
         $('#relance-results').removeClass('d-none');
     }
 
     // ============================================
-    // 3. SÉLECTION DES ÉLÈVES
+    // 2. SÉLECTION DES ÉLÈVES
     // ============================================
     $('#select-all').change(function() {
         $('.eleve-checkbox').prop('checked', $(this).prop('checked'));
     });
 
-    // ============================================
-    // 4. APERÇU DU MESSAGE SMS
-    // ============================================
-    function previewSmsMessage() {
-        const selectedEleves = getSelectedEleves();
-        if (selectedEleves.length === 0) {
-            $('#sms-preview-content').text('Aucun élève sélectionné');
-            $('#preview-char-count').text('0 caractères');
-            return;
-        }
-
-        const template = getSelectedTemplate();
-        if (!template) {
-            $('#sms-preview-content').text('Aucun modèle sélectionné');
-            return;
-        }
-
-        const eleve = selectedEleves[0];
-        const message = generateSmsMessage(template.content, eleve);
-        
-        $('#sms-preview-content').text(message);
-        $('#preview-char-count').text(message.length + ' caractères');
-        
-        const totalMessages = selectedEleves.length;
-        const totalChars = totalMessages * message.length;
-        $('#sms-count-eleves').text(totalMessages);
-        $('#sms-count-messages').text(totalMessages);
-        $('#sms-total-characters').text(totalChars);
-    }
-
-    function getSelectedEleves() {
-        const eleves = [];
-        $('.eleve-checkbox:checked').each(function() {
-            try {
-                const data = $(this).data('eleve');
-                if (data) {
-                    eleves.push(data);
-                }
-            } catch(e) {
-                console.error('Erreur parsing data:', e);
-            }
-        });
-        return eleves;
-    }
-
-    function getSelectedTemplate() {
-        const template = smsTemplates.find(t => t.id === selectedTemplateId);
-        if (!template) {
-            toastr.warning('Veuillez sélectionner un modèle SMS');
-            return null;
-        }
-        return template;
-    }
-
-// ============================================
-// 5. GÉNÉRATION DU MESSAGE SMS - CORRIGÉE
-// ============================================
-function generateSmsMessage(templateContent, eleveData) {
-    if (!eleveData) {
-        return templateContent;
-    }
-    
-    // Récupérer le nom complet de l'élève
-    const eleveNomComplet = eleveData.eleve || '';
-    const nomParts = eleveNomComplet.split(' ');
-    const nom = nomParts[0] || '';
-    const prenomComplet = nomParts.slice(1).join(' ') || '';
-    
-    // Récupérer le nom du parent (SEULEMENT LE PREMIER MOT)
-    const parentNomComplet = eleveData.parent_nom || '';
-    const parentNomParts = parentNomComplet.split(' ');
-    const parentNom = parentNomParts[0] || '';
-    // ⚠️ Le reste du nom du parent est IGNORÉ !!!
-    
-    // Récupérer les montants
-    const resteAPayer = parseFloat(eleveData.reste_a_payer) || 0;
-    const totalAttendu = parseFloat(eleveData.total_attendu) || 0;
-    const totalPaye = parseFloat(eleveData.total_paye) || 0;
-    
-    // Récupérer les infos du filtre
-    const typeFrais = $('#type_frais_id option:selected').text() || 'Scolarité';
-    const mois = $('#date_reference option:selected').text() || '';
-    
-    // Formater les montants
-    const montantFormatted = formatMoneySms(resteAPayer);
-    const totalFormatted = formatMoneySms(totalAttendu);
-    const payeFormatted = formatMoneySms(totalPaye);
-    const echeance = getNextPaymentDate();
-    
-    // Fonction pour construire le message avec un prénom donné
-    function buildMessage(prenom) {
-        let msg = templateContent;
-        const vars = {
-            '%NOM%': nom,
-            '%PRENOM%': prenom,
-            '%CLASSE%': eleveData.classe || '',
-            '%RESTE%': montantFormatted,
-            '%MONTANT_DU%': montantFormatted,
-            '%MONTANT_PAYE%': payeFormatted,
-            '%MONTANT_ATTENDU%': totalFormatted,
-            '%RESTE_MOIS%': montantFormatted,
-            '%RESTE_TOTAL%': montantFormatted,
-            '%TYPE_FRAIS%': typeFrais,
-            '%MOIS_CONCERNE%': mois,
-            '%DATE_ECHEANCE%': echeance,
-            // ⚠️ Parent : seulement le premier nom
-            '%NOM_RESPONSABLE%': parentNom || nom,
-            '%ECOLE%': getEcoleName(),
-            '%DATE%': new Date().toLocaleDateString('fr-FR'),
-        };
-        
-        for (const [key, value] of Object.entries(vars)) {
-            msg = msg.replace(new RegExp(key, 'g'), value);
-        }
-        msg = msg.replace(/%[^%]+%/g, '');
-        msg = msg.replace(/\s+/g, ' ').trim();
-        return msg;
-    }
-    
-    // 1. Essayer avec le prénom complet
-    let message = buildMessage(prenomComplet);
-    if (message.length <= 160) {
-        return message;
-    }
-    
-    // 2. Si trop long, couper le prénom progressivement
-    const prenomParts = prenomComplet.trim().split(/\s+/);
-    
-    // Essayer avec le premier prénom seulement
-    if (prenomParts.length > 0) {
-        const testMessage = buildMessage(prenomParts[0]);
-        if (testMessage.length <= 160) {
-            return testMessage;
-        }
-    }
-    
-    // 3. Essayer avec une abréviation du prénom (1ère lettre)
-    if (prenomParts.length > 0 && prenomParts[0].length > 0) {
-        const abbr = prenomParts[0].charAt(0) + '.';
-        const testMessage = buildMessage(abbr);
-        if (testMessage.length <= 160) {
-            return testMessage;
-        }
-    }
-    
-    // 4. Essayer sans prénom du tout
-    const sansPrenom = buildMessage('');
-    if (sansPrenom.length <= 160) {
-        return sansPrenom;
-    }
-    
-    // 5. Dernier recours : tronquer le message
-    return sansPrenom.substring(0, 157) + '...';
-}
+    $(document).on('change', '.eleve-checkbox', function() {
+        const total = $('.eleve-checkbox').length;
+        const checked = $('.eleve-checkbox:checked').length;
+        $('#select-all').prop('checked', total === checked && total > 0);
+    });
 
     // ============================================
-    // FORMATAGE DES MONTANTS POUR SMS
-    // ============================================
-    function formatMoneySms(amount) {
-        if (typeof amount !== 'number') amount = 0;
-        return new Intl.NumberFormat('fr-FR', { 
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount) + ' F';
-    }
-
-    // ============================================
-    // FONCTIONS UTILITAIRES
+    // 3. FORMATAGE DES MONTANTS
     // ============================================
     function formatMoney(amount) {
         if (typeof amount !== 'number') amount = 0;
@@ -710,6 +515,14 @@ function generateSmsMessage(templateContent, eleveData) {
             currency: 'XOF',
             minimumFractionDigits: 0
         }).format(amount);
+    }
+
+    function formatMoneySms(amount) {
+        if (typeof amount !== 'number') amount = 0;
+        return new Intl.NumberFormat('fr-FR', { 
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount) + ' F';
     }
 
     function getEcoleName() {
@@ -723,6 +536,86 @@ function generateSmsMessage(templateContent, eleveData) {
     }
 
     // ============================================
+    // 4. IMPRESSION
+    // ============================================
+    $('#print-btn').click(function() {
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const tarifId = $('#tarif_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+        
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
+            return;
+        }
+
+        let url = `/relance/imprimer?classe_id=${classeId}&date_reference=${dateRef}`;
+
+        if (tarifId) {
+            url += `&tarif_id=${tarifId}`;
+        }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
+        }
+
+        window.open(url, '_blank');
+    });
+
+    // ============================================
+    // 5. EXPORTATION
+    // ============================================
+    $('#export-excel').click(function(e) {
+        e.preventDefault();
+        exporter('excel');
+    });
+
+    $('#export-pdf').click(function(e) {
+        e.preventDefault();
+        exporter('pdf');
+    });
+
+    function exporter(format) {
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const tarifId = $('#tarif_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
+            return;
+        }
+
+        let url = `/relance/export?classe_id=${classeId}&date_reference=${dateRef}&format=${format}`;
+        
+        if (tarifId) {
+            url += `&tarif_id=${tarifId}`;
+        }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
+        }
+
+        window.location.href = url;
+    }
+
+    // ============================================
     // 6. ENVOI DES SMS
     // ============================================
     $('#send-sms-btn').click(function() {
@@ -732,32 +625,68 @@ function generateSmsMessage(templateContent, eleveData) {
             return;
         }
 
-        const template = getSelectedTemplate();
-        if (!template) {
-            return;
+        // Vérifier si les élèves ont des numéros de téléphone
+        const sansTelephone = selectedEleves.filter(e => !e.telephone && !e.parent_telephone);
+        if (sansTelephone.length > 0) {
+            toastr.warning(sansTelephone.length + ' élève(s) n\'ont pas de numéro de téléphone');
         }
 
-        const firstEleve = selectedEleves[0];
-        const message = generateSmsMessage(template.content, firstEleve);
+        // Utiliser un message par défaut
+        const message = generateDefaultSmsMessage(selectedEleves[0]);
         
         $('#sms-preview-content').text(message);
         $('#preview-char-count').text(message.length + ' caractères');
         $('#sms-count-eleves').text(selectedEleves.length);
         $('#sms-count-messages').text(selectedEleves.length);
         $('#sms-total-characters').text(selectedEleves.length * message.length);
-        $('#sms-template-name').text(template.nom);
+        $('#sms-template-name').text('Message de relance');
         
         $('#smsConfirmModal').modal('show');
     });
+
+    function getSelectedEleves() {
+        const eleves = [];
+        $('.eleve-checkbox:checked').each(function() {
+            try {
+                const data = $(this).data('eleve');
+                if (data) {
+                    // S'assurer que les données sont un objet
+                    if (typeof data === 'string') {
+                        try {
+                            eleves.push(JSON.parse(data));
+                        } catch(e) {
+                            eleves.push(data);
+                        }
+                    } else {
+                        eleves.push(data);
+                    }
+                }
+            } catch(e) {
+                console.error('Erreur parsing data:', e);
+            }
+        });
+        return eleves;
+    }
+
+    function generateDefaultSmsMessage(eleveData) {
+        if (!eleveData) return 'Message de relance de paiement.';
+        
+        const nom = eleveData.eleve || 'Cher parent';
+        const montant = formatMoneySms(eleveData.reste_cumul || 0);
+        const mois = eleveData.mois_reference || 'ce mois';
+        const ecole = getEcoleName();
+        
+        return `Mme/M. ${nom}, nous vous rappelons que le paiement du mois de ${mois} est en attente. Montant restant : ${montant}. Veuillez régulariser votre situation auprès de ${ecole}. Merci.`;
+    }
 
     // ============================================
     // 7. CONFIRMATION D'ENVOI DES SMS
     // ============================================
     $('#confirm-send-sms').click(function() {
         const selectedEleves = getSelectedEleves();
-        const template = getSelectedTemplate();
         
-        if (!template || selectedEleves.length === 0) {
+        if (selectedEleves.length === 0) {
+            toastr.warning('Aucun élève sélectionné');
             return;
         }
 
@@ -779,7 +708,7 @@ function generateSmsMessage(templateContent, eleveData) {
             }
 
             const eleve = selectedEleves[index];
-            const message = generateSmsMessage(template.content, eleve);
+            const message = generateDefaultSmsMessage(eleve);
             
             let phone = eleve.parent_telephone || eleve.telephone || '';
             phone = phone.replace(/\s/g, '').replace(/\+/g, '');
@@ -836,6 +765,7 @@ function generateSmsMessage(templateContent, eleveData) {
                     <i class="ti ti-check-circle me-2"></i>
                     <strong>${sent} SMS envoyés avec succès !</strong>
                 </div>
+                <p class="text-muted">Tous les messages ont été envoyés.</p>
             `;
         } else if (sent > 0 && failed > 0) {
             html = `
@@ -860,88 +790,23 @@ function generateSmsMessage(templateContent, eleveData) {
     }
 
     // ============================================
-    // 8. IMPRESSION
+    // 8. RECHARGE AU CHANGEMENT DE CLASSE
     // ============================================
-    $('#print-btn').click(function() {
-        const classeId = $('#classe_id').val();
-        const dateRef = $('#date_reference').val();
-        const typeFraisId = $('#type_frais_id').val();
-        const montantMin = $('#montant_min').val();
-        const montantMax = $('#montant_max').val();
-        
-        if (!classeId) {
-            toastr.error('Veuillez sélectionner une classe');
-            return;
-        }
-
-        if (!dateRef) {
-            toastr.error('Veuillez sélectionner un mois');
-            return;
-        }
-
-        let url = `/relance/imprimer?classe_id=${classeId}&date_reference=${dateRef}`;
-
-        if (typeFraisId) {
-            url += `&type_frais_id=${typeFraisId}`;
-        }
-        if (montantMin) {
-            url += `&montant_min=${montantMin}`;
-        }
-        if (montantMax) {
-            url += `&montant_max=${montantMax}`;
-        }
-
-        window.open(url, '_blank');
+    $('#classe_id').change(function() {
+        // Vider les résultats quand la classe change
+        $('#relance-results').addClass('d-none');
+        $('#no-data').removeClass('d-none');
+        $('#result-title').text('');
+        $('#result-summary').text('');
     });
 
     // ============================================
-    // 9. EXPORTATION
+    // 9. INITIALISATION
     // ============================================
-    $('#export-excel').click(function(e) {
-        e.preventDefault();
-        exporter('excel');
-    });
-
-    $('#export-pdf').click(function(e) {
-        e.preventDefault();
-        exporter('pdf');
-    });
-
-    function exporter(format) {
-        const classeId = $('#classe_id').val();
-        const dateRef = $('#date_reference').val();
-        const typeFraisId = $('#type_frais_id').val();
-        const montantMin = $('#montant_min').val();
-        const montantMax = $('#montant_max').val();
-
-        if (!classeId) {
-            toastr.error('Veuillez sélectionner une classe');
-            return;
-        }
-
-        let url = `/relance/export?classe_id=${classeId}&date_reference=${dateRef}&format=${format}`;
-        
-        if (typeFraisId) {
-            url += `&type_frais_id=${typeFraisId}`;
-        }
-        if (montantMin) {
-            url += `&montant_min=${montantMin}`;
-        }
-        if (montantMax) {
-            url += `&montant_max=${montantMax}`;
-        }
-
-        window.location.href = url;
+    // Vérifier si les filtres sont déjà remplis (après erreur)
+    if ($('#classe_id').val() && $('#date_reference').val()) {
+        chargerRelance();
     }
-
-    // ============================================
-    // 10. INITIALISATION
-    // ============================================
-    loadSmsTemplates();
-
-    $(document).on('change', '.eleve-checkbox', function() {
-        previewSmsMessage();
-    });
 });
 </script>
 @endsection
