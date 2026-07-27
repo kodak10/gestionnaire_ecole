@@ -135,13 +135,14 @@
                     
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover" id="relance-table">
+                            <!-- Dans l'en-tête du tableau -->
                             <thead class="table-light">
                                 <tr>
                                     <th><input type="checkbox" id="select-all"></th>
                                     <th>Élève</th>
                                     <th>Classe</th>
-                                    <th>Type de Frais</th>
-                                    <th>Tarif</th>
+                                    <th>Type - Tarif</th>
+                                    <th>Début</th>
                                     <th>Montant Mois</th>
                                     <th>Cumul Attendu</th>
                                     <th>Cumul Payé</th>
@@ -400,97 +401,97 @@ $(document).ready(function() {
         });
     }
 
-    function afficherResultats(data) {
-        const classeNom = data.classe || 'Classe';
-        const moisNom = data.mois_reference || 'Mois';
-        const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
-        
-        $('#result-title').text(classeNom);
-        
-        let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
-        if (data.tarif_id) {
-            summaryText += ` - Tarif: ${tarifLibelle}`;
-        }
-        if (data.montant_min) {
-            summaryText += ` - Min: ${formatMoney(data.montant_min)}`;
-        }
-        if (data.montant_max) {
-            summaryText += ` - Max: ${formatMoney(data.montant_max)}`;
-        }
-        $('#result-summary').text(summaryText);
-        
-        const tbody = $('#relance-table tbody');
-        tbody.empty();
-        
-        if (!data.data || data.data.length === 0) {
-            tbody.append(`
-                <tr>
-                    <td colspan="11" class="text-center py-4">
-                        <i class="ti ti-inbox fs-3 text-muted"></i>
-                        <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
-                    </td>
-                </tr>
-            `);
-            $('#relance-results').removeClass('d-none');
-            return;
-        }
-        
-        let totalMontantMois = 0;
-        let totalCumulAttendu = 0;
-        let totalCumulPaye = 0;
-        let totalResteMois = 0;
-        let totalResteCumul = 0;
-        let totalEnRetard = 0;
-        
-        data.data.forEach(function(eleve, index) {
-            totalMontantMois += eleve.montant_mois || 0;
-            totalCumulAttendu += eleve.cumul_attendu || 0;
-            totalCumulPaye += eleve.cumul_paye || 0;
-            totalResteMois += eleve.reste_mois || 0;
-            totalResteCumul += eleve.reste_cumul || 0;
-            if (eleve.statut === 'En retard') totalEnRetard++;
-            
-            const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
-            const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
-            const typeFrais = eleve.type_frais || '-';
-            const tarifLibelle = eleve.tarif_libelle || '-';
-            
-            tbody.append(`
-                <tr>
-                    <td>
-                        <input type="checkbox" class="eleve-checkbox" 
-                               data-eleve='${JSON.stringify(eleve).replace(/'/g, "&#39;")}'>
-                    </td>
-                    <td><div class="fw-semibold">${eleveNom}</div></td>
-                    <td>${eleve.classe || ''}</td>
-                    <td>${typeFrais}</td>
-                    <td>${tarifLibelle}</td>
-                    <td class="fw-bold">${formatMoney(eleve.montant_mois || 0)}</td>
-                    <td>${formatMoney(eleve.cumul_attendu || 0)}</td>
-                    <td class="text-success">${formatMoney(eleve.cumul_paye || 0)}</td>
-                    <td class="text-danger">${formatMoney(eleve.reste_mois || 0)}</td>
-                    <td class="text-danger fw-bold">${formatMoney(eleve.reste_cumul || 0)}</td>
-                    <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
-                </tr>
-            `);
-        });
-        
-        // Ligne de total
-        const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
+function afficherResultats(data) {
+    const classeNom = data.classe || 'Classe';
+    const moisNom = data.mois_reference || 'Mois';
+    const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
+    
+    $('#result-title').text(classeNom);
+    
+    let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
+    if (data.tarif_id) {
+        summaryText += ` - Tarif: ${tarifLibelle}`;
+    }
+    if (data.montant_min) {
+        summaryText += ` - Min: ${formatMoney(data.montant_min)}`;
+    }
+    if (data.montant_max) {
+        summaryText += ` - Max: ${formatMoney(data.montant_max)}`;
+    }
+    $('#result-summary').text(summaryText);
+    
+    const tbody = $('#relance-table tbody');
+    tbody.empty();
+    
+    if (!data.data || data.data.length === 0) {
         tbody.append(`
-            <tr class="table-active fw-bold">
-                <td colspan="5" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
-                <td>${formatMoney(totalMontantMois)}</td>
-                <td>${formatMoney(totalCumulAttendu)}</td>
-                <td class="text-success">${formatMoney(totalCumulPaye)}</td>
-                <td class="text-danger">${formatMoney(totalResteMois)}</td>
-                <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
-                <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
+            <tr>
+                <td colspan="11" class="text-center py-4">
+                    <i class="ti ti-inbox fs-3 text-muted"></i>
+                    <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
+                </td>
             </tr>
         `);
-        
         $('#relance-results').removeClass('d-none');
+        return;
     }
+    
+    let totalMontantMois = 0;
+    let totalCumulAttendu = 0;
+    let totalCumulPaye = 0;
+    let totalResteMois = 0;
+    let totalResteCumul = 0;
+    let totalEnRetard = 0;
+    
+    data.data.forEach(function(eleve, index) {
+        totalMontantMois += eleve.montant_mois || 0;
+        totalCumulAttendu += eleve.cumul_attendu || 0;
+        totalCumulPaye += eleve.total_paye || 0;
+        totalResteMois += eleve.reste_mois || 0;
+        totalResteCumul += eleve.reste_cumul || 0;
+        if (eleve.statut === 'En retard') totalEnRetard++;
+        
+        const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
+        const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
+        const typeTarif = eleve.type_tarif || '-';
+        const dateDebut = eleve.date_debut || '-';
+        
+        tbody.append(`
+            <tr>
+                <td>
+                    <input type="checkbox" class="eleve-checkbox" 
+                           data-eleve='${JSON.stringify(eleve).replace(/'/g, "&#39;")}'>
+                </td>
+                <td><div class="fw-semibold">${eleveNom}</div></td>
+                <td>${eleve.classe || ''}</td>
+                <td>${typeTarif}</td>
+                <td>${dateDebut}</td>
+                <td class="fw-bold">${formatMoney(eleve.montant_mois || 0)}</td>
+                <td>${formatMoney(eleve.cumul_attendu || 0)}</td>
+                <td class="text-success">${formatMoney(eleve.total_paye || 0)}</td>
+                <td class="text-danger">${formatMoney(eleve.reste_mois || 0)}</td>
+                <td class="text-danger fw-bold">${formatMoney(eleve.reste_cumul || 0)}</td>
+                <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
+            </tr>
+        `);
+    });
+    
+    // Ligne de total
+    const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
+    tbody.append(`
+        <tr class="table-active fw-bold">
+            <td colspan="5" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
+            <td>${formatMoney(totalMontantMois)}</td>
+            <td>${formatMoney(totalCumulAttendu)}</td>
+            <td class="text-success">${formatMoney(totalCumulPaye)}</td>
+            <td class="text-danger">${formatMoney(totalResteMois)}</td>
+            <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
+            <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
+        </tr>
+    `);
+    
+    $('#relance-results').removeClass('d-none');
+}
 
     // ============================================
     // 2. SÉLECTION DES ÉLÈVES

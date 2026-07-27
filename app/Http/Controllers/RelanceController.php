@@ -36,13 +36,67 @@ class RelanceController extends Controller
     
         $moisScolaires = MoisScolaire::orderBy('numero')->get();
         
-        // Récupérer les tarifs pour le filtre
         $tarifs = Tarif::where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->with('typeFrais')
             ->get();
 
         return view('dashboard.pages.comptabilites.relances', compact('classes', 'moisScolaires', 'tarifs'));
+    }
+
+    public function getTarifsByClasse(Request $request)
+    {
+        $request->validate([
+            'classe_id' => 'required|exists:classes,id'
+        ]);
+
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeScolaireId = session('current_annee_scolaire_id');
+
+            $classe = Classe::with('niveau')->find($request->classe_id);
+            if (!$classe) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Classe non trouvée'
+                ]);
+            }
+
+            $niveauId = $classe->niveau_id;
+
+            $tarifs = Tarif::where('ecole_id', $ecoleId)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where(function($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId)
+                      ->orWhereNull('niveau_id');
+                })
+                ->with('typeFrais')
+                ->orderBy('type_frais_id')
+                ->get();
+
+            $data = $tarifs->map(function($tarif) {
+                return [
+                    'id' => $tarif->id,
+                    'libelle' => $tarif->libelle,
+                    'montant' => $tarif->montant,
+                    'type_frais_nom' => $tarif->typeFrais ? $tarif->typeFrais->nom : null,
+                    'type_frais_id' => $tarif->type_frais_id,
+                    'niveau_id' => $tarif->niveau_id
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur getTarifsByClasse: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     public function getRelanceData(Request $request)
@@ -97,7 +151,6 @@ class RelanceController extends Controller
                 ->select('inscriptions.*')
                 ->get();
 
-            // Récupérer le type de frais du tarif
             $typeFrais = $tarif->typeFrais;
             $typeFraisNom = $typeFrais ? $typeFrais->nom : '';
 
@@ -113,12 +166,12 @@ class RelanceController extends Controller
                 $classe = $inscription->classe;
                 $niveau = $classe->niveau;
 
-                // Vérifier si le tarif est pour le niveau de l'élève (NULL = tous les niveaux)
+                // Vérifier si le tarif est pour le niveau de l'élève
                 if ($tarif->niveau_id && $tarif->niveau_id != $niveau->id) {
                     continue;
                 }
 
-                // Vérifier si le service est actif pour Cantine et Transport
+                // Vérifier si le service est actif
                 if ($typeFraisNom == 'Cantine' && !$inscription->cantine_active) {
                     continue;
                 }
@@ -126,15 +179,39 @@ class RelanceController extends Controller
                     continue;
                 }
 
-                // Mois d'inscription (pour Cantine et Transport)
-                $moisInscriptionNumero = (int) $inscription->created_at->format('n');
-                $jourInscription = (int) $inscription->created_at->format('j');
+                // === DÉTERMINER LE MOIS DE DÉBUT ===
+                $moisDebutNumero = null;
+                $jourDebut = null;
+                $moisDebutId = null;
 
-                // Récupérer le mois d'inscription
-                $moisInscription = MoisScolaire::where('numero', $moisInscriptionNumero)->first();
-                $moisInscriptionId = $moisInscription ? $moisInscription->id : null;
+                if (in_array($typeFraisNom, ['Cantine', 'Transport'])) {
+                    // Pour Cantine et Transport : utiliser la date de début spécifique
+                    $startDate = null;
+                    if ($typeFraisNom == 'Cantine' && $inscription->cantine_start_date) {
+                        $startDate = Carbon::parse($inscription->cantine_start_date);
+                    } elseif ($typeFraisNom == 'Transport' && $inscription->transport_start_date) {
+                        $startDate = Carbon::parse($inscription->transport_start_date);
+                    }
 
-                // Récupérer les tarifs mensuels pour ce tarif et ce niveau
+                    if ($startDate) {
+                        $moisDebutNumero = (int) $startDate->format('n');
+                        $jourDebut = (int) $startDate->format('j');
+                    } else {
+                        // Fallback : utiliser la date d'inscription
+                        $moisDebutNumero = (int) $inscription->created_at->format('n');
+                        $jourDebut = (int) $inscription->created_at->format('j');
+                    }
+                } else {
+                    // Pour Scolarité et Inscription : début à partir du premier mois (Août)
+                    $moisDebutNumero = 8; // Août
+                    $jourDebut = 1;
+                }
+
+                // Récupérer l'ID du mois de début
+                $moisDebut = MoisScolaire::where('numero', $moisDebutNumero)->first();
+                $moisDebutId = $moisDebut ? $moisDebut->id : null;
+
+                // Récupérer les tarifs mensuels
                 $tarifsMensuels = TarifMensuel::where('annee_scolaire_id', $anneeScolaireId)
                     ->where('ecole_id', $ecoleId)
                     ->where('tarif_id', $tarif->id)
@@ -155,13 +232,13 @@ class RelanceController extends Controller
                 if ($tarifMoisRef) {
                     $montantMensuel = $tarifMoisRef->montant;
 
-                    // Demi-tarif pour Cantine et Transport si inscription après le 15
+                    // Demi-tarif si le mois de début = mois de référence et jour > 15
                     if (in_array($typeFraisNom, ['Cantine', 'Transport'])) {
-                        if ($moisReference->numero == $moisInscriptionNumero && $jourInscription > 15) {
+                        if ($moisReference->numero == $moisDebutNumero && $jourDebut > 15) {
                             $montantMensuel = $montantMensuel / 2;
                         }
-                        // Ignorer les mois avant l'inscription
-                        if ($moisReference->numero < $moisInscriptionNumero) {
+                        // Ignorer si le mois de référence est avant le mois de début
+                        if ($moisReference->numero < $moisDebutNumero) {
                             $montantMensuel = 0;
                         }
                     }
@@ -171,14 +248,14 @@ class RelanceController extends Controller
                     continue;
                 }
 
-                // Calcul du cumul attendu total (tous les mois jusqu'au mois de référence)
+                // Calcul du cumul attendu
                 $cumulAttendu = 0;
                 $cumulAttenduAvant = 0;
 
                 foreach ($moisScolaires as $mois) {
-                    // Vérifier si le mois est avant l'inscription pour Cantine/Transport
+                    // Ignorer les mois avant le mois de début
                     if (in_array($typeFraisNom, ['Cantine', 'Transport'])) {
-                        if ($mois->numero < $moisInscriptionNumero) {
+                        if ($mois->numero < $moisDebutNumero) {
                             continue;
                         }
                     }
@@ -190,9 +267,9 @@ class RelanceController extends Controller
 
                     $montant = $tarifMensuel->montant;
 
-                    // Demi-tarif pour Cantine et Transport
+                    // Demi-tarif pour le mois de début si jour > 15
                     if (in_array($typeFraisNom, ['Cantine', 'Transport'])) {
-                        if ($mois->numero == $moisInscriptionNumero && $jourInscription > 15) {
+                        if ($mois->numero == $moisDebutNumero && $jourDebut > 15) {
                             $montant = $montant / 2;
                         }
                     }
@@ -208,7 +285,7 @@ class RelanceController extends Controller
                     }
                 }
 
-                // Appliquer la réduction si c'est la Scolarité
+                // Réduction pour la Scolarité
                 $reduction = 0;
                 if ($typeFraisNom == 'Scolarité') {
                     $reduction = Reduction::where('inscription_id', $inscription->id)
@@ -220,33 +297,27 @@ class RelanceController extends Controller
                         })
                         ->sum('montant');
                     
-                    // Répartir la réduction proportionnellement sur le cumul
                     if ($reduction > 0 && $cumulAttendu > 0) {
                         $cumulAttendu = max(0, $cumulAttendu - $reduction);
                     }
                 }
 
-                // Total payé (tous les paiements pour ce tarif)
+                // Total payé
                 $totalPaye = PaiementDetail::where('inscription_id', $inscription->id)
                     ->where('tarif_id', $tarif->id)
                     ->sum('montant');
 
-                // Payé avant le mois de référence (en utilisant la date)
+                // Payé avant le mois de référence
                 $payeAvant = PaiementDetail::where('inscription_id', $inscription->id)
                     ->where('tarif_id', $tarif->id)
                     ->where('created_at', '<', $moisReference->created_at ?? Carbon::now())
                     ->sum('montant');
 
-                // Reste à payer pour le mois
                 $resteMois = max(0, $montantMensuel - ($totalPaye - $payeAvant));
-
-                // Reste à payer cumulé
                 $resteCumul = max(0, $cumulAttendu - $totalPaye);
-
-                // Statut
                 $statut = $resteMois <= 0 ? 'À jour' : 'En retard';
 
-                // Filtre par montant du reste cumulé
+                // Filtrer par montant
                 if ($request->montant_min || $request->montant_max) {
                     $montantMin = $request->montant_min ? (float) $request->montant_min : 0;
                     $montantMax = $request->montant_max ? (float) $request->montant_max : PHP_FLOAT_MAX;
@@ -256,14 +327,34 @@ class RelanceController extends Controller
                     }
                 }
 
+                // Format du type - tarif
+                $typeTarif = $typeFraisNom . ' - ' . $tarif->libelle;
+
+                // Date de début formatée
+                $dateDebut = null;
+                if (in_array($typeFraisNom, ['Cantine', 'Transport'])) {
+                    $startDate = null;
+                    if ($typeFraisNom == 'Cantine' && $inscription->cantine_start_date) {
+                        $startDate = Carbon::parse($inscription->cantine_start_date);
+                    } elseif ($typeFraisNom == 'Transport' && $inscription->transport_start_date) {
+                        $startDate = Carbon::parse($inscription->transport_start_date);
+                    }
+                    if ($startDate) {
+                        $dateDebut = $startDate->format('d/m/Y');
+                    } else {
+                        $dateDebut = $inscription->created_at->format('d/m/Y');
+                    }
+                } else {
+                    $dateDebut = 'Début année';
+                }
+
                 $result[] = [
                     'eleve' => $eleve->nom . ' ' . $eleve->prenom,
                     'classe' => $classe->nom,
                     'niveau' => $niveau->nom,
-                    'cantine_active' => $inscription->cantine_active,
-                    'transport_active' => $inscription->transport_active,
-                    'tarif_libelle' => $tarif->libelle,
-                    'type_frais' => $typeFraisNom,
+                    'type_tarif' => $typeTarif,
+                    'date_debut' => $dateDebut,
+                    'mois_debut' => $moisDebut ? $moisDebut->nom : 'N/A',
                     'montant_mois' => $montantMensuel,
                     'cumul_attendu' => $cumulAttendu,
                     'total_paye' => $totalPaye,
@@ -300,8 +391,18 @@ class RelanceController extends Controller
         }
     }
 
-    // Les autres méthodes...
-    public function imprimerRelance(Request $request) { /* ... */ }
-    public function export(Request $request) { /* ... */ }
-    public function sendSms(Request $request) { /* ... */ }
+    public function imprimerRelance(Request $request)
+    {
+        // ... à implémenter
+    }
+
+    public function export(Request $request)
+    {
+        // ... à implémenter
+    }
+
+    public function sendSms(Request $request)
+    {
+        // ... à implémenter
+    }
 }
