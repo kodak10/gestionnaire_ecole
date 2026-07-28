@@ -108,7 +108,7 @@ table.general th { background: #ccc; }
 
         <!-- Partie droite -->
         <div style="float:right; width:30%; text-align:left; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
-            Code : <b>{{ $ecole->code ?? '' }}</b><br>
+            Code Etablissement : <b>{{ $ecole->code ?? '' }}</b><br>
             Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
             Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b><br>
             Email : <b>{{ $ecole->email ?? '' }}</b><br>
@@ -122,7 +122,7 @@ table.general th { background: #ccc; }
     <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
         <tr>
             <!-- Colonne pour le titre -->
-            <td style="text-align:center; width:70%;">
+            <td style="text-align:left; width:70%;">
                 <strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong>
             </td>
 
@@ -211,7 +211,7 @@ table.general th { background: #ccc; }
         <table class="general">
     <thead>
         <tr>
-            <th>MATIÈRES</th>
+            <th>Matières</th>
             <th>Notes</th>
             <th>Coeff.</th>
             {{-- <th>M. x C</th> --}}
@@ -348,11 +348,11 @@ table.general th { background: #ccc; }
 {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
                     </td>
                     <td>
-                        {{ $ecole->ville ?? 'Korhogo' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                        {{ $ecole->ville }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
 
                         <br> <br> <br>
-                        {{ $ecole->directeur ?? '...' }}
+                        {{ $ecole->directeur }}
                     </td>
                 </tr>
             </tbody>

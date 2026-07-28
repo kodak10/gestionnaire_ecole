@@ -193,6 +193,10 @@ class NoteController extends Controller
  */
 private function generateAppreciation($valeur, $base)
 {
+    if ($valeur === null || $base === null || $base == 0) {
+        return 'Non évalué';
+    }
+    
     // Conversion proportionnelle sur 20
     $noteSur20 = ($base > 0) ? ($valeur / $base) * 20 : $valeur;
 
@@ -309,35 +313,42 @@ private function generateAppreciation($valeur, $base)
 
 
 
+/**
+ * Récupère la mention en fonction de la moyenne
+ */
 private function getMention($moyenne, $moyBase)
 {
     $ecoleId = session('current_ecole_id');
     $anneeScolaireId = session('current_annee_scolaire_id');
 
-    // Conversion de la moyenne de la classe sur 20
-    $moyenneSur20 = $moyBase > 0 ? ($moyenne / $moyBase) * 20 : $moyenne;
+    if ($moyenne === null || $moyenne === 0) {
+        return 'Non classé';
+    }
 
-    // Arrondir à l'entier le plus proche pour correspondre aux plages des mentions
+    // Conversion de la moyenne sur 20
+    $moyenneSur20 = $moyBase > 0 ? ($moyenne / $moyBase) * 20 : $moyenne;
     $moyenneArrondie = round($moyenneSur20);
 
     // Récupérer toutes les mentions de l'école et année scolaire
     $mentions = Mention::where('ecole_id', $ecoleId)
-                       ->where('annee_scolaire_id', $anneeScolaireId)
-                       ->get();
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->orderBy('min_note')
+        ->get();
 
-    // Chercher la mention dont la moyenne tombe dans la plage
-    $mention = $mentions->first(function ($m) use ($moyenneArrondie) {
-        return $moyenneArrondie >= $m->min_note && $moyenneArrondie <= $m->max_note;
-    });
+    // Si aucune mention n'est configurée, retourner "Non classé"
+    if ($mentions->isEmpty()) {
+        return 'Non classé';
+    }
 
-    Log::info('Mention trouvée', [
-        'moyenneOriginale' => $moyenne,
-        'moyenneSur20' => $moyenneSur20,
-        'moyenneArrondie' => $moyenneArrondie,
-        'mention' => $mention ? $mention->nom : 'Non classé'
-    ]);
+    // Chercher la mention correspondante
+    foreach ($mentions as $mention) {
+        if ($moyenneArrondie >= $mention->min_note && $moyenneArrondie <= $mention->max_note) {
+            return $mention->nom;
+        }
+    }
 
-    return $mention ? $mention->nom : 'Non classé';
+    // Si aucune mention ne correspond
+    return 'Non classé';
 }
 
 
@@ -1189,28 +1200,41 @@ public function generateBulletin(Request $request)
     ]);
 
     // ==================== SAUVEGARDE DANS MOYENNE_MOIS ====================
-    if ($saveMois) {
-        // Préparer les statistiques de classe
-        $statsClasse = [
-            'moyenne_classe' => $moyClasse,
-            'moyenne_min' => $moyDernier,
-            'moyenne_max' => $moyPremier,
-            'effectif' => count($elevesAvecMoyennes)
-        ];
-        
-        // Enregistrer les moyennes pour chaque élève
-        foreach ($elevesAvecMoyennes as $eleveData) {
-            $this->saveMoyenneMois(
-                $eleveData['inscription'],
-                $classe,
-                $mois,
-                $eleveData,
-                $statsClasse
-            );
-        }
-        
-        session()->flash('success', 'Les moyennes du mois ' . $mois->nom . ' ont été enregistrées avec succès pour la classe ' . $classe->nom . '.');
+if ($saveMois) {
+    // Vérifier si des enregistrements existent déjà pour cette classe et ce mois
+    $existingCount = MoyenneMois::where('classe_id', $classe->id)
+        ->where('mois_id', $mois->id)
+        ->where('annee_scolaire_id', $anneeScolaireId)
+        ->where('ecole_id', $ecoleId)
+        ->count();
+    
+    // Si des enregistrements existent déjà, on bloque
+    if ($existingCount > 0) {
+        session()->flash('warning', 'Impossible d\'enregistrer : Un bulletin mensuel existe déjà pour cette classe et ce mois.');
+        return redirect()->back()->with('error', 'Un bulletin mensuel a déjà été généré pour cette classe et ce mois. Aucune modification n\'est autorisée.');
     }
+    
+    // Préparer les statistiques de classe
+    $statsClasse = [
+        'moyenne_classe' => $moyClasse,
+        'moyenne_min' => $moyDernier,
+        'moyenne_max' => $moyPremier,
+        'effectif' => count($elevesAvecMoyennes)
+    ];
+    
+    // Enregistrer les moyennes pour chaque élève
+    foreach ($elevesAvecMoyennes as $eleveData) {
+        $this->saveMoyenneMois(
+            $eleveData['inscription'],
+            $classe,
+            $mois,
+            $eleveData,
+            $statsClasse
+        );
+    }
+    
+    session()->flash('success', 'Les moyennes du mois ' . $mois->nom . ' ont été enregistrées avec succès pour la classe ' . $classe->nom . '.');
+}
 
     // ==================== GÉNÉRATION DU PDF ====================
     $pdf = Pdf::loadView('dashboard.documents.bulletin', [
@@ -1231,10 +1255,17 @@ public function generateBulletin(Request $request)
 /**
  * Enregistre la moyenne mensuelle dans la table moyenne_mois
  */
+/**
+ * Enregistre la moyenne mensuelle dans la table moyenne_mois
+ */
 private function saveMoyenneMois($inscription, $classe, $mois, $eleveData, $statsClasse)
 {
     $ecoleId = session('current_ecole_id');
     $anneeScolaireId = session('current_annee_scolaire_id');
+    
+    // Récupérer la mention correcte
+    $moyBase = $classe->moy_base;
+    $mention = $this->getMention($eleveData['moyenne'], $moyBase);
     
     // Préparer les détails des notes par matière
     $detailsNotes = [];
@@ -1245,7 +1276,7 @@ private function saveMoyenneMois($inscription, $classe, $mois, $eleveData, $stat
             'valeur' => $note->valeur,
             'base' => $note->base,
             'coefficient' => $note->coefficient,
-            'appreciation' => $note->appreciation,
+            'appreciation' => $note->appreciation ?? $this->generateAppreciation($note->valeur, $note->base),
             'rang' => $note->rang_matiere ?? null
         ];
     }
@@ -1260,7 +1291,7 @@ private function saveMoyenneMois($inscription, $classe, $mois, $eleveData, $stat
         'moyenne' => $this->cutToTwoDecimals($eleveData['moyenne']),
         'rang' => $eleveData['rang_general'],
         'exaequo' => $eleveData['exaequo'] ?? false,
-        'appreciation' => $eleveData['mention'],
+        'appreciation' => $mention, // ✅ Utiliser la mention correcte
         'details_notes' => $detailsNotes,
         'moyenne_classe' => $statsClasse['moyenne_classe'],
         'moyenne_min' => $statsClasse['moyenne_min'],
@@ -1272,6 +1303,7 @@ private function saveMoyenneMois($inscription, $classe, $mois, $eleveData, $stat
     
     return true;
 }
+
 // public function generateBulletinAnnuel(Request $request)
 // {
 //     $request->validate([

@@ -214,6 +214,22 @@
                                 </div>
                             </div>
 
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                                <div class="row align-items-center flex-fill">
+                                    <div class="col-xxl-8 col-lg-6">
+                                        <div class="mb-3">
+                                            <h6>Ville</h6>
+                                            <p>Ville de l'établissement</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-lg-6">
+                                        <div class="mb-3">
+                                            <input type="text" class="form-control" name="ville" value="{{ $ecoleInfos->ville ?? '' }}" placeholder="Entrez la ville de l'école">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Directeur -->
                             <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
                                 <div class="row align-items-center flex-fill">
@@ -263,7 +279,43 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div>*
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Mode d'arrondi des moyennes</h6>
+                <p>Comment doivent être traitées les moyennes ?</p>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <select class="form-select" name="arrondi_moyenne" id="arrondi_moyenne">
+                    <option value="coupe" {{ ($ecoleInfos->arrondi_moyenne ?? 'coupe') == 'coupe' ? 'selected' : '' }}>
+                        Coupe à 2 chiffres (ex: 12.345 → 12.34)
+                    </option>
+                    <option value="arrondi" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi' ? 'selected' : '' }}>
+                        Arrondi classique (ex: 12.345 → 12.35)
+                    </option>
+                    <option value="arrondi_superieur" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi_superieur' ? 'selected' : '' }}>
+                        Arrondi au supérieur (ex: 12.001 → 12.01)
+                    </option>
+                </select>
+                <small class="text-muted">Ce paramètre s'applique aux moyennes des bulletins et bilans.</small>
+            </div>
+        </div>
+    </div>
+    <!-- Ajouter une info sur l'arrondi actuel -->
+@if($ecoleInfos)
+<div class="alert alert-info mt-2">
+    <i class="ti ti-info-circle me-2"></i>
+    <strong>Mode actuel :</strong> {{ $ecoleInfos->arrondi_moyenne_label }}
+</div>
+@endif
+</div>
+
+
 
                         </div>
                     </div>

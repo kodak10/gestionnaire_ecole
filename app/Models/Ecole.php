@@ -12,13 +12,15 @@ class Ecole extends Model
         'code',
         'logo',
         'adresse',
+        'ville',
         'telephone',
         'fax',
         'email',
         'directeur',
         'footer_bulletin',
         'sms_notification',
-        'sms_disponible' // Ajout de ce champ
+        'sms_disponible',
+        'arrondi_moyenne',
     ];
 
     public function getNomAttribute()
@@ -112,5 +114,68 @@ class Ecole extends Model
         }
         
         return null;
+    }
+
+    /**
+     * Applique l'arrondi selon la configuration de l'école
+     */
+    public function appliquerArrondi($valeur)
+    {
+        if ($valeur === null) {
+            return null;
+        }
+
+        switch ($this->arrondi_moyenne) {
+            case 'coupe':
+                // Coupe à 2 chiffres sans arrondi (floor)
+                return floor($valeur * 100) / 100;
+            
+            case 'arrondi_superieur':
+                // Arrondi au supérieur (ceil)
+                return ceil($valeur * 100) / 100;
+            
+            case 'arrondi':
+            default:
+                // Arrondi classique
+                return round($valeur, 2);
+        }
+    }
+
+    /**
+     * Vérifie si l'arrondi est de type "coupe"
+     */
+    public function isCoupeMoyenne()
+    {
+        return $this->arrondi_moyenne === 'coupe';
+    }
+
+    /**
+     * Vérifie si l'arrondi est de type "arrondi supérieur"
+     */
+    public function isArrondiSuperieur()
+    {
+        return $this->arrondi_moyenne === 'arrondi_superieur';
+    }
+
+    /**
+     * Vérifie si l'arrondi est de type "arrondi classique"
+     */
+    public function isArrondiClassique()
+    {
+        return $this->arrondi_moyenne === 'arrondi';
+    }
+
+    /**
+     * Obtient le libellé du mode d'arrondi
+     */
+    public function getArrondiMoyenneLabelAttribute()
+    {
+        $labels = [
+            'coupe' => 'Coupe à 2 chiffres (ex: 12.345 → 12.34)',
+            'arrondi' => 'Arrondi classique (ex: 12.345 → 12.35)',
+            'arrondi_superieur' => 'Arrondi au supérieur (ex: 12.001 → 12.01)',
+        ];
+        
+        return $labels[$this->arrondi_moyenne] ?? 'Coupe à 2 chiffres';
     }
 }

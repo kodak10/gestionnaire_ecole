@@ -31,12 +31,14 @@ class EcoleController extends Controller
             'sigle_ecole' => 'required|string|max:10',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'adresse' => 'required|string',
+            'ville' => 'nullable|string|max:255',
             'telephone' => 'required|string|max:20',
             'email' => 'required|email',
             'directeur' => 'required|string|max:255',
             'footer_bulletin' => 'nullable|string',
             'fax' => 'nullable|string|max:20',
             'sms_notification' => 'nullable|boolean',
+            'arrondi_moyenne' => 'nullable|in:coupe,arrondi,arrondi_superieur',
         ]);
 
         $ecoleId = session('current_ecole_id');
@@ -61,12 +63,14 @@ class EcoleController extends Controller
         $ecole->code = $request->code;
         $ecole->sigle_ecole = $request->sigle_ecole;
         $ecole->adresse = $request->adresse;
+        $ecole->ville = $request->ville;
         $ecole->telephone = $request->telephone;
         $ecole->email = $request->email;
         $ecole->directeur = $request->directeur;
         $ecole->footer_bulletin = $request->footer_bulletin;
         $ecole->fax = $request->fax;
         $ecole->sms_notification = $request->has('sms_notification') ? $request->sms_notification : false;
+        $ecole->arrondi_moyenne = $request->arrondi_moyenne ?? 'coupe';
 
         $ecole->save();
 
