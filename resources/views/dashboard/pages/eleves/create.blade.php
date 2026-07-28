@@ -346,7 +346,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="mb-3">
-                            <label class="form-label">Total à Payer</label>
+                            <label class="form-label">Total Payer</label>
                             <input type="number" class="form-control fw-bold fs-16" id="total_paiement" value="{{ old('total_paiement', 0) }}" readonly>
                         </div>
                     </div>
@@ -486,18 +486,18 @@
             const cantinePaiement = $('#frais_cantine_paiement').val();
 
             // Si les champs sont vides ou à 0, on les remplit avec les valeurs par défaut
-            if (!inscriptionPaiement || parseFloat(inscriptionPaiement) === 0) {
-                $('#frais_inscription_paiement').val(fraisInscription);
-            }
-            if (!scolaritePaiement || parseFloat(scolaritePaiement) === 0) {
-                $('#frais_scolarite_paiement').val(fraisScolarite);
-            }
-            if (!transportPaiement || parseFloat(transportPaiement) === 0) {
-                $('#frais_transport_paiement').val(fraisTransport);
-            }
-            if (!cantinePaiement || parseFloat(cantinePaiement) === 0) {
-                $('#frais_cantine_paiement').val(fraisCantine);
-            }
+            // if (!inscriptionPaiement || parseFloat(inscriptionPaiement) === 0) {
+            //     $('#frais_inscription_paiement').val(fraisInscription);
+            // }
+            // if (!scolaritePaiement || parseFloat(scolaritePaiement) === 0) {
+            //     $('#frais_scolarite_paiement').val(fraisScolarite);
+            // }
+            // if (!transportPaiement || parseFloat(transportPaiement) === 0) {
+            //     $('#frais_transport_paiement').val(fraisTransport);
+            // }
+            // if (!cantinePaiement || parseFloat(cantinePaiement) === 0) {
+            //     $('#frais_cantine_paiement').val(fraisCantine);
+            // }
 
             // Calculer le total
             calculateTotal();
