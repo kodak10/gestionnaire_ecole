@@ -39,7 +39,7 @@ class JournalCaisseController extends Controller
 
         try {
             $paiements = Paiement::with([
-                'details.typeFrais',
+                'details.tarif.typeFrais', // ✅ Correction : Charger la relation via tarif
                 'details.inscription.eleve'
             ])
             ->where('annee_scolaire_id', $anneeScolaireId)
@@ -53,9 +53,12 @@ class JournalCaisseController extends Controller
             $totalPaiements = 0;
 
             foreach ($paiements as $paiement) {
-
                 foreach ($paiement->details as $detail) {
-                    if ($request->type_frais_id && $detail->type_frais_id != $request->type_frais_id) {
+                    // ✅ Accéder au type de frais via tarif
+                    $typeFraisId = $detail->tarif?->type_frais_id;
+                    
+                    // Filtrer par type de frais si spécifié
+                    if ($request->type_frais_id && $typeFraisId != $request->type_frais_id) {
                         continue;
                     }
 
@@ -63,7 +66,10 @@ class JournalCaisseController extends Controller
                         ? $detail->inscription->eleve->nom . ' ' . $detail->inscription->eleve->prenom
                         : 'N/A';
 
-                    $typeFrais = $detail->typeFrais ? $detail->typeFrais->nom : 'N/A';
+                    $typeFrais = $detail->tarif && $detail->tarif->typeFrais 
+                        ? $detail->tarif->typeFrais->nom 
+                        : 'N/A';
+                    
                     $montant = $detail->montant;
 
                     $totalPaiements += $montant;
@@ -97,6 +103,8 @@ class JournalCaisseController extends Controller
     public function destroy(Paiement $paiement)
     {
         try {
+            // Supprimer d'abord les détails
+            $paiement->details()->delete();
             $paiement->delete();
 
             return response()->json([
@@ -116,7 +124,7 @@ class JournalCaisseController extends Controller
     {
         return response()->json([
             'success' => true,
-            'paiement' => $paiement->load(['typeFrais', 'inscription.eleve', 'user', 'anneeScolaire'])
+            'paiement' => $paiement->load(['details.tarif.typeFrais', 'details.inscription.eleve', 'user', 'anneeScolaire'])
         ]);
     }
 

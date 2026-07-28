@@ -106,11 +106,13 @@
                         @endhasanyrole
                         
                         @hasanyrole('SuperAdministrateur|Administrateur')
-                        <li><a href="#" class=""><i class="ti ti-bar-chart"></i><span>Bilan Financier</span></a></li>
+                        <li><a href="{{ route('bilans.financier') }}" class="{{ request()->routeIs('bilans.financier') ? 'active' : '' }}"><i class="ti ti-chart-pie"></i><span>Bilan Financier</span></a></li>
+
                         @endhasanyrole
 
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')
-                        <li><a href="#" class=""><i class="ti ti-bar-chart"></i><span>Bilan Scolaire</span></a></li>
+                        <li><a href="{{ route('bilans.scolaire') }}" class="{{ request()->routeIs('bilans.scolaire') ? 'active' : '' }}"><i class="ti ti-chart-bar"></i><span>Bilan Scolaire</span></a></li>
+
                         @endhasanyrole
                         
                         @hasanyrole('SuperAdministrateur|Administrateur|Directeur')

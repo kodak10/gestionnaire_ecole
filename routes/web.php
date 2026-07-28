@@ -33,6 +33,8 @@ use App\Http\Controllers\TarifScolariteController;
 use App\Http\Controllers\TransportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReductionController;
+use App\Http\Controllers\BilanScolaireController;
+use App\Http\Controllers\BilanFinancierController;
 use App\Models\Eleve;
 use App\Models\AnneeScolaire;
 use Illuminate\Support\Facades\Route;
@@ -274,6 +276,15 @@ Route::prefix('scolarite')->group(function() {
 
             Route::get('/receipt/{paiement}', [ReglementController::class, 'generateReceipt']) ->name('reglements.receipt');
         });
+
+        // Routes pour les bilans
+Route::prefix('bilans')->name('bilans.')->middleware(['auth'])->group(function () {
+    Route::get('/scolaire', [BilanScolaireController::class, 'index'])->name('scolaire');
+    Route::get('/financier', [BilanFinancierController::class, 'index'])->name('financier');
+    Route::post('/scolaire/export', [BilanScolaireController::class, 'export'])->name('scolaire.export');
+    Route::post('/financier/export', [BilanFinancierController::class, 'export'])->name('financier.export');
+});
+
 
 Route::prefix('reductions')->group(function () {
     Route::get('/', [ReductionController::class, 'index'])->name('reductions.index');
