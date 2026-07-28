@@ -12,18 +12,21 @@ class Inscription extends Model
         'ecole_id',
         'annee_scolaire_id',
         'cantine_active',
+        'cantine_start_date',
         'cantine_tarif_id',   
         'transport_active',
         'transport_tarif_id',
         'transport_start_date',
+        
         'statut',
     ];
 
     protected $casts = [
         'statut' => 'string',
         'cantine_active' => 'boolean',
+        'cantine_start_date' => 'date',
         'transport_active' => 'boolean',
-        'transport_start_date' => 'date',  // Ajouté car c'est une date
+        'transport_start_date' => 'date', 
         'date_inscription' => 'datetime',
     ];
 

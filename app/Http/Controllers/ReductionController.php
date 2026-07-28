@@ -311,39 +311,43 @@ public function getEleveData(Request $request)
 
             // GESTION TRANSPORT
             if ($isTransport) {
-                // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
-                if ($tarif->id == $inscription->transport_tarif_id || $tarif->obligatoire) {
-                    $fraisData[] = $item;
-                    Log::info('Ajout transport tarif au tableau', [
-                        'libelle' => $item['libelle'],
-                        'selected' => ($tarif->id == $inscription->transport_tarif_id),
-                        'obligatoire' => $tarif->obligatoire
-                    ]);
-                }
-                
-                // Pour la carte : TOUS les tarifs si transport actif
+                // ✅ Vérifier d'abord si l'élève fait le service transport
                 if ($inscription->transport_active == 1) {
+                    // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
+                    if ($tarif->id == $inscription->transport_tarif_id || $tarif->obligatoire) {
+                        $fraisData[] = $item;
+                        Log::info('Ajout transport tarif au tableau (service actif)', [
+                            'libelle' => $item['libelle'],
+                            'selected' => ($tarif->id == $inscription->transport_tarif_id),
+                            'obligatoire' => $tarif->obligatoire
+                        ]);
+                    }
+                    
+                    // Pour la carte : TOUS les tarifs (pour permettre à l'élève de choisir)
                     $transportTarifsForSelect[] = $item;
                 }
+                // Si transport_active = 0, on n'ajoute RIEN
             } 
             // GESTION CANTINE
             elseif ($isCantine) {
-                // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
-                if ($tarif->id == $inscription->cantine_tarif_id || $tarif->obligatoire) {
-                    $fraisData[] = $item;
-                    Log::info('Ajout cantine tarif au tableau', [
-                        'libelle' => $item['libelle'],
-                        'selected' => ($tarif->id == $inscription->cantine_tarif_id),
-                        'obligatoire' => $tarif->obligatoire
-                    ]);
-                }
-                
-                // Pour la carte : TOUS les tarifs si cantine active
+                // ✅ Vérifier d'abord si l'élève fait le service cantine
                 if ($inscription->cantine_active == 1) {
+                    // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
+                    if ($tarif->id == $inscription->cantine_tarif_id || $tarif->obligatoire) {
+                        $fraisData[] = $item;
+                        Log::info('Ajout cantine tarif au tableau (service actif)', [
+                            'libelle' => $item['libelle'],
+                            'selected' => ($tarif->id == $inscription->cantine_tarif_id),
+                            'obligatoire' => $tarif->obligatoire
+                        ]);
+                    }
+                    
+                    // Pour la carte : TOUS les tarifs (pour permettre à l'élève de choisir)
                     $cantineTarifsForSelect[] = $item;
                 }
+                // Si cantine_active = 0, on n'ajoute RIEN
             } 
-            // AUTRES FRAIS - toujours affichés dans le tableau (Scolarité, Inscription)
+            // AUTRES FRAIS - toujours affichés (Scolarité, Inscription, etc.)
             else {
                 $fraisData[] = $item;
                 Log::info('Ajout frais normal', [
@@ -358,7 +362,9 @@ public function getEleveData(Request $request)
             'transport (select)' => count($transportTarifsForSelect),
             'cantine (select)' => count($cantineTarifsForSelect),
             'selected_transport' => $inscription->transport_tarif_id,
-            'selected_cantine' => $inscription->cantine_tarif_id
+            'selected_cantine' => $inscription->cantine_tarif_id,
+            'transport_active' => $inscription->transport_active,
+            'cantine_active' => $inscription->cantine_active
         ]);
 
         return response()->json([
