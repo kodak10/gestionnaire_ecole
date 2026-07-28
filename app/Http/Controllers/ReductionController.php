@@ -391,93 +391,131 @@ public function getEleveData(Request $request)
     }
 }
 
-    public function updateTransportTarif(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'tarif_id' => 'required|exists:tarifs,id'
+
+
+public function updateTransportTarif(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'tarif_id' => 'required' // Accepte "0" pour désactivation
+    ]);
+
+    try {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        Log::info('=== updateTransportTarif ===', [
+            'inscription_id' => $request->inscription_id,
+            'tarif_id' => $request->tarif_id
         ]);
 
-        try {
-            $ecoleId = session('current_ecole_id');
-            $anneeScolaireId = session('current_annee_scolaire_id');
+        $inscription = Inscription::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->findOrFail($request->inscription_id);
 
-            Log::info('=== updateTransportTarif ===', [
-                'inscription_id' => $request->inscription_id,
-                'tarif_id' => $request->tarif_id
+        // Vérifier si c'est la désactivation (tarif_id = 0)
+        if ($request->tarif_id == 0) {
+            // Désactiver le transport - start_date à null
+            $inscription->update([
+                'transport_tarif_id' => null,
+                'transport_active' => false,
+                'transport_start_date' => null // 👈 Mettre à null
             ]);
-
-            $inscription = Inscription::where('ecole_id', $ecoleId)
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->findOrFail($request->inscription_id);
-
+            
+            $message = 'Transport désactivé avec succès';
+            Log::info('Transport désactivé', ['inscription_id' => $inscription->id]);
+        } else {
+            // Activer avec un nouveau tarif - start_date à maintenant
             $inscription->update([
                 'transport_tarif_id' => $request->tarif_id,
-                'transport_active' => true
+                'transport_active' => true,
+                'transport_start_date' => now() // 👈 Date d'activation
             ]);
-
+            
+            $message = 'Tarif de transport sélectionné avec succès';
             Log::info('Tarif transport mis à jour', [
                 'inscription_id' => $inscription->id,
-                'transport_tarif_id' => $request->tarif_id
+                'transport_tarif_id' => $request->tarif_id,
+                'transport_start_date' => $inscription->transport_start_date
             ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Tarif de transport sélectionné avec succès'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('ERREUR updateTransportTarif: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
         }
-    }
 
-    public function updateCantineTarif(Request $request)
-    {
-        $request->validate([
-            'inscription_id' => 'required|exists:inscriptions,id',
-            'tarif_id' => 'required|exists:tarifs,id'
+        return response()->json([
+            'success' => true,
+            'message' => $message
         ]);
 
-        try {
-            $ecoleId = session('current_ecole_id');
-            $anneeScolaireId = session('current_annee_scolaire_id');
+    } catch (\Exception $e) {
+        Log::error('ERREUR updateTransportTarif: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
 
-            Log::info('=== updateCantineTarif ===', [
-                'inscription_id' => $request->inscription_id,
-                'tarif_id' => $request->tarif_id
+public function updateCantineTarif(Request $request)
+{
+    $request->validate([
+        'inscription_id' => 'required|exists:inscriptions,id',
+        'tarif_id' => 'required' // Accepte "0" pour désactivation
+    ]);
+
+    try {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        Log::info('=== updateCantineTarif ===', [
+            'inscription_id' => $request->inscription_id,
+            'tarif_id' => $request->tarif_id
+        ]);
+
+        $inscription = Inscription::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->findOrFail($request->inscription_id);
+
+        // Vérifier si c'est la désactivation (tarif_id = 0)
+        if ($request->tarif_id == 0) {
+            // Désactiver la cantine - start_date à null
+            $inscription->update([
+                'cantine_tarif_id' => null,
+                'cantine_active' => false,
+                'cantine_start_date' => null // 👈 Mettre à null
             ]);
-
-            $inscription = Inscription::where('ecole_id', $ecoleId)
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->findOrFail($request->inscription_id);
-
+            
+            $message = 'Cantine désactivée avec succès';
+            Log::info('Cantine désactivée', ['inscription_id' => $inscription->id]);
+        } else {
+            // Activer avec un nouveau tarif - start_date à maintenant
             $inscription->update([
                 'cantine_tarif_id' => $request->tarif_id,
-                'cantine_active' => true
+                'cantine_active' => true,
+                'cantine_start_date' => now() // 👈 Date d'activation
             ]);
-
+            
+            $message = 'Tarif de cantine sélectionné avec succès';
             Log::info('Tarif cantine mis à jour', [
                 'inscription_id' => $inscription->id,
-                'cantine_tarif_id' => $request->tarif_id
+                'cantine_tarif_id' => $request->tarif_id,
+                'cantine_start_date' => $inscription->cantine_start_date
             ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Tarif de cantine sélectionné avec succès'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('ERREUR updateCantineTarif: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('ERREUR updateCantineTarif: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
+
+
 
 public function store(Request $request)
 {

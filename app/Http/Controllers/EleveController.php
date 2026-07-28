@@ -231,100 +231,6 @@ class EleveController extends Controller
     ));
 }
   
-// public function store(Request $request)
-// {
-//     $request->validate([
-//         'nom' => 'required|string|max:255',
-//         'prenom' => 'required|string|max:255',
-//         'num_extrait' => 'nullable|string|max:255',
-//         'naissance' => 'required|date',
-//         'lieu_naissance' => 'nullable|string|max:255',
-//         'sexe' => 'required|in:Masculin,Féminin',
-//         'nationalite' => 'nullable|string|max:255',
-//         'code_national' => 'nullable|string|max:255',
-//         'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-//         'infos_medicales' => 'nullable|string',
-//         'pere_nom' => 'required|string|max:255',
-//         'pere_contact' => 'required|string|max:20',
-//         'pere_contact02' => 'nullable|string|max:20',
-//         'mere_nom' => 'nullable|string|max:255',
-//         'mere_contact' => 'nullable|string|max:20',
-//         'mere_contact02' => 'nullable|string|max:20',
-//         'parent_adresse' => 'nullable|string|max:255',
-//         'classe_id' => 'required|exists:classes,id',
-//         'transport_active' => 'nullable|boolean',
-//         'cantine_active' => 'nullable|boolean',
-//         'parent_nom' => 'nullable|string|max:255',
-//         'parent_telephone' => 'nullable|string|max:20',
-//         'parent_telephone02' => 'nullable|string|max:20',
-//         'mode_paiement' => 'nullable|string',
-//     ]);
-
-//     $ecoleId = session('current_ecole_id'); 
-//     $anneeScolaireId = session('current_annee_scolaire_id');
-
-//     $matricule = $this->genererMatriculeEleve($ecoleId);
-
-//     $photoPath = null;
-//     if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
-//         // Upload dans le dossier "eleves_photos"
-//         $photoPath = $request->file('photo')->store('eleves_photos', 'public');
-//     }
-
-//     $transportActive = $request->has('transport_active') && $request->input('transport_active') !== 'off';
-//     $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') !== 'off';
-
-//     $eleve = Eleve::create([
-//         'matricule' => $matricule,
-//         'nom' => $request->nom,
-//         'prenom' => $request->prenom,
-//         'num_extrait' => $request->num_extrait,
-//         'sexe' => $request->sexe,
-//         'naissance' => $request->naissance,
-//         'lieu_naissance' => $request->lieu_naissance,
-//         'nationalite' => $request->nationalite ?? 'Ivoirienne',
-//         'photo_path' => $photoPath,
-//         'infos_medicales' => $request->infos_medicales,
-//         'code_national' => $request->code_national,
-//         'pere_nom' => $request->pere_nom,
-//         'pere_contact' => $request->pere_contact,
-//         'pere_contact02' => $request->pere_contact02,
-//         'mere_nom' => $request->mere_nom,
-//         'mere_contact' => $request->mere_contact,
-//         'mere_contact02' => $request->mere_contact02,
-//         'parent_adresse' => $request->parent_adresse,
-//         'is_active' => true,
-//         'parent_nom' => $request->parent_nom ?? $request->pere_nom,
-//         'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
-//         'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
-//         'ecole_id' => $ecoleId,
-//         'classe_id' => $request->classe_id,
-//         'annee_scolaire_id' => $anneeScolaireId,
-//     ]);
-
-//     $inscription = Inscription::create([
-//         'annee_scolaire_id' => $anneeScolaireId,
-//         'ecole_id' => $ecoleId,
-//         'eleve_id' => $eleve->id,
-//         'classe_id' => $request->classe_id,
-//         'cantine_active' => $cantineActive,
-//         'transport_active' => $transportActive,
-//     ]);
-
-//     activity()
-//         ->performedOn($eleve)
-//         ->causedBy(auth()->user())
-//         ->withProperties([
-//             'matricule' => $eleve->matricule,
-//             'nom' => $eleve->nom,
-//             'prenom' => $eleve->prenom,
-//             'classe_id' => $request->classe_id,
-//             'ip' => $request->ip()
-//         ])
-//         ->log("Nouvel élève inscrit : {$eleve->nom} {$eleve->prenom}");
-
-//     return redirect()->route('eleves.index')->with('success', 'Élève inscrit avec succès!');
-// }
 
 public function store(Request $request)
 {
@@ -417,6 +323,10 @@ public function store(Request $request)
             'classe_id' => $request->classe_id,
             'cantine_active' => $cantineActive,
             'transport_active' => $transportActive,
+            'cantine_start_date' => $cantineActive ? now() : null,
+            'transport_start_date' => $transportActive ? now() : null,
+            'cantine_end_date' => null,
+            'transport_end_date' => null,
         ]);
 
         // 4. Gestion du paiement
@@ -650,105 +560,182 @@ public function store(Request $request)
     return view('dashboard.pages.eleves.edit', compact('inscription', 'eleve', 'classes', 'transports', 'cantines', 'tarifs', 'fraisInscription', 'scolarite'));
 }
 
-    public function update(Request $request, $id)
+  /**
+ * Gère les dates de début/fin pour un service (transport ou cantine)
+ */
+private function handleServiceDates($isActive, $wasActive, $startDateField, $endDateField)
 {
-    if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
-        abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
-    }
-
-    $ecoleId = session('current_ecole_id');
-    $anneeScolaireId = session('current_annee_scolaire_id');
-
-    $request->validate([
-        'nom' => 'required|string|max:255',
-        'prenom' => 'required|string|max:255',
-        'num_extrait' => 'nullable|string|max:255',
-        'naissance' => 'required|date',
-        'lieu_naissance' => 'nullable|string|max:255',
-        'sexe' => 'required|in:Masculin,Féminin',
-        'nationalite' => 'nullable|string|max:255',
-        'code_national' => 'nullable|string|max:255',
-        'photo_path' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-        'infos_medicales' => 'nullable|string',
-        'pere_nom' => 'nullable|string|max:255',
-        'pere_contact' => 'nullable|string|max:20',
-        'pere_contact02' => 'nullable|string|max:20',
-        'mere_nom' => 'nullable|string|max:255',
-        'mere_contact' => 'nullable|string|max:20',
-        'mere_contact02' => 'nullable|string|max:20',
-        'parent_adresse' => 'nullable|string|max:255',
-        'classe_id' => 'required|exists:classes,id',
-        'parent_nom' => 'nullable|string|max:255',
-        'parent_telephone' => 'nullable|string|max:20',
-        'parent_telephone02' => 'nullable|string|max:20',
-    ]);
-
-    // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
-    $inscription = Inscription::where('ecole_id', $ecoleId)
-        ->where('annee_scolaire_id', $anneeScolaireId)
-        ->findOrFail($id);
+    $data = [];
     
-    $eleve = $inscription->eleve;
-
-    $transportActive = $request->has('transport_active') && $request->input('transport_active') == '1';
-    $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') == '1';
-
-    $updateData = [
-        'nom' => $request->nom,
-        'prenom' => $request->prenom,
-        'num_extrait' => $request->num_extrait,
-        'sexe' => $request->sexe,
-        'naissance' => $request->naissance,
-        'lieu_naissance' => $request->lieu_naissance,
-        'nationalite' => $request->nationalite ?? 'Ivoirienne',
-        'infos_medicales' => $request->infos_medicales,
-        'code_national' => $request->code_national,
-        'pere_nom' => $request->pere_nom,
-        'pere_contact' => $request->pere_contact,
-        'pere_contact02' => $request->pere_contact02,
-        'mere_nom' => $request->mere_nom,
-        'mere_contact' => $request->mere_contact,
-        'mere_contact02' => $request->mere_contact02,
-        'parent_adresse' => $request->parent_adresse,
-        'classe_id' => $request->classe_id,
-        'parent_nom' => $request->parent_nom ?? $request->pere_nom,
-        'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
-        'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
-    ];
-
-    // Gestion de la photo - avec le bon dossier "eleves_photos"
-    if ($request->hasFile('photo_path') && $request->file('photo_path')->isValid()) {
-        // Supprimer l'ancienne photo si elle existe
-        if ($eleve->photo_path && \Storage::disk('public')->exists($eleve->photo_path)) {
-            \Storage::disk('public')->delete($eleve->photo_path);
+    if ($isActive) {
+        // Si le service est activé
+        if (!$wasActive) {
+            // Si c'était désactivé avant, on met la date de début à maintenant
+            $data[$startDateField] = now();
+            $data[$endDateField] = null;
         }
-        
-        // Upload nouvelle photo dans le dossier "eleves_photos"
-        $path = $request->file('photo_path')->store('eleves_photos', 'public');
-        $updateData['photo_path'] = $path;
+        // Si déjà actif, on ne modifie pas les dates
+    } else {
+        // Si le service est désactivé
+        if ($wasActive) {
+            // Si c'était actif avant, on met la date de fin à maintenant
+            $data[$endDateField] = now();
+            // On garde la date de début pour historique
+        }
+        // Si déjà inactif, on ne modifie pas les dates
     }
-
-    $eleve->update($updateData);
-
-    $inscription->update([
-        'classe_id' => $request->classe_id,
-        'cantine_active' => $cantineActive,
-        'transport_active' => $transportActive,
-    ]);
-
-    activity()
-        ->performedOn($eleve)
-        ->causedBy(auth()->user())
-        ->withProperties([
-            'matricule' => $eleve->matricule,
-            'nom' => $eleve->nom,
-            'prenom' => $eleve->prenom,
-            'ip' => $request->ip()
-        ])
-        ->log("Élève modifié : {$eleve->nom} {$eleve->prenom}");
-
-    return redirect()->route('eleves.index')->with('success', 'Élève modifié avec succès!');
+    
+    return $data;
 }
+
+public function update(Request $request, $id)
+    {
+        if (!Auth::user()->hasAnyRole(['SuperAdministrateur', 'Administrateur', 'Directeur'])) {
+            abort(403, 'Vous n\'avez pas la permission d\'éditer cet élève.');
+        }
+
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+
+        $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'num_extrait' => 'nullable|string|max:255',
+            'naissance' => 'required|date',
+            'lieu_naissance' => 'nullable|string|max:255',
+            'sexe' => 'required|in:Masculin,Féminin',
+            'nationalite' => 'nullable|string|max:255',
+            'code_national' => 'nullable|string|max:255',
+            'photo_path' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'infos_medicales' => 'nullable|string',
+            'pere_nom' => 'nullable|string|max:255',
+            'pere_contact' => 'nullable|string|max:20',
+            'pere_contact02' => 'nullable|string|max:20',
+            'mere_nom' => 'nullable|string|max:255',
+            'mere_contact' => 'nullable|string|max:20',
+            'mere_contact02' => 'nullable|string|max:20',
+            'parent_adresse' => 'nullable|string|max:255',
+            'classe_id' => 'required|exists:classes,id',
+            'parent_nom' => 'nullable|string|max:255',
+            'parent_telephone' => 'nullable|string|max:20',
+            'parent_telephone02' => 'nullable|string|max:20',
+        ]);
+
+        // Vérifier que l'inscription appartient bien à l'école de l'utilisateur
+        $inscription = Inscription::where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->findOrFail($id);
+        
+        $eleve = $inscription->eleve;
+
+        // Récupérer les valeurs des checkboxes
+        $transportActive = $request->has('transport_active') && $request->input('transport_active') == '1';
+        $cantineActive = $request->has('cantine_active') && $request->input('cantine_active') == '1';
+
+        // Préparer les données de mise à jour de l'inscription
+        $inscriptionData = [
+            'classe_id' => $request->classe_id,
+            'cantine_active' => $cantineActive,
+            'transport_active' => $transportActive,
+        ];
+
+        // Gestion des dates pour le Transport
+        $transportDates = $this->handleServiceDates(
+            $transportActive,
+            $inscription->transport_active,
+            'transport_start_date',
+            'transport_end_date'
+        );
+        $inscriptionData = array_merge($inscriptionData, $transportDates);
+
+        // Gestion des dates pour la Cantine
+        $cantineDates = $this->handleServiceDates(
+            $cantineActive,
+            $inscription->cantine_active,
+            'cantine_start_date',
+            'cantine_end_date'
+        );
+        $inscriptionData = array_merge($inscriptionData, $cantineDates);
+
+        // Log des changements de dates
+        Log::info('Mise à jour des dates de service', [
+            'inscription_id' => $inscription->id,
+            'transport' => [
+                'active' => $transportActive,
+                'was_active' => $inscription->transport_active,
+                'start_date' => $transportDates['transport_start_date'] ?? $inscription->transport_start_date,
+                'end_date' => $transportDates['transport_end_date'] ?? $inscription->transport_end_date,
+            ],
+            'cantine' => [
+                'active' => $cantineActive,
+                'was_active' => $inscription->cantine_active,
+                'start_date' => $cantineDates['cantine_start_date'] ?? $inscription->cantine_start_date,
+                'end_date' => $cantineDates['cantine_end_date'] ?? $inscription->cantine_end_date,
+            ]
+        ]);
+
+        // Préparer les données de l'élève
+        $updateData = [
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'num_extrait' => $request->num_extrait,
+            'sexe' => $request->sexe,
+            'naissance' => $request->naissance,
+            'lieu_naissance' => $request->lieu_naissance,
+            'nationalite' => $request->nationalite ?? 'Ivoirienne',
+            'infos_medicales' => $request->infos_medicales,
+            'code_national' => $request->code_national,
+            'pere_nom' => $request->pere_nom,
+            'pere_contact' => $request->pere_contact,
+            'pere_contact02' => $request->pere_contact02,
+            'mere_nom' => $request->mere_nom,
+            'mere_contact' => $request->mere_contact,
+            'mere_contact02' => $request->mere_contact02,
+            'parent_adresse' => $request->parent_adresse,
+            'classe_id' => $request->classe_id,
+            'parent_nom' => $request->parent_nom ?? $request->pere_nom,
+            'parent_telephone' => $request->parent_telephone ?? $request->pere_contact,
+            'parent_telephone02' => $request->parent_telephone02 ?? $request->pere_contact02,
+        ];
+
+        // Gestion de la photo
+        if ($request->hasFile('photo_path') && $request->file('photo_path')->isValid()) {
+            // Supprimer l'ancienne photo si elle existe
+            if ($eleve->photo_path && \Storage::disk('public')->exists($eleve->photo_path)) {
+                \Storage::disk('public')->delete($eleve->photo_path);
+            }
+            
+            // Upload nouvelle photo dans le dossier "eleves_photos"
+            $path = $request->file('photo_path')->store('eleves_photos', 'public');
+            $updateData['photo_path'] = $path;
+        }
+
+        // Mettre à jour l'élève
+        $eleve->update($updateData);
+
+        // Mettre à jour l'inscription AVEC les dates
+        $inscription->update($inscriptionData);
+
+        // Log de l'activité
+        activity()
+            ->performedOn($eleve)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'matricule' => $eleve->matricule,
+                'nom' => $eleve->nom,
+                'prenom' => $eleve->prenom,
+                'transport_active' => $transportActive,
+                'cantine_active' => $cantineActive,
+                'transport_start_date' => $inscription->transport_start_date,
+                'transport_end_date' => $inscription->transport_end_date,
+                'cantine_start_date' => $inscription->cantine_start_date,
+                'cantine_end_date' => $inscription->cantine_end_date,
+                'ip' => $request->ip()
+            ])
+            ->log("Élève modifié : {$eleve->nom} {$eleve->prenom}");
+
+        return redirect()->route('eleves.index')->with('success', 'Élève modifié avec succès!');
+    }
 
     public function destroy($id)
     {
@@ -792,4 +779,7 @@ public function store(Request $request)
                 ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
     }
+
+
+  
 }

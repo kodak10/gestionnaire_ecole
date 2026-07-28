@@ -511,6 +511,7 @@ $(document).ready(function() {
             const select = $('#transport_tarif_select');
             select.empty();
             select.append('<option value="">-- Sélectionner un tarif --</option>');
+            select.append('<option value="0">❌ Ne fait plus le transport</option>');
             
             data.transport_tarifs.forEach(function(tarif) {
                 const selected = (data.selected_transport_tarif == tarif.tarif_id) ? 'selected' : '';
@@ -536,6 +537,8 @@ $(document).ready(function() {
             const select = $('#cantine_tarif_select');
             select.empty();
             select.append('<option value="">-- Sélectionner un tarif --</option>');
+            select.append('<option value="0">❌ Ne fait plus la cantine</option>');
+            
             
             data.cantine_tarifs.forEach(function(tarif) {
                 const selected = (data.selected_cantine_tarif == tarif.tarif_id) ? 'selected' : '';
