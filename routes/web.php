@@ -35,6 +35,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReductionController;
 use App\Http\Controllers\BilanScolaireController;
 use App\Http\Controllers\BilanFinancierController;
+use App\Http\Controllers\Admin\AnneeScolaireController;
 use App\Models\Eleve;
 use App\Models\AnneeScolaire;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,24 @@ use Illuminate\Support\Facades\Route;
     Route::get('/ecoles/{ecoleId}/annees-scolaires', [EcoleController::class, 'getAnneesScolaires']);
 
 
+    Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', [AnneeScolaireController::class, 'dashboard'])->name('dashboard');
+    
+    // Gestion des écoles
+    Route::post('/ecoles', [AnneeScolaireController::class, 'createEcole'])->name('ecoles.store');
+    Route::get('/ecoles/{id}/classes', [AnneeScolaireController::class, 'getClassesByEcole'])->name('ecoles.classes');
+    Route::get('/ecoles/{id}/niveaux', [AnneeScolaireController::class, 'getNiveauxByEcole'])->name('ecoles.niveaux');
+    Route::get('/ecoles/{id}/matieres', [AnneeScolaireController::class, 'getMatieresByEcole'])->name('ecoles.matieres');
+    
+    // Gestion des années scolaires
+    Route::post('/annees-scolaires', [AnneeScolaireController::class, 'createAnneeScolaire'])->name('annees.store');
+    Route::delete('/annees-scolaires/{id}', [AnneeScolaireController::class, 'deleteAnneeScolaire'])->name('annees.delete');
+    Route::patch('/annees-scolaires/{id}/toggle', [AnneeScolaireController::class, 'toggleAnneeScolaire'])->name('annees.toggle');
+    Route::post('/annees-scolaires/{id}/regenerate', [AnneeScolaireController::class, 'regenerateTables'])->name('annees.regenerate');
+    Route::get('/annees-scolaires/{id}/check-tables', [AnneeScolaireController::class, 'checkTables'])->name('annees.check-tables');
+});
 
 
     // Routes protégées

@@ -27,6 +27,20 @@
                 </li>
 
 
+                @hasanyrole('SuperAdministrateur')
+                <li>
+                    <h6 class="submenu-hdr"><span>Administration</span></h6>
+                    <ul>
+                        
+                        
+                        <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><i class="ti ti-chart-pie"></i><span>Dashboard</span></a></li>
+
+
+                        
+                    </ul>
+                </li>
+                @endhasanyrole
+
             
                 
                 <li>

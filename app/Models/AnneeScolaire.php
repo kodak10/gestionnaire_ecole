@@ -1,21 +1,23 @@
 <?php
+// app/Models/AnneeScolaire.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
-use Spatie\Activitylog\Support\LogOptions;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AnneeScolaire extends Model
 {
-    use LogsActivity;
+    use HasFactory;
+
+    protected $table = 'annee_scolaires';
 
     protected $fillable = [
+        'ecole_id',
         'annee',
         'date_debut',
         'date_fin',
-        'est_active',
-        'ecole_id'
+        'est_active'
     ];
 
     protected $casts = [
@@ -24,38 +26,93 @@ class AnneeScolaire extends Model
         'est_active' => 'boolean'
     ];
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly([
-                'annee',
-                'est_active',
-                'ecole_id'
-            ])
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs()
-            ->useLogName('annee_scolaire');
-    }
-
+    /**
+     * Récupérer l'année scolaire active
+     */
     public static function active()
     {
         return self::where('est_active', true)->firstOrFail();
     }
 
+    /**
+     * Relation avec l'école
+     */
     public function ecole()
     {
-        return $this->belongsTo(Ecole::class, 'ecole_id');
+        return $this->belongsTo(Ecole::class);
     }
 
+    /**
+     * Relation avec les utilisateurs
+     */
     public function users()
     {
-        return $this->belongsToMany(
-            User::class,
-            'user_annees_scolaires',
-            'annee_scolaire_id',
-            'user_id'
-        )
-        ->withPivot('ecole_id')
-        ->withTimestamps();
+        return $this->belongsToMany(User::class, 'user_annees_scolaires')
+            ->withPivot('ecole_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Relation avec les classes
+     */
+    public function classes()
+    {
+        return $this->hasMany(Classe::class);
+    }
+
+    /**
+     * Relation avec les tarifs
+     */
+    public function tarifs()
+    {
+        return $this->hasMany(Tarif::class);
+    }
+
+    /**
+     * Relation avec les types de frais
+     */
+    public function typeFrais()
+    {
+        return $this->hasMany(TypeFrais::class);
+    }
+
+    /**
+     * Relation avec les mois scolaires
+     */
+    public function moisScolaires()
+    {
+        return $this->hasMany(MoisScolaire::class);
+    }
+
+    /**
+     * Relation avec les élèves
+     */
+    public function eleves()
+    {
+        return $this->hasMany(Eleve::class);
+    }
+
+    /**
+     * Relation avec les inscriptions
+     */
+    public function inscriptions()
+    {
+        return $this->hasMany(Inscription::class);
+    }
+
+    /**
+     * Scope pour l'année active
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('est_active', true);
+    }
+
+    /**
+     * Scope pour l'année en cours
+     */
+    public function scopeCurrent($query)
+    {
+        return $query->where('annee', date('Y') . '-' . (date('Y') + 1));
     }
 }
