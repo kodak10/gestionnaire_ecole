@@ -13,11 +13,21 @@ return new class extends Migration
     {
         Schema::create('paiement_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('inscription_id')->constrained();
-            $table->foreignId('type_frais_id')->constrained();
-            $table->foreignId('paiement_id')->constrained()->onDelete('cascade');
+            $table->foreignId('paiement_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('inscription_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('type_frais_id')
+                ->nullable()
+                ->constrained('type_frais')
+                ->nullOnDelete();
+
+            $table->foreignId('tarif_id')
+                ->nullable()
+                ->constrained('tarifs')
+                ->nullOnDelete();
+
             $table->decimal('montant', 10, 2);
             $table->timestamps();
+            $table->unique(['paiement_id', 'inscription_id', 'tarif_id'], 'unique_paiement_tarif');
         });
     }
 

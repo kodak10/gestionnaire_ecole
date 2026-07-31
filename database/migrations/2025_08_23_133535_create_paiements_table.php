@@ -15,11 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires');
             $table->foreignId('ecole_id')->constrained();
-
             $table->decimal('montant', 10, 2);
-            $table->string('mode_paiement'); // Espèce, Chèque, Mobile Money...
-            $table->string('reference')->nullable(); // N° chèque ou transaction
-            $table->foreignId('user_id')->constrained(); // Caissier qui a encaissé
+            $table->string('mode_paiement');
+            $table->string('reference')->nullable();
+            $table->foreignId('user_id')->constrained();
             $table->timestamps();
         });
     }

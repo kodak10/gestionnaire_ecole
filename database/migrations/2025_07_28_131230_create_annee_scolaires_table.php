@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('annee_scolaires', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ecole_id')->constrained('ecoles'); 
-            $table->string('annee'); // Ex: "2023-2024"
-            $table->date('date_debut');
-            $table->date('date_fin');
+            $table->foreignId('ecole_id')->constrained('ecoles')->cascadeOnDelete();
+            $table->string('annee');
+            $table->date('date_debut')->nullable();
+            $table->date('date_fin')->nullable();
             $table->boolean('est_active')->default(false);
             $table->timestamps();
+            $table->unique(['ecole_id', 'annee'], 'unique_annee_ecole');
         });
     }
 

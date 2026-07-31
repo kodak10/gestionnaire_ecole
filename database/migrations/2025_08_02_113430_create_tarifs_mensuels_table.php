@@ -12,17 +12,51 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tarifs_mensuels', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained();
-            $table->foreignId('type_frais_id')->constrained();
-            $table->foreignId('niveau_id')->constrained();
-            $table->foreignId('mois_id')->constrained('mois_scolaires');
-            $table->decimal('montant', 10, 2);
-            $table->timestamps();
+    $table->id();
 
-            $table->unique(['type_frais_id', 'niveau_id', 'mois_id', 'ecole_id'], 'unique_tarif_mensuel');
-        });
+    $table->foreignId('annee_scolaire_id')
+        ->constrained()
+        ->cascadeOnDelete();
+
+    $table->foreignId('ecole_id')
+        ->constrained()
+        ->cascadeOnDelete();
+
+    // Ancienne colonne pour import
+    $table->foreignId('type_frais_id')
+        ->nullable()
+        ->constrained('type_frais')
+        ->nullOnDelete();
+
+    // Nouvelle colonne
+    $table->foreignId('tarif_id')
+        ->nullable()
+        ->constrained('tarifs')
+        ->nullOnDelete();
+
+    $table->foreignId('niveau_id')
+        ->nullable()
+        ->constrained()
+        ->nullOnDelete();
+
+    $table->foreignId('mois_id')
+        ->constrained('mois_scolaires')
+        ->cascadeOnDelete();
+
+    $table->decimal('montant', 10, 2);
+
+    $table->timestamps();
+
+    $table->unique(
+        [
+            'tarif_id',
+            'niveau_id',
+            'mois_id',
+            'ecole_id'
+        ],
+        'unique_tarif_mensuel'
+    );
+});
     }
 
     /**

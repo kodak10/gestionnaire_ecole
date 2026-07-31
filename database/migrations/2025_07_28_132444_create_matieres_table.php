@@ -13,11 +13,9 @@ return new class extends Migration
     {
         Schema::create('matieres', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained(); 
-            $table->foreignId('niveau_id')->constrained();
+            $table->foreignId('ecole_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('niveau_id')->constrained()->cascadeOnDelete();
             $table->string('nom');
-            $table->integer('coefficient')->default(1);
             $table->timestamps();
         });
     }

@@ -18,11 +18,7 @@ return new class extends Migration
             $table->string('matricule')->nullable()->unique();
             $table->string('email')->nullable()->unique();
             $table->string('telephone')->nullable();
-            $table->string('genre')->nullable(); // M ou F
-            $table->string('specialite')->nullable(); // ex: Mathématiques, Français, etc.
-            $table->date('date_naissance')->nullable();
-            $table->string('adresse')->nullable();
-            $table->string('photo_path')->nullable();
+            $table->string('genre')->nullable(); 
             $table->timestamps();
         });
     }

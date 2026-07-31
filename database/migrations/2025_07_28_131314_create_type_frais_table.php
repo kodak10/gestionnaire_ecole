@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('type_frais', function (Blueprint $table) {
             $table->id();
             $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained(); 
-            $table->string('nom'); // Scolarité, Cantine, Transport...
+            $table->foreignId('ecole_id')->constrained();
+            $table->string('nom');
             $table->boolean('obligatoire')->default(false);
             $table->timestamps();
         });

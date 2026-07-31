@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('mois_scolaires', function (Blueprint $table) {
             $table->id();
-            $table->string('nom'); // Septembre, Octobre, etc.
-            $table->integer('numero'); // 1 à 12
+            $table->string('nom');
+            $table->integer('numero');
             $table->timestamps();
         });
     }

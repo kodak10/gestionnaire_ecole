@@ -15,10 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('annee_scolaire_id')->constrained();
             $table->foreignId('ecole_id')->constrained();
-            $table->string('nom')->unique(); // Exemple : Passable, Bien, Excellent
-            $table->text('description')->nullable(); // Explication optionnelle
-            $table->integer('min_note')->nullable(); // Note minimale (optionnelle)
-            $table->integer('max_note')->nullable(); // Note maximale (optionnelle)
+            $table->string('nom')->unique();
+            $table->integer('min_note')->nullable();
+            $table->integer('max_note')->nullable();
             $table->timestamps();
         });
     }

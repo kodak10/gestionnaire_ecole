@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('niveaux', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained(); 
-            $table->string('nom'); // PS, MS, GS, CP, CE1... CM2
+            $table->foreignId('ecole_id')->constrained()->cascadeOnDelete();
+            $table->string('nom');
+            $table->unsignedInteger('ordre')->default(0);
             $table->timestamps();
         });
     }

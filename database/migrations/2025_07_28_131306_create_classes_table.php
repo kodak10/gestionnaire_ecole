@@ -18,7 +18,8 @@ return new class extends Migration
             $table->foreignId('niveau_id')->constrained();
             $table->string('nom');
             $table->unsignedInteger('capacite')->default(50);
-            $table->foreignId('enseignant_id')->nullable()->constrained('users');
+            $table->decimal('moy_base', 10, 2)->default(20.00);
+            $table->foreignId('enseignant_id')->nullable()->constrained('enseignants');
             $table->timestamps();
         });
     }

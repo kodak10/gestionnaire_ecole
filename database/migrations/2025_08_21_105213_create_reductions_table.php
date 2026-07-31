@@ -12,17 +12,53 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('reductions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('annee_scolaire_id')->constrained();
-            $table->foreignId('ecole_id')->constrained();
-            $table->foreignId('inscription_id')->constrained()->onDelete('cascade');
-            $table->foreignId('type_frais_id')->nullable()->constrained('type_frais')->onDelete('set null');
-            $table->decimal('montant', 10, 2);
-            $table->string('raison')->nullable();
-            $table->timestamps();
-            
-            $table->unique(['inscription_id', 'annee_scolaire_id',]);
-        });
+    $table->id();
+
+    $table->foreignId('annee_scolaire_id')
+        ->constrained()
+        ->cascadeOnDelete();
+
+    $table->foreignId('ecole_id')
+        ->constrained()
+        ->cascadeOnDelete();
+
+    $table->foreignId('inscription_id')
+        ->constrained()
+        ->cascadeOnDelete();
+
+    // Ancienne colonne pour import
+    $table->foreignId('type_frais_id')
+        ->nullable()
+        ->constrained('type_frais')
+        ->nullOnDelete();
+
+    // Nouvelle colonne
+    $table->foreignId('tarif_id')
+        ->nullable()
+        ->constrained('tarifs')
+        ->nullOnDelete();
+
+    $table->decimal('montant', 10, 2);
+
+    $table->string('raison')
+        ->nullable();
+
+    $table->foreignId('user_id')
+        ->nullable()
+        ->constrained()
+        ->nullOnDelete();
+
+    $table->timestamps();
+
+    $table->unique(
+        [
+            'inscription_id',
+            'tarif_id',
+            'annee_scolaire_id'
+        ],
+        'reductions_inscription_tarif_annee_unique'
+    );
+});
     }
 
     /**
