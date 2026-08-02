@@ -1,4 +1,5 @@
 <?php
+// app/Models/Enseignant.php
 
 namespace App\Models;
 
@@ -22,6 +23,9 @@ class Enseignant extends Model
         'photo_path',
     ];
 
+    // Table statique (pas de suffixe)
+    protected $table = 'enseignants';
+
     /**
      * Relation avec l'école
      */
@@ -38,5 +42,11 @@ class Enseignant extends Model
         return $this->hasMany(Classe::class);
     }
 
-   
+    /**
+     * Scope pour filtrer par école
+     */
+    public function scopeForEcole($query, $ecoleId)
+    {
+        return $query->where('ecole_id', $ecoleId);
+    }
 }

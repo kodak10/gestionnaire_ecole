@@ -1,4 +1,5 @@
 <?php
+// app/Models/Classe.php
 
 namespace App\Models;
 
@@ -7,6 +8,27 @@ use Illuminate\Database\Eloquent\Model;
 class Classe extends Model
 {
     protected $fillable = ['ecole_id', 'niveau_id', 'annee_scolaire_id', 'nom', 'capacite', 'moy_base', 'enseignant_id'];
+
+    // Le nom de la table est défini dynamiquement
+    protected $table = 'classes';
+
+    public function getTableName(int $ecoleId, string $annee): string
+    {
+        $sigle = $this->getEcoleSigle($ecoleId);
+        return 'classes_' . $sigle . '_' . str_replace('-', '_', $annee);
+    }
+
+    private function getEcoleSigle(int $ecoleId): string
+    {
+        $ecole = \DB::table('ecoles')->where('id', $ecoleId)->first();
+        if (!$ecole) {
+            return 'ecole';
+        }
+        if (!empty($ecole->sigle_ecole)) {
+            return strtoupper(trim($ecole->sigle_ecole));
+        }
+        return 'ecole';
+    }
 
     public function niveau()
     {
@@ -18,21 +40,9 @@ class Classe extends Model
         return $this->belongsTo(Ecole::class);
     }
     
-    public function inscriptions()
+    public function enseignants()
     {
-        return $this->hasMany(Inscription::class);
-    }
-
-    public function enseignant()
-    {
-        return $this->belongsTo(Enseignant::class);
-    }
-
-    public function matieres()
-    {
-        return $this->belongsToMany(Matiere::class)
-                    ->withPivot('coefficient')
-                    ->withTimestamps();
+        return $this->belongsTo(Enseignant::class, 'enseignant_id');
     }
 
     /**
@@ -51,33 +61,34 @@ class Classe extends Model
      */
     public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)
     {
-        return $query->where('classes.ecole_id', $ecoleId)
+        // Utiliser le nom de la table dynamique
+        $annee = \DB::table('annee_scolaires')->where('id', $anneeScolaireId)->value('annee');
+        $sigle = $this->getEcoleSigle($ecoleId);
+        $tableName = 'classes_' . $sigle . '_' . str_replace('-', '_', $annee);
+        
+        return $query->from($tableName . ' as classes')
+                    ->where('classes.ecole_id', $ecoleId)
                     ->where('classes.annee_scolaire_id', $anneeScolaireId);
     }
 
     /**
-     * Scope pour filtrer par école (sans année scolaire)
+     * Obtenir les élèves de cette classe pour l'année en cours
      */
-    public function scopeForEcole($query, $ecoleId)
+    public function eleves()
     {
-        return $query->where('classes.ecole_id', $ecoleId);
+        $ecoleId = $this->ecole_id;
+        $annee = \DB::table('annee_scolaires')->where('id', $this->annee_scolaire_id)->value('annee');
+        $sigle = $this->getEcoleSigle($ecoleId);
+        $tableName = 'eleves_' . $sigle . '_' . str_replace('-', '_', $annee);
+        
+        return $this->hasMany(Eleve::class, 'classe_id')->from($tableName);
     }
 
     /**
-     * Attacher des matières à une classe avec des coefficients spécifiques
+     * Compter les élèves de cette classe
      */
-    public function attacherMatieres(array $matieresAvecCoefficients)
+    public function countEleves()
     {
-        foreach ($matieresAvecCoefficients as $matiereId => $coefficient) {
-            $this->matieres()->attach($matiereId, ['coefficient' => $coefficient]);
-        }
-    }
-
-    /**
-     * Synchroniser les matières d'une classe
-     */
-    public function synchroniserMatieres(array $matieresAvecCoefficients)
-    {
-        $this->matieres()->sync($matieresAvecCoefficients);
+        return $this->eleves()->count();
     }
 }

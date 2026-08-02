@@ -11,8 +11,58 @@ use Illuminate\Support\Facades\Log;
 class AnneeScolaireService
 {
 
-     /**
-     * Formater le suffixe pour les tables (uniquement l'année)
+    /**
+     * Récupérer le sigle de l'école depuis la base de données
+     */
+    private function getEcoleSigle(int $ecoleId): string
+    {
+        $ecole = DB::table('ecoles')->where('id', $ecoleId)->first();
+        
+        if (!$ecole) {
+            return 'ecole';
+        }
+        
+        // Utiliser le sigle_ecole s'il existe
+        if (!empty($ecole->sigle_ecole)) {
+            $sigle = $this->cleanString($ecole->sigle_ecole);
+            $sigle = strtoupper(trim($sigle));
+            $sigle = str_replace(' ', '_', $sigle);
+            return $sigle;
+        }
+        
+        // Fallback : générer un sigle à partir du nom
+        $nom = $this->cleanString($ecole->nom_ecole ?? 'ecole');
+        $mots = explode(' ', $nom);
+        $sigle = '';
+        
+        foreach ($mots as $mot) {
+            if (!empty($mot)) {
+                $sigle .= strtoupper(substr($mot, 0, 1));
+            }
+        }
+        
+        if (strlen($sigle) < 2) {
+            $sigle = strtoupper(substr(str_replace(' ', '_', $nom), 0, 4));
+        }
+        
+        return substr($sigle, 0, 10);
+    }
+
+    /**
+     * Nettoyer une chaîne (enlever accents, caractères spéciaux)
+     */
+    private function cleanString(string $string): string
+    {
+        $string = str_replace(
+            ['é', 'è', 'ê', 'ë', 'à', 'â', 'î', 'ï', 'ô', 'ö', 'û', 'ù', 'ç', 'É', 'È', 'Ê', 'Ë', 'À', 'Â', 'Î', 'Ï', 'Ô', 'Ö', 'Û', 'Ù', 'Ç'],
+            ['e', 'e', 'e', 'e', 'a', 'a', 'i', 'i', 'o', 'o', 'u', 'u', 'c', 'E', 'E', 'E', 'E', 'A', 'A', 'I', 'I', 'O', 'O', 'U', 'U', 'C'],
+            $string
+        );
+        return preg_replace('/[^a-zA-Z0-9_ ]/', '', $string);
+    }
+
+    /**
+     * Formater le suffixe pour les tables (année)
      */
     public function formatSuffix(string $annee): string
     {
@@ -20,103 +70,104 @@ class AnneeScolaireService
     }
 
     /**
-     * Créer toutes les tables pour une année scolaire
-     * SANS TRANSACTION - La transaction est gérée par le contrôleur
+     * Obtenir le nom de la table avec école et année
+     * Format: table_sigle_annee
      */
-    public function createTablesForYear(string $annee): array
+    private function getTableName(string $base, string $sigle, string $suffix): string
+    {
+        return $base . '_' . $sigle . '_' . $suffix;
+    }
+
+    /**
+     * Créer toutes les tables pour une année scolaire
+     */
+    public function createTablesForYear(string $annee, int $ecoleId): array
     {
         $suffix = $this->formatSuffix($annee);
+        $sigle = $this->getEcoleSigle($ecoleId);
         $tablesCrees = [];
         
         try {
-            Log::info('🚀 DÉBUT CRÉATION TABLES', ['annee' => $annee, 'suffix' => $suffix]);
-            
-            // 1. Tables de référence
-            Log::info('📋 1/5 Création des tables de référence...');
-            $this->createNiveauxTable($suffix);
-            $tablesCrees[] = 'niveaux_' . $suffix;
-            
-            $this->createMatieresTable($suffix);
-            $tablesCrees[] = 'matieres_' . $suffix;
-                        
-            // 2. Tables de liaison
-            Log::info('📋 2/5 Création des tables de liaison...');
-            $this->createClassesTable($suffix);
-            $tablesCrees[] = 'classes_' . $suffix;
-            
-            $this->createTarifsTable($suffix);
-            $tablesCrees[] = 'tarifs_' . $suffix;
-            
-            $this->createNiveauMatiereTable($suffix);
-            $tablesCrees[] = 'niveau_matiere_' . $suffix;
-            
-            $this->createMentionsTable($suffix);
-            $tablesCrees[] = 'mentions_' . $suffix;
-            
-            $this->createDepenseCategoriesTable($suffix);
-            $tablesCrees[] = 'depense_categories_' . $suffix;
-            
-            // 3. Tables principales
-            Log::info('📋 3/5 Création des tables principales...');
-            $this->createTarifsMensuelsTable($suffix);
-            $tablesCrees[] = 'tarifs_mensuels_' . $suffix;
-            
-            $this->createElevesTable($suffix);
-            $tablesCrees[] = 'eleves_' . $suffix;
-            
-            // 4. Tables de paiement
-            Log::info('📋 4/5 Création des tables de paiement...');
-            $this->createPaiementsTable($suffix);
-            $tablesCrees[] = 'paiements_' . $suffix;
-            
-            $this->createPaiementDetailsTable($suffix);
-            $tablesCrees[] = 'paiement_details_' . $suffix;
-            
-            $this->createReductionsTable($suffix);
-            $tablesCrees[] = 'reductions_' . $suffix;
-            
-            // 5. Tables de notes et moyennes
-            Log::info('📋 5/5 Création des tables de notes et moyennes...');
-            $this->createNotesTable($suffix);
-            $tablesCrees[] = 'notes_' . $suffix;
-            
-            $this->createMoyenneGeneraleTable($suffix);
-            $tablesCrees[] = 'moyenne_generale_' . $suffix;
-            
-            $this->createMoyenneMoisTable($suffix);
-            $tablesCrees[] = 'moyenne_mois_' . $suffix;
-            
-            $this->createDepensesTable($suffix);
-            $tablesCrees[] = 'depenses_' . $suffix;
-            
-            Log::info('✅ SUCCÈS: Toutes les tables ont été créées', [
-                'annee' => $annee,
-                'suffix' => $suffix,
-                'tables_crees' => $tablesCrees
+            Log::info('📦 Création des tables', [
+                'annee' => $annee, 
+                'ecole_id' => $ecoleId, 
+                'sigle' => $sigle
             ]);
+            
+            $this->createNiveauxTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('niveaux', $sigle, $suffix);
+            
+            $this->createMatieresTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('matieres', $sigle, $suffix);
+            
+            $this->createTypeFraisTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('type_frais', $sigle, $suffix);
+            
+            $this->createClassesTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('classes', $sigle, $suffix);
+            
+            $this->createTarifsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('tarifs', $sigle, $suffix);
+            
+            $this->createNiveauMatiereTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('niveau_matiere', $sigle, $suffix);
+            
+            $this->createMentionsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('mentions', $sigle, $suffix);
+            
+            $this->createDepenseCategoriesTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('depense_categories', $sigle, $suffix);
+            
+            $this->createTarifsMensuelsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('tarifs_mensuels', $sigle, $suffix);
+            
+            $this->createElevesTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('eleves', $sigle, $suffix);
+            
+            $this->createPaiementsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('paiements', $sigle, $suffix);
+            
+            $this->createPaiementDetailsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('paiement_details', $sigle, $suffix);
+            
+            $this->createReductionsTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('reductions', $sigle, $suffix);
+            
+            $this->createNotesTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('notes', $sigle, $suffix);
+            
+            $this->createMoyenneGeneraleTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('moyenne_generale', $sigle, $suffix);
+            
+            $this->createMoyenneMoisTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('moyenne_mois', $sigle, $suffix);
+            
+            $this->createDepensesTable($suffix, $sigle);
+            $tablesCrees[] = $this->getTableName('depenses', $sigle, $suffix);
+            
+            Log::info('✅ Tables créées', ['count' => count($tablesCrees)]);
             
             return [
                 'success' => true,
                 'message' => 'Tables créées avec succès',
                 'suffix' => $suffix,
+                'sigle' => $sigle,
                 'tables' => $tablesCrees
             ];
             
         } catch (\Exception $e) {
-            Log::error('❌ ERREUR CRÉATION TABLES', [
+            Log::error('❌ Erreur création tables', [
                 'annee' => $annee,
-                'suffix' => $suffix,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'tables_deja_crees' => $tablesCrees
+                'ecole_id' => $ecoleId,
+                'sigle' => $sigle,
+                'error' => $e->getMessage()
             ]);
             
-            // On retourne l'erreur pour que le contrôleur gère le rollback
             return [
                 'success' => false,
                 'message' => 'Erreur lors de la création des tables: ' . $e->getMessage(),
                 'suffix' => $suffix,
+                'sigle' => $sigle,
                 'tables_crees' => $tablesCrees
             ];
         }
@@ -125,42 +176,40 @@ class AnneeScolaireService
     /**
      * Supprimer les tables de force
      */
-    public function forceDropTables(string $suffix): void
+    public function forceDropTables(string $suffix, int $ecoleId): void
     {
-        Log::warning('🧹 Suppression forcée des tables', ['suffix' => $suffix]);
+        $sigle = $this->getEcoleSigle($ecoleId);
+        
+        Log::warning('🧹 Suppression forcée', ['suffix' => $suffix, 'sigle' => $sigle]);
         
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         
         $tables = [
-            'depenses_' . $suffix,
-            'moyenne_mois_' . $suffix,
-            'moyenne_generale_' . $suffix,
-            'notes_' . $suffix,
-            'reductions_' . $suffix,
-            'paiement_details_' . $suffix,
-            'paiements_' . $suffix,
-            'eleves_' . $suffix,
-            'tarifs_mensuels_' . $suffix,
-            'depense_categories_' . $suffix,
-            'mentions_' . $suffix,
-            'niveau_matiere_' . $suffix,
-            'tarifs_' . $suffix,
-            'classes_' . $suffix,
-            'type_frais_' . $suffix,
-            'matieres_' . $suffix,
-            'niveaux_' . $suffix,
+            $this->getTableName('depenses', $sigle, $suffix),
+            $this->getTableName('moyenne_mois', $sigle, $suffix),
+            $this->getTableName('moyenne_generale', $sigle, $suffix),
+            $this->getTableName('notes', $sigle, $suffix),
+            $this->getTableName('reductions', $sigle, $suffix),
+            $this->getTableName('paiement_details', $sigle, $suffix),
+            $this->getTableName('paiements', $sigle, $suffix),
+            $this->getTableName('eleves', $sigle, $suffix),
+            $this->getTableName('tarifs_mensuels', $sigle, $suffix),
+            $this->getTableName('depense_categories', $sigle, $suffix),
+            $this->getTableName('mentions', $sigle, $suffix),
+            $this->getTableName('niveau_matiere', $sigle, $suffix),
+            $this->getTableName('tarifs', $sigle, $suffix),
+            $this->getTableName('classes', $sigle, $suffix),
+            $this->getTableName('type_frais', $sigle, $suffix),
+            $this->getTableName('matieres', $sigle, $suffix),
+            $this->getTableName('niveaux', $sigle, $suffix),
         ];
         
         foreach (array_reverse($tables) as $table) {
             if (Schema::hasTable($table)) {
                 try {
                     Schema::dropIfExists($table);
-                    Log::debug('Table supprimée', ['table' => $table]);
                 } catch (\Exception $e) {
-                    Log::warning('Erreur suppression table', [
-                        'table' => $table,
-                        'error' => $e->getMessage()
-                    ]);
+                    // Ignorer
                 }
             }
         }
@@ -171,37 +220,37 @@ class AnneeScolaireService
     /**
      * Récupérer la liste des tables créées
      */
-    private function getCreatedTablesList(string $suffix): array
+    private function getCreatedTablesList(string $suffix, int $ecoleId): array
     {
+        $sigle = $this->getEcoleSigle($ecoleId);
+        
         return [
-            'niveaux_' . $suffix,
-            'matieres_' . $suffix,
-            'type_frais_' . $suffix,
-            'classes_' . $suffix,
-            'tarifs_' . $suffix,
-            'niveau_matiere_' . $suffix,
-            'mentions_' . $suffix,
-            'depense_categories_' . $suffix,
-            'tarifs_mensuels_' . $suffix,
-            'eleves_' . $suffix,
-            'paiements_' . $suffix,
-            'paiement_details_' . $suffix,
-            'reductions_' . $suffix,
-            'notes_' . $suffix,
-            'moyenne_generale_' . $suffix,
-            'moyenne_mois_' . $suffix,
-            'depenses_' . $suffix,
+            $this->getTableName('niveaux', $sigle, $suffix),
+            $this->getTableName('matieres', $sigle, $suffix),
+            $this->getTableName('type_frais', $sigle, $suffix),
+            $this->getTableName('classes', $sigle, $suffix),
+            $this->getTableName('tarifs', $sigle, $suffix),
+            $this->getTableName('niveau_matiere', $sigle, $suffix),
+            $this->getTableName('mentions', $sigle, $suffix),
+            $this->getTableName('depense_categories', $sigle, $suffix),
+            $this->getTableName('tarifs_mensuels', $sigle, $suffix),
+            $this->getTableName('eleves', $sigle, $suffix),
+            $this->getTableName('paiements', $sigle, $suffix),
+            $this->getTableName('paiement_details', $sigle, $suffix),
+            $this->getTableName('reductions', $sigle, $suffix),
+            $this->getTableName('notes', $sigle, $suffix),
+            $this->getTableName('moyenne_generale', $sigle, $suffix),
+            $this->getTableName('moyenne_mois', $sigle, $suffix),
+            $this->getTableName('depenses', $sigle, $suffix),
         ];
     }
 
-    
     /**
      * Créer la table des niveaux
      */
-    private function createNiveauxTable(string $suffix): void
+    private function createNiveauxTable(string $suffix, string $sigle): void
     {
-        $tableName = 'niveaux_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('niveaux', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) {
             $table->id();
@@ -217,31 +266,30 @@ class AnneeScolaireService
     /**
      * Créer la table des matières
      */
-    private function createMatieresTable(string $suffix): void
+    private function createMatieresTable(string $suffix, string $sigle): void
     {
-        $tableName = 'matieres_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('matieres', $sigle, $suffix);
+        $niveauxTable = $this->getTableName('niveaux', $sigle, $suffix);
         
-        Schema::create($tableName, function (Blueprint $table) use ($suffix) {
+        Schema::create($tableName, function (Blueprint $table) use ($niveauxTable) {
             $table->id();
             $table->foreignId('ecole_id')->constrained('ecoles')->cascadeOnDelete();
-            $table->foreignId('niveau_id')->constrained('niveaux_' . $suffix)->cascadeOnDelete();
+           // $table->foreignId('niveau_id')->constrained($niveauxTable)->cascadeOnDelete();
             $table->string('nom');
             $table->timestamps();
             
             $table->index(['ecole_id'], 'idx_ecole');
-            $table->index(['niveau_id'], 'idx_niveau');
-            $table->unique(['nom', 'ecole_id', 'niveau_id'], 'uq_nom_ecole_niveau');
+           // $table->index(['niveau_id'], 'idx_niveau');
+            $table->unique(['nom', 'ecole_id'], 'uq_nom_ecole_niveau');
         });
     }
 
     /**
      * Créer la table des types de frais
      */
-    private function createTypeFraisTable(string $suffix): void
+    private function createTypeFraisTable(string $suffix, string $sigle): void
     {
-        $tableName = 'type_frais_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('type_frais', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) {
             $table->id();
@@ -259,11 +307,10 @@ class AnneeScolaireService
     /**
      * Créer la table des classes
      */
-    private function createClassesTable(string $suffix): void
+    private function createClassesTable(string $suffix, string $sigle): void
     {
-        $tableName = 'classes_' . $suffix;
-        $niveauxTable = 'niveaux_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('classes', $sigle, $suffix);
+        $niveauxTable = $this->getTableName('niveaux', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($niveauxTable) {
             $table->id();
@@ -284,12 +331,11 @@ class AnneeScolaireService
     /**
      * Créer la table des tarifs
      */
-    private function createTarifsTable(string $suffix): void
+    private function createTarifsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'tarifs_' . $suffix;
+        $tableName = $this->getTableName('tarifs', $sigle, $suffix);
         $typeFraisTable = 'type_frais';
-        $niveauxTable = 'niveaux_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $niveauxTable = $this->getTableName('niveaux', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($typeFraisTable, $niveauxTable) {
             $table->id();
@@ -311,12 +357,11 @@ class AnneeScolaireService
     /**
      * Créer la table niveau_matiere
      */
-    private function createNiveauMatiereTable(string $suffix): void
+    private function createNiveauMatiereTable(string $suffix, string $sigle): void
     {
-        $tableName = 'niveau_matiere_' . $suffix;
-        $niveauxTable = 'niveaux_' . $suffix;
-        $matieresTable = 'matieres_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('niveau_matiere', $sigle, $suffix);
+        $niveauxTable = $this->getTableName('niveaux', $sigle, $suffix);
+        $matieresTable = $this->getTableName('matieres', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($niveauxTable, $matieresTable) {
             $table->id();
@@ -338,10 +383,9 @@ class AnneeScolaireService
     /**
      * Créer la table des mentions
      */
-    private function createMentionsTable(string $suffix): void
+    private function createMentionsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'mentions_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('mentions', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) {
             $table->id();
@@ -360,10 +404,9 @@ class AnneeScolaireService
     /**
      * Créer la table des catégories de dépenses
      */
-    private function createDepenseCategoriesTable(string $suffix): void
+    private function createDepenseCategoriesTable(string $suffix, string $sigle): void
     {
-        $tableName = 'depense_categories_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('depense_categories', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) {
             $table->id();
@@ -380,12 +423,11 @@ class AnneeScolaireService
     /**
      * Créer la table des tarifs mensuels
      */
-    private function createTarifsMensuelsTable(string $suffix): void
+    private function createTarifsMensuelsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'tarifs_mensuels_' . $suffix;
-        $tarifsTable = 'tarifs_' . $suffix;
-        $niveauxTable = 'niveaux_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('tarifs_mensuels', $sigle, $suffix);
+        $tarifsTable = $this->getTableName('tarifs', $sigle, $suffix);
+        $niveauxTable = $this->getTableName('niveaux', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($tarifsTable, $niveauxTable) {
             $table->id();
@@ -405,12 +447,11 @@ class AnneeScolaireService
     /**
      * Créer la table des élèves
      */
-    private function createElevesTable(string $suffix): void
+    private function createElevesTable(string $suffix, string $sigle): void
     {
-        $tableName = 'eleves_' . $suffix;
-        $tarifsTable = 'tarifs_' . $suffix;
-        $classesTable = 'classes_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('eleves', $sigle, $suffix);
+        $tarifsTable = $this->getTableName('tarifs', $sigle, $suffix);
+        $classesTable = $this->getTableName('classes', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($tarifsTable, $classesTable) {
             $table->id();
@@ -471,11 +512,10 @@ class AnneeScolaireService
     /**
      * Créer la table des paiements
      */
-    private function createPaiementsTable(string $suffix): void
+    private function createPaiementsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'paiements_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('paiements', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable) {
             $table->id();
@@ -496,13 +536,12 @@ class AnneeScolaireService
     /**
      * Créer la table des détails de paiement
      */
-    private function createPaiementDetailsTable(string $suffix): void
+    private function createPaiementDetailsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'paiement_details_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        $paiementsTable = 'paiements_' . $suffix;
-        $tarifsTable = 'tarifs_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('paiement_details', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $paiementsTable = $this->getTableName('paiements', $sigle, $suffix);
+        $tarifsTable = $this->getTableName('tarifs', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable, $paiementsTable, $tarifsTable) {
             $table->id();
@@ -520,12 +559,11 @@ class AnneeScolaireService
     /**
      * Créer la table des réductions
      */
-    private function createReductionsTable(string $suffix): void
+    private function createReductionsTable(string $suffix, string $sigle): void
     {
-        $tableName = 'reductions_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        $tarifsTable = 'tarifs_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('reductions', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $tarifsTable = $this->getTableName('tarifs', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable, $tarifsTable) {
             $table->id();
@@ -547,13 +585,12 @@ class AnneeScolaireService
     /**
      * Créer la table des notes
      */
-    private function createNotesTable(string $suffix): void
+    private function createNotesTable(string $suffix, string $sigle): void
     {
-        $tableName = 'notes_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        $classesTable = 'classes_' . $suffix;
-        $matieresTable = 'matieres_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('notes', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $classesTable = $this->getTableName('classes', $sigle, $suffix);
+        $matieresTable = $this->getTableName('matieres', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable, $classesTable, $matieresTable) {
             $table->id();
@@ -584,12 +621,11 @@ class AnneeScolaireService
     /**
      * Créer la table des moyennes générales
      */
-    private function createMoyenneGeneraleTable(string $suffix): void
+    private function createMoyenneGeneraleTable(string $suffix, string $sigle): void
     {
-        $tableName = 'moyenne_generale_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        $classesTable = 'classes_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('moyenne_generale', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $classesTable = $this->getTableName('classes', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable, $classesTable) {
             $table->id();
@@ -632,12 +668,11 @@ class AnneeScolaireService
     /**
      * Créer la table des moyennes par mois
      */
-    private function createMoyenneMoisTable(string $suffix): void
+    private function createMoyenneMoisTable(string $suffix, string $sigle): void
     {
-        $tableName = 'moyenne_mois_' . $suffix;
-        $elevesTable = 'eleves_' . $suffix;
-        $classesTable = 'classes_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('moyenne_mois', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $classesTable = $this->getTableName('classes', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($elevesTable, $classesTable) {
             $table->id();
@@ -675,11 +710,10 @@ class AnneeScolaireService
     /**
      * Créer la table des dépenses
      */
-    private function createDepensesTable(string $suffix): void
+    private function createDepensesTable(string $suffix, string $sigle): void
     {
-        $tableName = 'depenses_' . $suffix;
-        $categoriesTable = 'depense_categories_' . $suffix;
-        Log::debug('Création table: ' . $tableName);
+        $tableName = $this->getTableName('depenses', $sigle, $suffix);
+        $categoriesTable = $this->getTableName('depense_categories', $sigle, $suffix);
         
         Schema::create($tableName, function (Blueprint $table) use ($categoriesTable) {
             $table->id();
@@ -702,41 +736,37 @@ class AnneeScolaireService
         });
     }
 
+    // ============================================
+    // MÉTHODES DE SUPPRESSION ET VÉRIFICATION
+    // ============================================
+
     /**
      * Supprimer les tables d'une année scolaire
      */
-    public function dropTablesForYear(string $annee): array
+    public function dropTablesForYear(string $annee, int $ecoleId): array
     {
         $suffix = $this->formatSuffix($annee);
+        $sigle = $this->getEcoleSigle($ecoleId);
         $results = [];
-        
-        Log::info('🗑️ Suppression des tables', ['suffix' => $suffix]);
         
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         
-        $tables = array_reverse($this->getCreatedTablesList($suffix));
+        $tables = array_reverse($this->getCreatedTablesList($suffix, $ecoleId));
         
         foreach ($tables as $table) {
             if (Schema::hasTable($table)) {
                 try {
                     Schema::dropIfExists($table);
-                    $results[$table] = '✅ supprimée';
-                    Log::debug('Table supprimée', ['table' => $table]);
+                    $results[$table] = 'supprimée';
                 } catch (\Exception $e) {
-                    $results[$table] = '❌ erreur: ' . $e->getMessage();
-                    Log::warning('Erreur suppression table', [
-                        'table' => $table,
-                        'error' => $e->getMessage()
-                    ]);
+                    $results[$table] = 'erreur: ' . $e->getMessage();
                 }
             } else {
-                $results[$table] = '⏭️ n\'existe pas';
+                $results[$table] = 'n\'existe pas';
             }
         }
         
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        
-        Log::info('✅ Suppression terminée', ['suffix' => $suffix]);
         
         return [
             'success' => true,
@@ -748,12 +778,12 @@ class AnneeScolaireService
     /**
      * Vérifier si les tables existent pour une année
      */
-    public function checkTablesExist(string $annee): array
+    public function checkTablesExist(string $annee, int $ecoleId): array
     {
         $suffix = $this->formatSuffix($annee);
         $results = [];
         
-        $tables = $this->getCreatedTablesList($suffix);
+        $tables = $this->getCreatedTablesList($suffix, $ecoleId);
         
         foreach ($tables as $table) {
             $results[$table] = Schema::hasTable($table);
@@ -762,29 +792,336 @@ class AnneeScolaireService
         return $results;
     }
 
-    /**
- * Migrer les données de la table inscriptions vers eleves_XXXX_XXXX
- */
-public function migrateInscriptionsToEleves(string $annee, int $ecoleId): array
-{
-    try {
-        // Récupérer l'ID de l'année scolaire
-        $anneeScolaire = DB::table('annee_scolaires')
-            ->where('annee', $annee)
-            ->where('ecole_id', $ecoleId)
-            ->first();
+    // ============================================
+    // MÉTHODES DE MIGRATION DES DONNÉES
+    // ============================================
 
-        if (!$anneeScolaire) {
+    /**
+     * MIGRER LES DONNÉES DEPUIS L'ANNÉE PRÉCÉDENTE
+     */
+    public function migrateInscriptionsToEleves(string $annee, int $ecoleId): array
+    {
+        try {
+            Log::info('🔄 Migration des données', ['annee' => $annee, 'ecole_id' => $ecoleId]);
+            
+            $suffix = $this->formatSuffix($annee);
+            $sigle = $this->getEcoleSigle($ecoleId);
+            $results = [];
+            
+            // Récupérer l'ID de l'année scolaire créée
+            $anneeScolaire = DB::table('annee_scolaires')
+                ->where('annee', $annee)
+                ->where('ecole_id', $ecoleId)
+                ->first();
+
+            if (!$anneeScolaire) {
+                return [
+                    'success' => false,
+                    'message' => 'Année scolaire non trouvée'
+                ];
+            }
+
+            // Récupérer l'ID de l'année précédente
+            $anneePrecedente = $this->getAnneePrecedente($annee);
+            $anneeScolairePrecedente = DB::table('annee_scolaires')
+                ->where('annee', $anneePrecedente)
+                ->where('ecole_id', $ecoleId)
+                ->first();
+
+            // Vérifier si l'année précédente existe
+            if (!$anneeScolairePrecedente) {
+                Log::info('ℹ️ Année précédente non trouvée, aucune donnée à migrer', [
+                    'annee_precedente' => $anneePrecedente
+                ]);
+                
+                return [
+                    'success' => true,
+                    'message' => 'Aucune donnée à migrer (année précédente inexistante)',
+                    'count' => 0
+                ];
+            }
+
+            Log::info('📅 Migration depuis', [
+                'source' => $anneePrecedente,
+                'source_id' => $anneeScolairePrecedente->id,
+                'destination' => $annee
+            ]);
+
+            // 1. MIGRATION DES NIVEAUX (toujours)
+            $this->migrateNiveaux($suffix, $sigle, $ecoleId);
+            $results['niveaux'] = 'ok';
+
+            // 2. MIGRATION DES MATIERES (toujours)
+            $this->migrateMatieres($suffix, $sigle, $ecoleId);
+            $results['matieres'] = 'ok';
+
+            // 3. MIGRATION DES TABLES AVEC ANNEE_SCOLAIRE_ID
+            $this->migrateTypeFrais($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateClasses($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateTarifs($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateNiveauMatiere($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateMentions($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateDepenseCategories($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateTarifsMensuels($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $countEleves = $this->migrateEleves($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migratePaiements($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateReductions($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateNotes($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migrateDepenses($suffix, $sigle, $ecoleId, $anneeScolairePrecedente->id);
+            $this->migratePaiementDetails($suffix, $sigle, $ecoleId);
+
+            $results['eleves'] = $countEleves . ' élèves migrés';
+
+            Log::info('✅ Migration terminée', ['details' => $results]);
+
+            return [
+                'success' => true,
+                'message' => 'Données migrées avec succès depuis ' . $anneePrecedente,
+                'count' => $countEleves,
+                'details' => $results
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur migration', [
+                'annee' => $annee,
+                'ecole_id' => $ecoleId,
+                'error' => $e->getMessage()
+            ]);
+            
             return [
                 'success' => false,
-                'message' => 'Année scolaire non trouvée'
+                'message' => 'Erreur lors de la migration: ' . $e->getMessage()
             ];
         }
+    }
 
-        // Récupérer les inscriptions de l'année
+    /**
+     * Récupérer l'année précédente
+     */
+    private function getAnneePrecedente(string $annee): string
+    {
+        $parts = explode('_', $annee);
+        if (count($parts) == 2) {
+            $debut = intval($parts[0]) - 1;
+            $fin = intval($parts[1]) - 1;
+            return $debut . '_' . $fin;
+        }
+        return $annee;
+    }
+
+    // ============================================
+    // MÉTHODES DE MIGRATION PAR TABLE
+    // ============================================
+
+    private function migrateNiveaux(string $suffix, string $sigle, int $ecoleId): void
+    {
+        $tableName = $this->getTableName('niveaux', $sigle, $suffix);
+        
+        $niveaux = DB::table('niveaux')->where('ecole_id', $ecoleId)->get();
+        
+        foreach ($niveaux as $niveau) {
+            DB::table($tableName)->insert([
+                'id' => $niveau->id,
+                'ecole_id' => $niveau->ecole_id,
+                'nom' => $niveau->nom,
+                'ordre' => $niveau->ordre ?? 0,
+                'created_at' => $niveau->created_at,
+                'updated_at' => $niveau->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateMatieres(string $suffix, string $sigle, int $ecoleId): void
+    {
+        $tableName = $this->getTableName('matieres', $sigle, $suffix);
+        
+        $matieres = DB::table('matieres')->where('ecole_id', $ecoleId)->get();
+        
+        foreach ($matieres as $matiere) {
+            DB::table($tableName)->insert([
+                'id' => $matiere->id,
+                'ecole_id' => $matiere->ecole_id,
+                'niveau_id' => $matiere->niveau_id,
+                'nom' => $matiere->nom,
+                'created_at' => $matiere->created_at,
+                'updated_at' => $matiere->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateTypeFrais(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('type_frais', $sigle, $suffix);
+        
+        $typeFrais = DB::table('type_frais')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($typeFrais as $tf) {
+            DB::table($tableName)->insert([
+                'id' => $tf->id,
+                'annee_scolaire_id' => $tf->annee_scolaire_id,
+                'ecole_id' => $tf->ecole_id,
+                'nom' => $tf->nom,
+                'obligatoire' => $tf->obligatoire ?? false,
+                'created_at' => $tf->created_at,
+                'updated_at' => $tf->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateClasses(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('classes', $sigle, $suffix);
+        
+        $classes = DB::table('classes')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($classes as $classe) {
+            DB::table($tableName)->insert([
+                'id' => $classe->id,
+                'ecole_id' => $classe->ecole_id,
+                'annee_scolaire_id' => $classe->annee_scolaire_id,
+                'niveau_id' => $classe->niveau_id,
+                'nom' => $classe->nom,
+                'capacite' => $classe->capacite ?? 50,
+                'moy_base' => $classe->moy_base ?? 20,
+                'enseignant_id' => $classe->enseignant_id,
+                'created_at' => $classe->created_at,
+                'updated_at' => $classe->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateTarifs(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('tarifs', $sigle, $suffix);
+        
+        $tarifs = DB::table('tarifs')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($tarifs as $tarif) {
+            DB::table($tableName)->insert([
+                'id' => $tarif->id,
+                'annee_scolaire_id' => $tarif->annee_scolaire_id,
+                'ecole_id' => $tarif->ecole_id,
+                'type_frais_id' => $tarif->type_frais_id,
+                'niveau_id' => $tarif->niveau_id,
+                'libelle' => $tarif->libelle,
+                'obligatoire' => $tarif->obligatoire ?? false,
+                'montant' => $tarif->montant,
+                'created_at' => $tarif->created_at,
+                'updated_at' => $tarif->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateNiveauMatiere(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('niveau_matiere', $sigle, $suffix);
+        
+        $niveauMatieres = DB::table('niveau_matiere')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($niveauMatieres as $nm) {
+            DB::table($tableName)->insert([
+                'id' => $nm->id,
+                'annee_scolaire_id' => $nm->annee_scolaire_id,
+                'ecole_id' => $nm->ecole_id,
+                'niveau_id' => $nm->niveau_id,
+                'matiere_id' => $nm->matiere_id,
+                'coefficient' => $nm->coefficient ?? 1,
+                'ordre' => $nm->ordre ?? 0,
+                'denominateur' => $nm->denominateur ?? 20,
+                'created_at' => $nm->created_at,
+                'updated_at' => $nm->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateMentions(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('mentions', $sigle, $suffix);
+        
+        $mentions = DB::table('mentions')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($mentions as $mention) {
+            DB::table($tableName)->insert([
+                'id' => $mention->id,
+                'annee_scolaire_id' => $mention->annee_scolaire_id,
+                'ecole_id' => $mention->ecole_id,
+                'nom' => $mention->nom,
+                'min_note' => $mention->min_note,
+                'max_note' => $mention->max_note,
+                'created_at' => $mention->created_at,
+                'updated_at' => $mention->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateDepenseCategories(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('depense_categories', $sigle, $suffix);
+        
+        $categories = DB::table('depense_categories')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($categories as $categorie) {
+            DB::table($tableName)->insert([
+                'id' => $categorie->id,
+                'annee_scolaire_id' => $categorie->annee_scolaire_id,
+                'ecole_id' => $categorie->ecole_id,
+                'nom' => $categorie->nom,
+                'created_at' => $categorie->created_at,
+                'updated_at' => $categorie->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateTarifsMensuels(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('tarifs_mensuels', $sigle, $suffix);
+        
+        $tarifsMensuels = DB::table('tarifs_mensuels')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($tarifsMensuels as $tm) {
+            DB::table($tableName)->insert([
+                'id' => $tm->id,
+                'annee_scolaire_id' => $tm->annee_scolaire_id,
+                'ecole_id' => $tm->ecole_id,
+                'tarif_id' => $tm->tarif_id,
+                'niveau_id' => $tm->niveau_id,
+                'mois_id' => $tm->mois_id,
+                'montant' => $tm->montant,
+                'created_at' => $tm->created_at,
+                'updated_at' => $tm->updated_at,
+            ]);
+        }
+    }
+
+    private function migrateEleves(string $suffix, string $sigle, int $ecoleId, int $sourceId): int
+    {
+        $tableName = $this->getTableName('eleves', $sigle, $suffix);
+        $count = 0;
+        
         $inscriptions = DB::table('inscriptions')
             ->join('eleves', 'inscriptions.eleve_id', '=', 'eleves.id')
-            ->where('inscriptions.annee_scolaire_id', $anneeScolaire->id)
+            ->where('inscriptions.annee_scolaire_id', $sourceId)
             ->where('inscriptions.ecole_id', $ecoleId)
             ->select([
                 'eleves.*',
@@ -795,22 +1132,10 @@ public function migrateInscriptionsToEleves(string $annee, int $ecoleId): array
                 'inscriptions.transport_active',
                 'inscriptions.transport_tarif_id',
                 'inscriptions.transport_start_date',
-                'inscriptions.statut as inscription_statut',
-                'inscriptions.id as inscription_id'
+                'inscriptions.statut as inscription_statut'
             ])
             ->get();
 
-        $suffix = $this->formatSuffix($annee);
-        $tableName = 'eleves_' . $suffix;
-
-        if (!Schema::hasTable($tableName)) {
-            return [
-                'success' => false,
-                'message' => "La table {$tableName} n'existe pas"
-            ];
-        }
-
-        $count = 0;
         foreach ($inscriptions as $inscription) {
             $exists = DB::table($tableName)
                 ->where('matricule', $inscription->matricule)
@@ -819,7 +1144,7 @@ public function migrateInscriptionsToEleves(string $annee, int $ecoleId): array
 
             if (!$exists) {
                 DB::table($tableName)->insert([
-                    'annee_scolaire_id' => $anneeScolaire->id,
+                    'annee_scolaire_id' => $sourceId,
                     'ecole_id' => $inscription->ecole_id,
                     'classe_id' => $inscription->classe_id,
                     'matricule' => $inscription->matricule,
@@ -852,36 +1177,185 @@ public function migrateInscriptionsToEleves(string $annee, int $ecoleId): array
                     'cantine_start_date' => $inscription->cantine_start_date,
                     'statut' => $inscription->inscription_statut ?? 'active',
                     'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $inscription->created_at ?? now(),
+                    'updated_at' => $inscription->updated_at ?? now(),
                 ]);
                 $count++;
             }
         }
-
-        Log::info('Migration inscriptions terminée', [
-            'annee' => $annee,
-            'ecole_id' => $ecoleId,
-            'count' => $count
-        ]);
-
-        return [
-            'success' => true,
-            'message' => "{$count} élèves migrés avec succès",
-            'count' => $count
-        ];
-
-    } catch (\Exception $e) {
-        Log::error('Erreur migration inscriptions', [
-            'annee' => $annee,
-            'ecole_id' => $ecoleId,
-            'error' => $e->getMessage()
-        ]);
         
-        return [
-            'success' => false,
-            'message' => 'Erreur lors de la migration: ' . $e->getMessage()
-        ];
+        return $count;
     }
+
+    private function migratePaiements(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('paiements', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        
+        $paiements = DB::table('paiements')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($paiements as $paiement) {
+            $eleveExists = DB::table($elevesTable)->where('id', $paiement->eleve_id)->exists();
+                
+            if ($eleveExists) {
+                DB::table($tableName)->insert([
+                    'id' => $paiement->id,
+                    'annee_scolaire_id' => $paiement->annee_scolaire_id,
+                    'ecole_id' => $paiement->ecole_id,
+                    'eleve_id' => $paiement->eleve_id,
+                    'montant' => $paiement->montant,
+                    'mode_paiement' => $paiement->mode_paiement,
+                    'reference' => $paiement->reference,
+                    'user_id' => $paiement->user_id,
+                    'created_at' => $paiement->created_at,
+                    'updated_at' => $paiement->updated_at,
+                ]);
+            }
+        }
+    }
+
+    private function migratePaiementDetails(string $suffix, string $sigle, int $ecoleId): void
+    {
+        $tableName = $this->getTableName('paiement_details', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        $paiementsTable = $this->getTableName('paiements', $sigle, $suffix);
+        
+        $paiementsIds = DB::table($paiementsTable)->pluck('id')->toArray();
+            
+        if (empty($paiementsIds)) {
+            return;
+        }
+        
+        $details = DB::table('paiement_details')->whereIn('paiement_id', $paiementsIds)->get();
+        
+        foreach ($details as $detail) {
+            $eleveExists = DB::table($elevesTable)->where('id', $detail->eleve_id)->exists();
+                
+            if ($eleveExists) {
+                DB::table($tableName)->insert([
+                    'id' => $detail->id,
+                    'paiement_id' => $detail->paiement_id,
+                    'eleve_id' => $detail->eleve_id,
+                    'tarif_id' => $detail->tarif_id,
+                    'montant' => $detail->montant,
+                    'created_at' => $detail->created_at,
+                    'updated_at' => $detail->updated_at,
+                ]);
+            }
+        }
+    }
+
+    private function migrateReductions(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('reductions', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        
+        $reductions = DB::table('reductions')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($reductions as $reduction) {
+            $eleveExists = DB::table($elevesTable)->where('id', $reduction->eleve_id)->exists();
+                
+            if ($eleveExists) {
+                DB::table($tableName)->insert([
+                    'id' => $reduction->id,
+                    'annee_scolaire_id' => $reduction->annee_scolaire_id,
+                    'ecole_id' => $reduction->ecole_id,
+                    'eleve_id' => $reduction->eleve_id,
+                    'tarif_id' => $reduction->tarif_id,
+                    'montant' => $reduction->montant,
+                    'raison' => $reduction->raison,
+                    'user_id' => $reduction->user_id,
+                    'created_at' => $reduction->created_at,
+                    'updated_at' => $reduction->updated_at,
+                ]);
+            }
+        }
+    }
+
+    private function migrateNotes(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('notes', $sigle, $suffix);
+        $elevesTable = $this->getTableName('eleves', $sigle, $suffix);
+        
+        $notes = DB::table('notes')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($notes as $note) {
+            $eleveExists = DB::table($elevesTable)->where('id', $note->eleve_id)->exists();
+                
+            if ($eleveExists) {
+                DB::table($tableName)->insert([
+                    'id' => $note->id,
+                    'annee_scolaire_id' => $note->annee_scolaire_id,
+                    'ecole_id' => $note->ecole_id,
+                    'eleve_id' => $note->eleve_id,
+                    'classe_id' => $note->classe_id,
+                    'matiere_id' => $note->matiere_id,
+                    'mois_id' => $note->mois_id,
+                    'valeur' => $note->valeur,
+                    'coefficient' => $note->coefficient ?? 1,
+                    'appreciation' => $note->appreciation,
+                    'user_id' => $note->user_id,
+                    'created_at' => $note->created_at,
+                    'updated_at' => $note->updated_at,
+                ]);
+            }
+        }
+    }
+
+    private function migrateDepenses(string $suffix, string $sigle, int $ecoleId, int $sourceId): void
+    {
+        $tableName = $this->getTableName('depenses', $sigle, $suffix);
+        
+        $depenses = DB::table('depenses')
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $sourceId)
+            ->get();
+        
+        foreach ($depenses as $depense) {
+            DB::table($tableName)->insert([
+                'id' => $depense->id,
+                'annee_scolaire_id' => $depense->annee_scolaire_id,
+                'ecole_id' => $depense->ecole_id,
+                'libelle' => $depense->libelle,
+                'description' => $depense->description,
+                'montant' => $depense->montant,
+                'date_depense' => $depense->date_depense,
+                'depense_category_id' => $depense->depense_category_id,
+                'mode_paiement' => $depense->mode_paiement,
+                'beneficiaire' => $depense->beneficiaire,
+                'reference' => $depense->reference,
+                'justificatif' => $depense->justificatif,
+                'created_at' => $depense->created_at,
+                'updated_at' => $depense->updated_at,
+            ]);
+        }
+    }
+
+    /**
+ * Vérifier et afficher toutes les tables disponibles
+ */
+public function debugTables(int $ecoleId): array
+{
+    $sigle = $this->getEcoleSigle($ecoleId);
+    $allTables = Schema::getAllTables();
+    $tables = [];
+    
+    foreach ($allTables as $table) {
+        $tableName = is_array($table) ? reset($table) : $table;
+        if (str_contains($tableName, $sigle)) {
+            $tables[] = $tableName;
+        }
+    }
+    
+    return $tables;
 }
 }

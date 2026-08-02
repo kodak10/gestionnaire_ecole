@@ -74,38 +74,41 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($classes as $classe)
-                        <tr>
-                            <td>
-                                <div class="form-check form-check-md">
-                                    <input class="form-check-input" type="checkbox">
-                                </div>
-                            </td>
-                            <td>{{ $classe->niveau->nom }}</td>
-                            <td>{{ $classe->nom }}</td>
-                            <td>{{ $classe->capacite }}</td>
-                            <td>{{ $classe->inscriptions->count() }}</td>
+    @foreach($classes as $classe)
+    <tr>
+        <td>
+            <div class="form-check form-check-md">
+                <input class="form-check-input" type="checkbox">
+            </div>
+        </td>
+        <td>{{ $classe->niveau_nom ?? $classe->niveau->nom ?? '' }}</td>
+        <td>{{ $classe->nom }}</td>
+        <td>{{ $classe->capacite }}</td>
+        <td>{{ $classe->eleves_count ?? 0 }}</td>
+        <td>
+            <!-- Bouton Modifier -->
+            <button class="btn btn-white btn-icon btn-sm me-2 bg-success" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#edit_class_{{ $classe->id }}" 
+                    title="Modifier">
+                <i class="ti ti-edit-circle text-white"></i>
+            </button>
 
-                            <td>
-                                <!-- Bouton Modifier -->
-                                <button class="btn btn-white btn-icon btn-sm me-2 bg-success" data-bs-toggle="modal" data-bs-target="#edit_class_{{ $classe->id }}" title="Modifier">
-                                    <i class="ti ti-edit-circle text-white"></i>
-                                </button>
-
-                                <!-- Bouton Supprimer -->
-                                <form action="{{ route('classes.destroy', $classe->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de cette classe ?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-white btn-icon btn-sm  bg-danger text-white" title="Supprimer">
-                                        <i class="ti ti-trash-x"></i>
-                                    </button>
-                                </form>
-                            </td>
-                            
-                            
-                        </tr>
-                        @endforeach
-                    </tbody>
+            <!-- Bouton Supprimer -->
+            <form action="{{ route('classes.destroy', $classe->id) }}" 
+                  method="POST" 
+                  class="d-inline" 
+                  onsubmit="return confirm('Confirmez-vous la suppression de cette classe ?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-white btn-icon btn-sm bg-danger text-white" title="Supprimer">
+                    <i class="ti ti-trash-x"></i>
+                </button>
+            </form>
+        </td>
+    </tr>
+    @endforeach
+</tbody>
                 </table>
             </div>
         </div>

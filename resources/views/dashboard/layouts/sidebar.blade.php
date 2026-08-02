@@ -182,6 +182,7 @@
                                 <i class="ti ti-book"></i><span>Scolaires</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
+                                <li><a href="{{ route('niveaux.index') }}" class="{{ request()->routeIs('niveaux.index') ? 'active' : '' }}">Niveaux</a></li>
                                 <li><a href="{{ route('classes.index') }}" class="{{ request()->routeIs('classes.index') ? 'active' : '' }}">Classes</a></li>
                                 <li><a href="{{ route('enseignants.index') }}" class="{{ request()->routeIs('enseignants.index') ? 'active' : '' }}">Enseignants</a></li>
                                 <li><a href="{{ route('matieres.index') }}" class="{{ request()->routeIs('matieres.index') ? 'active' : '' }}">Matières</a></li>

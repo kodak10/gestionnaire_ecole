@@ -35,6 +35,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReductionController;
 use App\Http\Controllers\BilanScolaireController;
 use App\Http\Controllers\BilanFinancierController;
+use App\Http\Controllers\NiveauController;
 use App\Http\Controllers\Admin\AnneeScolaireController;
 use App\Models\Eleve;
 use App\Models\AnneeScolaire;
@@ -91,6 +92,8 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('parametrages')->group(function() {
             Route::get('/ecole', [EcoleController::class, 'index'])->name('ecoles.index');
             Route::put('/ecole', [EcoleController::class, 'update'])->name('ecoles.update');
+
+            Route::resource('niveaux', NiveauController::class);
 
             Route::resource('classes', ClasseController::class);
             Route::get('classes/export/{type}', [ClasseController::class, 'export'])->name('classes.export');

@@ -187,10 +187,9 @@ class AnneeScolaireController extends Controller
             // ============================================
             Log::info('🚀 Création des tables pour l\'année', ['annee' => $request->annee]);
             
-            $result = $this->anneeService->createTablesForYear($request->annee);
+            $result = $this->anneeService->createTablesForYear($request->annee, $request->ecole_id);
 
             if (!$result['success']) {
-                // Si les tables échouent, on supprime l'année scolaire
                 Log::error('❌ Échec création des tables, suppression de l\'année', [
                     'annee' => $request->annee,
                     'error' => $result['message']
@@ -199,8 +198,7 @@ class AnneeScolaireController extends Controller
                 $anneeScolaire->delete();
                 Log::info('🗑️ Année scolaire supprimée', ['id' => $anneeScolaire->id]);
                 
-                // Nettoyer les tables partiellement créées
-                $this->anneeService->forceDropTables($this->anneeService->formatSuffix($request->annee));
+                $this->anneeService->forceDropTables($this->anneeService->formatSuffix($request->annee), $request->ecole_id);
                 Log::info('🧹 Tables nettoyées');
                 
                 return response()->json([
@@ -242,18 +240,13 @@ class AnneeScolaireController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // ============================================
-            // 4. GESTION DES ERREURS
-            // ============================================
             Log::error('❌ ERREUR CRÉATION ANNÉE SCOLAIRE', [
                 'annee' => $request->annee,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'line' => $e->getLine()
             ]);
 
-            // Rollback si transaction active
             try {
                 if (DB::transactionLevel() > 0) {
                     DB::rollBack();
@@ -265,7 +258,6 @@ class AnneeScolaireController extends Controller
                 ]);
             }
 
-            // Supprimer l'année scolaire si elle a été créée
             if ($anneeScolaire) {
                 try {
                     $anneeScolaire->delete();
@@ -277,10 +269,9 @@ class AnneeScolaireController extends Controller
                 }
             }
 
-            // Nettoyer les tables si elles ont été créées partiellement
             try {
                 $suffix = $this->anneeService->formatSuffix($request->annee);
-                $this->anneeService->forceDropTables($suffix);
+                $this->anneeService->forceDropTables($suffix, $request->ecole_id);
                 Log::info('🧹 Tables nettoyées après erreur');
             } catch (\Exception $cleanEx) {
                 Log::warning('⚠️ Erreur nettoyage tables', [
@@ -303,14 +294,14 @@ class AnneeScolaireController extends Controller
         try {
             $annee = AnneeScolaire::findOrFail($id);
             $anneeLibelle = $annee->annee;
+            $ecoleId = $annee->ecole_id;
             
             Log::info('🗑️ Suppression année scolaire', [
                 'id' => $id,
                 'annee' => $anneeLibelle
             ]);
 
-            // Supprimer les tables
-            $result = $this->anneeService->dropTablesForYear($anneeLibelle);
+            $result = $this->anneeService->dropTablesForYear($anneeLibelle, $ecoleId);
 
             if (!$result['success']) {
                 Log::error('❌ Erreur suppression tables', [
@@ -323,14 +314,10 @@ class AnneeScolaireController extends Controller
                 ], 500);
             }
 
-            // Supprimer l'année scolaire dans une transaction
             DB::transaction(function() use ($annee) {
-                // Supprimer les mois scolaires
                 MoisScolaire::where('numero', '>=', 1)
                     ->where('numero', '<=', 10)
                     ->delete();
-                
-                // Supprimer l'année scolaire
                 $annee->delete();
             });
             
@@ -344,9 +331,7 @@ class AnneeScolaireController extends Controller
         } catch (\Exception $e) {
             Log::error('❌ Erreur suppression année scolaire', [
                 'id' => $id,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'error' => $e->getMessage()
             ]);
             
             return response()->json([
@@ -369,7 +354,6 @@ class AnneeScolaireController extends Controller
                 'current_status' => $annee->est_active
             ]);
             
-            // Désactiver toutes les autres années de l'école
             AnneeScolaire::where('ecole_id', $annee->ecole_id)
                 ->where('id', '!=', $id)
                 ->update(['est_active' => false]);
@@ -408,14 +392,14 @@ class AnneeScolaireController extends Controller
     {
         try {
             $annee = AnneeScolaire::findOrFail($id);
+            $ecoleId = $annee->ecole_id;
             
             Log::info('🔄 Régénération des tables', [
                 'id' => $id,
                 'annee' => $annee->annee
             ]);
             
-            // Supprimer les anciennes tables
-            $result = $this->anneeService->dropTablesForYear($annee->annee);
+            $result = $this->anneeService->dropTablesForYear($annee->annee, $ecoleId);
             
             if (!$result['success']) {
                 Log::error('❌ Erreur suppression tables', [
@@ -428,8 +412,7 @@ class AnneeScolaireController extends Controller
                 ], 500);
             }
             
-            // Recréer les tables
-            $result = $this->anneeService->createTablesForYear($annee->annee);
+            $result = $this->anneeService->createTablesForYear($annee->annee, $ecoleId);
             
             if (!$result['success']) {
                 Log::error('❌ Erreur création tables', [
@@ -442,7 +425,6 @@ class AnneeScolaireController extends Controller
                 ], 500);
             }
 
-            // Recréer les données
             $migrationResult = $this->anneeService->migrateInscriptionsToEleves(
                 $annee->annee,
                 $annee->ecole_id
@@ -477,8 +459,9 @@ class AnneeScolaireController extends Controller
     {
         try {
             $annee = AnneeScolaire::findOrFail($id);
+            $ecoleId = $annee->ecole_id;
             
-            $tablesExist = $this->anneeService->checkTablesExist($annee->annee);
+            $tablesExist = $this->anneeService->checkTablesExist($annee->annee, $ecoleId);
 
             return response()->json([
                 'success' => true,
