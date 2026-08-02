@@ -1,9 +1,12 @@
 <?php
+// app/Models/TarifMensuel.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\TableService;
+use Illuminate\Support\Facades\App;
 
 class TarifMensuel extends Model
 {
@@ -23,6 +26,26 @@ class TarifMensuel extends Model
     protected $casts = [
         'montant' => 'decimal:2',
     ];
+
+    /**
+     * Définir la table dynamique pour le modèle
+     */
+    public function getTable()
+    {
+        if ($this->table !== 'tarifs_mensuels') {
+            return $this->table;
+        }
+        
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        if ($ecoleId && $annee) {
+            $this->table = $tableService->getTarifsMensuelsTableName($ecoleId, $annee);
+        }
+        
+        return $this->table;
+    }
 
     // Relation avec le tarif annuel
     public function tarif()

@@ -14,7 +14,7 @@ class Niveau extends Model
     protected $table = 'niveaux';
 
     /**
-     * Définir la table dynamique
+     * Définir la table dynamique pour le modèle
      */
     public function getTable()
     {
@@ -27,7 +27,7 @@ class Niveau extends Model
         $annee = session('current_annee_scolaire');
         
         if ($ecoleId && $annee) {
-            $this->table = $tableService->getTableName('niveaux', $ecoleId, $annee);
+            $this->table = $tableService->getNiveauxTableName($ecoleId, $annee);
         }
         
         return $this->table;
@@ -45,7 +45,6 @@ class Niveau extends Model
 
     public function matieres()
     {
-        // Matieres est statique
         return $this->belongsToMany(Matiere::class, 'niveau_matiere')
                     ->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id')
                     ->withTimestamps();
@@ -64,15 +63,5 @@ class Niveau extends Model
     public function scopeForEcole($query, $ecoleId)
     {
         return $query->where('ecole_id', $ecoleId);
-    }
-
-    public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)
-    {
-        $tableService = App::make(TableService::class);
-        $annee = \DB::table('annee_scolaires')->where('id', $anneeScolaireId)->value('annee');
-        $tableName = $tableService->getTableName('niveaux', $ecoleId, $annee);
-        
-        return $query->from($tableName . ' as niveaux')
-                    ->where('niveaux.ecole_id', $ecoleId);
     }
 }

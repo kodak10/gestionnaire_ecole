@@ -53,7 +53,6 @@ class Tarif extends Model
 
     public function niveau()
     {
-        // La relation niveau est dynamique
         return $this->belongsTo(Niveau::class);
     }
 
@@ -65,6 +64,11 @@ class Tarif extends Model
     public function anneeScolaire()
     {
         return $this->belongsTo(AnneeScolaire::class);
+    }
+
+    public function tarifsMensuels()
+    {
+        return $this->hasMany(TarifMensuel::class);
     }
 
     public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)

@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             //NiveauxSeeder::class,
             //TypeFraisSeeder::class,
             //DepenseCategorySeeder::class,
-            //MoisScolaireSeeder::class,
+            MoisScolaireSeeder::class,
 
             //UserSeeder::class,
             
@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
             // MatiereSeeder::class,
             // MentionSeeder::class,
             // EleveSeeder::class,
-            TarifSeeder::class,
-            TarifMensuelSeeder::class,
+            //TarifSeeder::class,
+            //TarifMensuelSeeder::class,
             // ClasseSeeder::class,
             // MatiereSeeder::class,
             // MentionSeeder::class,                         
