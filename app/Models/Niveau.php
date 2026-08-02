@@ -4,8 +4,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Services\TableService;
-use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Log;
 
 class Niveau extends Model
 {
@@ -14,23 +13,47 @@ class Niveau extends Model
     protected $table = 'niveaux';
 
     /**
-     * Définir la table dynamique pour le modèle
+     * Normaliser un sigle (minuscules, sans espaces, sans caractères spéciaux)
      */
-    public function getTable()
+    private function normalizeSigle(string $sigle): string
     {
-        if ($this->table !== 'niveaux') {
-            return $this->table;
+        $sigle = strtolower(trim($sigle));
+        $sigle = str_replace(' ', '_', $sigle);
+        $sigle = preg_replace('/[^a-z0-9_]/', '_', $sigle);
+        $sigle = preg_replace('/_+/', '_', $sigle);
+        return trim($sigle, '_');
+    }
+
+    /**
+     * Récupérer le sigle de l'école normalisé
+     */
+    private function getEcoleSigle(int $ecoleId): string
+    {
+        $ecole = \DB::table('ecoles')->where('id', $ecoleId)->first();
+        
+        if (!$ecole) {
+            return 'ecole';
         }
         
-        $tableService = App::make(TableService::class);
-        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
-        $annee = session('current_annee_scolaire');
-        
-        if ($ecoleId && $annee) {
-            $this->table = $tableService->getNiveauxTableName($ecoleId, $annee);
+        if (!empty($ecole->sigle_ecole)) {
+            return $this->normalizeSigle($ecole->sigle_ecole);
         }
         
-        return $this->table;
+        $nom = strtolower(trim($ecole->nom_ecole ?? 'ecole'));
+        $sigle = preg_replace('/[^a-z0-9]/', '', $nom);
+        $sigle = substr($sigle, 0, 10);
+        
+        return !empty($sigle) ? $sigle : 'ecole';
+    }
+
+    /**
+     * Obtenir le nom de la table dynamique
+     */
+    public function getTableName(int $ecoleId, string $annee): string
+    {
+        $sigle = $this->getEcoleSigle($ecoleId);
+        $anneeFormatted = str_replace('-', '_', $annee);
+        return 'niveaux_' . $sigle . '_' . $anneeFormatted;
     }
 
     public function classes()

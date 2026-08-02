@@ -1,4 +1,5 @@
 <?php
+// app/Exports/ElevesExport.php
 
 namespace App\Exports;
 
@@ -11,29 +12,39 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Illuminate\Support\Facades\DB;
 
 class ElevesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithEvents
 {
     protected $eleves;
     protected $filters;
     protected $columns;
+    protected $ecole;
 
-    public function __construct($eleves, $filters = [])
+    public function __construct($eleves, $filters = [], $ecole = null)
     {
         $this->eleves = $eleves;
         $this->filters = $filters;
+        $this->ecole = $ecole;
+
+        // Si l'école n'est pas passée en paramètre, la récupérer depuis la session
+        if (!$this->ecole) {
+            $ecoleId = session('current_ecole_id');
+            $this->ecole = DB::table('ecoles')->where('id', $ecoleId)->first();
+        }
 
         // Colonnes dynamiques selon les filtres
         $this->columns = [
             'matricule' => true,
             'nom_complet' => true,
-            'classe' => $filters['classe'] ?? false,
+            'classe' => true,
             'date_naissance' => true,
-            'sexe' => $filters['sexe'] ?? false,
+            'sexe' => true,
             'parent' => true,
             'telephone_parent' => true,
-            'cantine' => $filters['cantine'] ?? false,
-            'transport' => $filters['transport'] ?? false,
+            'cantine' => true,
+            'transport' => true,
             'date_inscription' => true,
         ];
     }
@@ -45,51 +56,88 @@ class ElevesExport implements FromCollection, WithHeadings, WithMapping, WithSty
 
     public function headings(): array
     {
-        $headings = [];
-        if ($this->columns['matricule']) $headings[] = 'Matricule';
-        if ($this->columns['nom_complet']) $headings[] = 'Nom Complet';
-        if ($this->columns['classe']) $headings[] = 'Classe';
-        if ($this->columns['date_naissance']) $headings[] = 'Date de Naissance';
-        if ($this->columns['sexe']) $headings[] = 'Sexe';
-        if ($this->columns['parent']) $headings[] = 'Parent';
-        if ($this->columns['telephone_parent']) $headings[] = 'Téléphone Parent';
-        if ($this->columns['cantine']) $headings[] = 'Cantine';
-        if ($this->columns['transport']) $headings[] = 'Transport';
-        if ($this->columns['date_inscription']) $headings[] = 'Date Inscription';
-        return $headings;
+        return [
+            'Matricule',
+            'Nom Complet',
+            'Classe',
+            'Date de Naissance',
+            'Sexe',
+            'Parent/Tuteur',
+            'Téléphone Parent',
+            'Cantine',
+            'Transport',
+            "Date d'Inscription"
+        ];
     }
 
-    public function map($inscription): array
+    public function map($eleve): array
     {
-        $row = [];
-        if ($this->columns['matricule']) $row[] = $inscription->eleve->code_national ?? $inscription->eleve->matricule;
-        if ($this->columns['nom_complet']) $row[] = $inscription->eleve->nom_complet;
-        if ($this->columns['classe']) $row[] = $inscription->classe->nom;
-        if ($this->columns['date_naissance']) $row[] = $inscription->eleve->naissance_formattee;
-        if ($this->columns['sexe']) $row[] = $inscription->eleve->sexe;
-        if ($this->columns['parent']) $row[] = $inscription->eleve->parent_nom;
-        if ($this->columns['telephone_parent']) $row[] = $inscription->eleve->parent_telephone;
-        if ($this->columns['cantine']) $row[] = $inscription->cantine_active ? 'Oui' : 'Non';
-        if ($this->columns['transport']) $row[] = $inscription->transport_active ? 'Oui' : 'Non';
-        if ($this->columns['date_inscription']) $row[] = $inscription->created_at->format('d/m/Y');
-        return $row;
+        return [
+            $eleve->matricule ?? '',
+            ($eleve->nom ?? '') . ' ' . ($eleve->prenom ?? ''),
+            $eleve->classe_nom ?? 'Non assigné',
+            $eleve->naissance ? date('d/m/Y', strtotime($eleve->naissance)) : '',
+            $eleve->sexe ?? '',
+            $eleve->parent_nom ?? $eleve->pere_nom ?? '',
+            $eleve->parent_telephone ?? $eleve->pere_contact ?? '',
+            $eleve->cantine_active ? 'Oui' : 'Non',
+            $eleve->transport_active ? 'Oui' : 'Non',
+            $eleve->created_at ? date('d/m/Y', strtotime($eleve->created_at)) : '',
+        ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        // Styles pour l'en-tête du tableau (ligne 5)
-        $sheet->getStyle('A5:' . $sheet->getHighestColumn() . '1')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '3498DB']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        // Dernière ligne des données
+        $lastRow = $this->eleves->count() + 5;
+
+        // Style de l'en-tête (ligne 5)
+        $sheet->getStyle('A5:' . $sheet->getHighestColumn() . '5')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size' => 11
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '2C3E50']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
         ]);
 
         // Bordures pour tout le tableau
-        $sheet->getStyle('A5:' . $sheet->getHighestColumn() . ($this->eleves->count() + 5))->applyFromArray([
+        $sheet->getStyle('A5:' . $sheet->getHighestColumn() . $lastRow)->applyFromArray([
             'borders' => [
-                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'BDC3C7']
+                ]
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER
             ]
         ]);
+
+        // Auto-size des colonnes
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Alternance des couleurs pour les lignes
+        $rowIndex = 6;
+        foreach ($this->eleves as $index => $eleve) {
+            $color = ($index % 2 == 0) ? 'F8F9FA' : 'FFFFFF';
+            $sheet->getStyle('A' . $rowIndex . ':' . $sheet->getHighestColumn() . $rowIndex)->applyFromArray([
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => $color]
+                ]
+            ]);
+            $rowIndex++;
+        }
 
         return [];
     }
@@ -98,27 +146,156 @@ class ElevesExport implements FromCollection, WithHeadings, WithMapping, WithSty
     {
         return [
             AfterSheet::class => function(AfterSheet $event) {
-                $event->sheet->insertNewRowBefore(1, 4);
+                $sheet = $event->sheet;
+                $lastColumn = $sheet->getHighestColumn();
+                $lastColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastColumn);
 
-                $event->sheet->setCellValue('A1', 'Liste des Élèves');
-                $event->sheet->mergeCells('A1:' . $event->sheet->getHighestColumn() . '1');
-                $event->sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+                // ============================================
+                // 1. ENTÊTE AVEC LOGO ET INFOS ÉCOLE
+                // ============================================
+                
+                // Lignes 1-4 pour l'en-tête
+                $sheet->insertNewRowBefore(1, 4);
 
-                $event->sheet->setCellValue('A2', 'Généré le: ' . date('d/m/Y'));
-                $event->sheet->mergeCells('A2:' . $event->sheet->getHighestColumn() . '2');
+                // --- Ligne 1: Logo + Nom école ---
+                $sheet->mergeCells('A1:B1');
+                $sheet->setCellValue('A1', '🏫 ' . ($this->ecole->nom_ecole ?? 'École'));
+                $sheet->getStyle('A1')->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'size' => 16,
+                        'color' => ['rgb' => '2C3E50']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_LEFT,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
 
+                // Titre du document (centré)
+                $sheet->mergeCells('C1:' . $lastColumn . '1');
+                $sheet->setCellValue('C1', 'LISTE DES ÉLÈVES');
+                $sheet->getStyle('C1')->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'size' => 18,
+                        'color' => ['rgb' => '2980B9']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
+
+                // --- Ligne 2: Informations de l'école ---
+                $infosEcole = [];
+                if ($this->ecole && $this->ecole->adresse) $infosEcole[] = '📌 ' . $this->ecole->adresse;
+                if ($this->ecole && $this->ecole->telephone) $infosEcole[] = '📞 ' . $this->ecole->telephone;
+                if ($this->ecole && $this->ecole->email) $infosEcole[] = '✉️ ' . $this->ecole->email;
+
+                $sheet->mergeCells('A2:' . $lastColumn . '2');
+                $sheet->setCellValue('A2', implode(' | ', $infosEcole));
+                $sheet->getStyle('A2')->applyFromArray([
+                    'font' => [
+                        'size' => 10,
+                        'color' => ['rgb' => '7F8C8D']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
+
+                // --- Ligne 3: Année scolaire et date de génération ---
+                $anneeScolaire = session('current_annee_scolaire') ?? date('Y') . '-' . (date('Y') + 1);
+                $sheet->mergeCells('A3:' . $lastColumn . '3');
+                $sheet->setCellValue('A3', 'Année Scolaire: ' . $anneeScolaire . ' | Généré le: ' . date('d/m/Y à H:i'));
+                $sheet->getStyle('A3')->applyFromArray([
+                    'font' => [
+                        'size' => 10,
+                        'color' => ['rgb' => '7F8C8D']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
+
+                // --- Ligne 4: Filtres appliqués ---
                 if (!empty($this->filters)) {
                     $filtresTexte = [];
                     foreach ($this->filters as $key => $value) {
-                        if ($value !== 'Tous') { // afficher uniquement si le filtre est appliqué
-                            $filtresTexte[] = ucfirst($key) . ': ' . $value;
+                        if ($value && $value !== 'Tous' && $value !== 'Toutes' && $value !== null) {
+                            $labels = [
+                                'classe' => 'Classe',
+                                'nom' => 'Nom',
+                                'sexe' => 'Sexe',
+                                'cantine' => 'Cantine',
+                                'transport' => 'Transport'
+                            ];
+                            $filtresTexte[] = ($labels[$key] ?? ucfirst($key)) . ': ' . $value;
                         }
                     }
                     if (!empty($filtresTexte)) {
-                        $event->sheet->setCellValue('A3', 'Filtres appliqués: ' . implode(' | ', $filtresTexte));
-                        $event->sheet->mergeCells('A3:' . $event->sheet->getHighestColumn() . '3');
+                        $sheet->mergeCells('A4:' . $lastColumn . '4');
+                        $sheet->setCellValue('A4', 'Filtres: ' . implode(' | ', $filtresTexte));
+                        $sheet->getStyle('A4')->applyFromArray([
+                            'font' => [
+                                'size' => 10,
+                                'color' => ['rgb' => '2980B9']
+                            ],
+                            'alignment' => [
+                                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                                'vertical' => Alignment::VERTICAL_CENTER
+                            ]
+                        ]);
                     }
                 }
+
+                // Hauteur des lignes d'en-tête
+                $sheet->getRowDimension(1)->setRowHeight(30);
+                $sheet->getRowDimension(2)->setRowHeight(20);
+                $sheet->getRowDimension(3)->setRowHeight(20);
+                if (!empty($filtresTexte)) {
+                    $sheet->getRowDimension(4)->setRowHeight(20);
+                }
+
+                // ============================================
+                // 2. STYLES SUPPLEMENTAIRES
+                // ============================================
+
+                // Pied de page
+                $lastRow = $this->eleves->count() + 5;
+                $footerRow = $lastRow + 2;
+
+                $sheet->mergeCells('A' . $footerRow . ':' . $lastColumn . $footerRow);
+                $sheet->setCellValue('A' . $footerRow, 'Total: ' . $this->eleves->count() . ' élèves');
+                $sheet->getStyle('A' . $footerRow)->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'size' => 11,
+                        'color' => ['rgb' => '2C3E50']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_LEFT,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
+
+                // Bandeau de bas de page
+                $footerRow2 = $footerRow + 1;
+                $sheet->mergeCells('A' . $footerRow2 . ':' . $lastColumn . $footerRow2);
+                $sheet->setCellValue('A' . $footerRow2, 'Document généré par ' . config('app.name', 'Gestion Scolaire'));
+                $sheet->getStyle('A' . $footerRow2)->applyFromArray([
+                    'font' => [
+                        'size' => 9,
+                        'color' => ['rgb' => '95A5A6']
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
             },
         ];
     }

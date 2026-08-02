@@ -1,3 +1,5 @@
+{{-- resources/views/dashboard/documents/liste.blade.php --}}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -71,23 +73,22 @@
         <div class="date">Généré le: {{ $date }}</div>
     </div>
 
-   
     <div class="filters">
         <h3>Filtres appliqués:</h3>
-        <div class="filter-item"><span class="filter-label">Classe:</span> {{ $filters['classe'] }}</div>
-        <div class="filter-item"><span class="filter-label">Sexe:</span> {{ $filters['sexe'] }}</div>
-        @isset($filters['cantine'])
+        <div class="filter-item"><span class="filter-label">Classe:</span> {{ $filters['classe'] ?? 'Toutes' }}</div>
+        <div class="filter-item"><span class="filter-label">Sexe:</span> {{ $filters['sexe'] ?? 'Tous' }}</div>
+        @if(isset($filters['cantine']) && $filters['cantine'] !== 'Tous' && $filters['cantine'] !== null)
             <div class="filter-item"><span class="filter-label">Cantine:</span> {{ $filters['cantine'] }}</div>
-        @endisset
-        @isset($filters['transport'])
+        @endif
+        @if(isset($filters['transport']) && $filters['transport'] !== 'Tous' && $filters['transport'] !== null)
             <div class="filter-item"><span class="filter-label">Transport:</span> {{ $filters['transport'] }}</div>
-        @endisset
+        @endif
+        @if(isset($filters['nom']) && $filters['nom'] !== 'Tous' && $filters['nom'] !== null)
+            <div class="filter-item"><span class="filter-label">Recherche:</span> {{ $filters['nom'] }}</div>
+        @endif
     </div>
 
-
     <table>
-       
-
         <thead>
             <tr>
                 <th>Matricule</th>
@@ -97,34 +98,40 @@
                 <th>Sexe</th>
                 <th>Parent</th>
                 <th>Téléphone</th>
-                @isset($filters['cantine'])
+                @if(isset($filters['cantine']) && $filters['cantine'] !== 'Tous' && $filters['cantine'] !== null)
                     <th>Cantine</th>
-                @endisset
-                @isset($filters['transport'])
+                @endif
+                @if(isset($filters['transport']) && $filters['transport'] !== 'Tous' && $filters['transport'] !== null)
                     <th>Transport</th>
-                @endisset
+                @endif
             </tr>
         </thead>
         <tbody>
-            @foreach($eleves as $inscription)
+            @foreach($eleves as $eleve)
             <tr>
-                <td>{{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</td>
-                <td>{{ $inscription->eleve->nom_complet }}</td>
-                <td>{{ $inscription->classe->nom }}</td>
-                <td>{{ $inscription->eleve->naissance_formattee }}</td>
-                <td>{{ $inscription->eleve->sexe }}</td>
-                <td>{{ $inscription->eleve->parent_nom }}</td>
-                <td>{{ $inscription->eleve->parent_telephone }} / {{ $inscription->eleve->parent_telephone02 }}</td>
-                @isset($filters['cantine'])
-                    <td>{{ $inscription->cantine_active ? 'Oui' : 'Non' }}</td>
-                @endisset
-                @isset($filters['transport'])
-                    <td>{{ $inscription->transport_active ? 'Oui' : 'Non' }}</td>
-                @endisset
+                <td>{{ $eleve->code_national ?? $eleve->matricule }}</td>
+                <td>{{ $eleve->nom }} {{ $eleve->prenom }}</td>
+                <td>{{ $eleve->classe_nom ?? 'Non assigné' }}</td>
+                <td>{{ $eleve->naissance ? date('d/m/Y', strtotime($eleve->naissance)) : '' }}</td>
+                <td>{{ $eleve->sexe ?? '' }}</td>
+                <td>{{ $eleve->parent_nom ?? $eleve->pere_nom ?? '' }}</td>
+                <td>
+                    @if($eleve->parent_telephone)
+                        {{ $eleve->parent_telephone }}
+                    @endif
+                    @if($eleve->parent_telephone02)
+                        / {{ $eleve->parent_telephone02 }}
+                    @endif
+                </td>
+                @if(isset($filters['cantine']) && $filters['cantine'] !== 'Tous' && $filters['cantine'] !== null)
+                    <td>{{ $eleve->cantine_active ? 'Oui' : 'Non' }}</td>
+                @endif
+                @if(isset($filters['transport']) && $filters['transport'] !== 'Tous' && $filters['transport'] !== null)
+                    <td>{{ $eleve->transport_active ? 'Oui' : 'Non' }}</td>
+                @endif
             </tr>
             @endforeach
         </tbody>
-
     </table>
 
     <div class="footer">

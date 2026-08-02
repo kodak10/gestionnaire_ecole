@@ -4,6 +4,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\TableService;
+use Illuminate\Support\Facades\App;
 
 class Eleve extends Model
 {
@@ -19,22 +21,32 @@ class Eleve extends Model
         'cantine_start_date', 'statut', 'is_active'
     ];
 
-    public function getTableName(int $ecoleId, string $annee): string
+    protected $table = 'eleves';
+
+    /**
+     * Définir la table dynamique pour le modèle
+     */
+    public function getTable()
     {
-        $sigle = $this->getEcoleSigle($ecoleId);
-        return 'eleves_' . $sigle . '_' . str_replace('-', '_', $annee);
+        if ($this->table !== 'eleves') {
+            return $this->table;
+        }
+        
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        if ($ecoleId && $annee) {
+            $this->table = $tableService->getElevesTableName($ecoleId, $annee);
+        }
+        
+        return $this->table;
     }
 
-    private function getEcoleSigle(int $ecoleId): string
+    public function getTableName(int $ecoleId, string $annee): string
     {
-        $ecole = \DB::table('ecoles')->where('id', $ecoleId)->first();
-        if (!$ecole) {
-            return 'ecole';
-        }
-        if (!empty($ecole->sigle_ecole)) {
-            return strtoupper(trim($ecole->sigle_ecole));
-        }
-        return 'ecole';
+        $tableService = App::make(TableService::class);
+        return $tableService->getElevesTableName($ecoleId, $annee);
     }
 
     public function classe()
@@ -50,5 +62,44 @@ class Eleve extends Model
     public function ecole()
     {
         return $this->belongsTo(Ecole::class);
+    }
+
+    public function inscriptions()
+    {
+        return $this->hasMany(Inscription::class);
+    }
+
+    public function reductions()
+    {
+        return $this->hasMany(Reduction::class);
+    }
+
+    public function reinscriptions()
+    {
+        return $this->hasMany(Reinscription::class);
+    }
+
+    /**
+     * Scope pour filtrer par école
+     */
+    public function scopeForEcole($query, $ecoleId)
+    {
+        return $query->where('ecole_id', $ecoleId);
+    }
+
+    /**
+     * Scope pour filtrer par année scolaire
+     */
+    public function scopeForAnnee($query, $anneeScolaireId)
+    {
+        return $query->where('annee_scolaire_id', $anneeScolaireId);
+    }
+
+    /**
+     * Scope pour filtrer par classe
+     */
+    public function scopeForClasse($query, $classeId)
+    {
+        return $query->where('classe_id', $classeId);
     }
 }

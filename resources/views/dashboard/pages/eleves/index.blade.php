@@ -29,12 +29,10 @@
                     class="dropdown-item rounded-1" 
                     target="_blank"><i class="ti ti-file-type-pdf me-2"></i>PDF</a>
                 </li>
-
                 <a href="{{ route('eleves.export') }}?{{ http_build_query(request()->query() + ['format' => 'excel']) }}"
-   class="dropdown-item rounded-1">
-   <i class="ti ti-file-type-xls me-2"></i>Excel
-</a>
-
+                   class="dropdown-item rounded-1">
+                   <i class="ti ti-file-type-xls me-2"></i>Excel
+                </a>
             </ul>	
         </div>                  
         <div class="mb-2">
@@ -156,12 +154,12 @@
 @if($viewMode == 'grid')
     <!-- Grid View -->
     <div class="row">
-        @foreach($inscriptions as $inscription)
+        @foreach($eleves as $eleve)
         <div class="col-xxl-3 col-xl-4 col-md-6 d-flex">
             <div class="card flex-fill">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <a href="{{ route('eleves.edit', $inscription->id) }}" class="link-primary">
-                        {{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}
+                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="link-primary">
+                        {{ $eleve->code_national ?? $eleve->matricule }}
                     </a>
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
@@ -170,15 +168,15 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end p-3">
                                 <li>
-                                    <a class="dropdown-item rounded-1" href="{{ route('eleves.edit', $inscription->id) }}">
+                                    <a class="dropdown-item rounded-1" href="{{ route('eleves.edit', $eleve->id) }}">
                                         <i class="ti ti-edit me-2"></i>Modifier
                                     </a>
                                 </li>
                                 <li>
-                                    <form action="{{ route('eleves.destroy', $inscription->id) }}" method="POST" id="delete-form-{{ $inscription->id }}">
+                                    <form action="{{ route('eleves.destroy', $eleve->id) }}" method="POST" id="delete-form-{{ $eleve->id }}">
                                         @csrf
                                         @method('DELETE')
-                                        <a class="dropdown-item rounded-1" href="#" onclick="event.preventDefault(); if(confirm('Êtes-vous sûr ?')) document.getElementById('delete-form-{{ $inscription->id }}').submit();">
+                                        <a class="dropdown-item rounded-1" href="#" onclick="event.preventDefault(); if(confirm('Êtes-vous sûr ?')) document.getElementById('delete-form-{{ $eleve->id }}').submit();">
                                             <i class="ti ti-trash me-2"></i>Supprimer
                                         </a>
                                     </form>
@@ -190,32 +188,32 @@
                 <div class="card-body">
                     <div class="bg-light-300 rounded-2 p-3 mb-3">
                         <div class="d-flex align-items-center">
-                            <a href="{{ route('eleves.edit', $inscription->id) }}" class="avatar avatar-lg flex-shrink-0">
+                            <a href="{{ route('eleves.edit', $eleve->id) }}" class="avatar avatar-lg flex-shrink-0">
                                 <img 
-                                    src="{{ $inscription->eleve->photo_url }}" 
+                                    src="{{ $eleve->photo_url }}" 
                                     class="img-fluid rounded-circle border border-2
-                                        {{ $inscription->eleve->sexe === 'Masculin' ? 'border-danger' : 'border-primary' }}" 
-                                    alt="{{ $inscription->eleve->nom_complet }}">
+                                        {{ $eleve->sexe === 'Masculin' ? 'border-danger' : 'border-primary' }}" 
+                                    alt="{{ $eleve->nom_complet }}">
                             </a>
 
                             <div class="ms-2">
-                                <h5 class="mb-0 text-dark"><a href="{{ route('eleves.edit', $inscription->id) }}">{{ $inscription->eleve->nom_complet }}</a></h5>
-                                <p>{{ $inscription->classe->nom }}</p>
+                                <h5 class="mb-0 text-dark"><a href="{{ route('eleves.edit', $eleve->id) }}">{{ $eleve->nom_complet }}</a></h5>
+                                <p>{{ $eleve->classe_nom ?? 'Non assigné' }}</p>
                             </div>
                         </div>	
                     </div>
                     <div class="d-flex align-items-center justify-content-between gx-2">
                         <div>
                             <p class="mb-0">Date de nais.</p>
-                            <p class="text-dark">{{ $inscription->eleve->naissance_formattee }}</p>
+                            <p class="text-dark">{{ $eleve->naissance_formattee }}</p>
                         </div>
                         <div>
                             <p class="mb-0">Genre</p>
-                            <p class="text-dark">{{ ucfirst($inscription->eleve->sexe) }}</p>
+                            <p class="text-dark">{{ ucfirst($eleve->sexe) }}</p>
                         </div>
                         <div>
                             <p class="mb-0">Inscrit le</p>
-                            <p class="text-dark">{{ $inscription->created_at->format('d/m/Y') }}</p>
+                            <p class="text-dark">{{ \Carbon\Carbon::parse($eleve->created_at)->format('d/m/Y') }}</p>
                         </div>
                     </div>
                 </div>
@@ -242,35 +240,35 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($inscriptions as $inscription)
+                        @foreach($eleves as $eleve)
                         <tr>
-                            <td>{{ $inscription->eleve->code_national ?? $inscription->eleve->matricule }}</td>
+                            <td>{{ $eleve->code_national ?? $eleve->matricule }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <img 
-                                        src="{{ $inscription->eleve->photo_url }}" 
+                                        src="{{ $eleve->photo_url }}" 
                                         alt="Photo"
-                                        class="rounded-circle border border-2 me-2 {{ $inscription->eleve->sexe === 'Masculin' ? 'border-danger' : 'border-primary' }}" 
+                                        class="rounded-circle border border-2 me-2 {{ $eleve->sexe === 'Masculin' ? 'border-danger' : 'border-primary' }}" 
                                         style="width: 50px; height: 50px; object-fit: cover;">
-                                    <div>{{ $inscription->eleve->nom_complet }}</div>
+                                    <div>{{ $eleve->nom_complet }}</div>
                                 </div>
                             </td>
-                            <td>{{ $inscription->classe->nom }}</td>
-                            <td>{{ $inscription->eleve->pere_nom ?? '-' }}</td>
-                            <td>{{ $inscription->eleve->mere_nom ?? '-' }}</td>
+                            <td>{{ $eleve->classe_nom ?? 'Non assigné' }}</td>
+                            <td>{{ $eleve->pere_nom ?? '-' }}</td>
+                            <td>{{ $eleve->mere_nom ?? '-' }}</td>
                             <td>
-                                <div>{{ $inscription->eleve->pere_contact ?? '-' }}</div>
-                                <small class="text-muted">{{ $inscription->eleve->mere_contact ?? '' }}</small>
+                                <div>{{ $eleve->pere_contact ?? '-' }}</div>
+                                <small class="text-muted">{{ $eleve->mere_contact ?? '' }}</small>
                             </td>
                             <td class="text-end">
                                 <div class="actions">
-                                    <a href="{{ route('eleves.edit', $inscription->id) }}" class="btn btn-sm bg-success-light me-2">
+                                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="btn btn-sm bg-success-light me-2">
                                         <i class="ti ti-eye"></i>
                                     </a>
-                                    <a href="{{ route('eleves.edit', $inscription->id) }}" class="btn btn-sm bg-primary-light me-2">
+                                    <a href="{{ route('eleves.edit', $eleve->id) }}" class="btn btn-sm bg-primary-light me-2">
                                         <i class="ti ti-edit"></i>
                                     </a>
-                                    <form action="{{ route('eleves.destroy', $inscription->id) }}" method="POST" style="display: inline-block;">
+                                    <form action="{{ route('eleves.destroy', $eleve->id) }}" method="POST" style="display: inline-block;">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('Êtes-vous sûr ?')">
@@ -290,7 +288,7 @@
 @endif
 
 <div class="d-flex justify-content-center mt-4 mb-5">
-    {{ $inscriptions->appends(request()->query())->links() }}
+    {{ $eleves->appends(request()->query())->links() }}
 </div>
 
 @endsection
@@ -298,7 +296,6 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
-    // Initialisation des tooltips
     $('[data-bs-toggle="tooltip"]').tooltip();
 });
 </script>
