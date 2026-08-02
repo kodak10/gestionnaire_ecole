@@ -23,7 +23,6 @@ class TableService
         'depense_categories',
         'documents',
         'document_templates',
-        // 'mentions' a été retiré car dynamique
     ];
 
     /**
@@ -195,6 +194,22 @@ class TableService
     }
 
     /**
+     * Obtenir le nom de la table des tarifs
+     */
+    public function getTarifsTableName(int $ecoleId, string $annee): string
+    {
+        return $this->getTableName('tarifs', $ecoleId, $annee);
+    }
+
+    /**
+     * Obtenir le nom de la table des tarifs mensuels
+     */
+    public function getTarifsMensuelsTableName(int $ecoleId, string $annee): string
+    {
+        return $this->getTableName('tarifs_mensuels', $ecoleId, $annee);
+    }
+
+    /**
      * Obtenir le nom de la table des élèves
      */
     public function getElevesTableName(int $ecoleId, string $annee): string
@@ -232,14 +247,6 @@ class TableService
     public function getReductionsTableName(int $ecoleId, string $annee): string
     {
         return $this->getTableName('reductions', $ecoleId, $annee);
-    }
-
-    /**
-     * Obtenir le nom de la table des tarifs mensuels
-     */
-    public function getTarifsMensuelsTableName(int $ecoleId, string $annee): string
-    {
-        return $this->getTableName('tarifs_mensuels', $ecoleId, $annee);
     }
 
     /**

@@ -1,8 +1,11 @@
 <?php
+// app/Models/Tarif.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\TableService;
+use Illuminate\Support\Facades\App;
 
 class Tarif extends Model
 {
@@ -21,6 +24,28 @@ class Tarif extends Model
         'montant' => 'decimal:2'
     ];
 
+    protected $table = 'tarifs';
+
+    /**
+     * Définir la table dynamique pour le modèle
+     */
+    public function getTable()
+    {
+        if ($this->table !== 'tarifs') {
+            return $this->table;
+        }
+        
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        if ($ecoleId && $annee) {
+            $this->table = $tableService->getTarifsTableName($ecoleId, $annee);
+        }
+        
+        return $this->table;
+    }
+
     public function typeFrais()
     {
         return $this->belongsTo(TypeFrais::class);
@@ -28,6 +53,7 @@ class Tarif extends Model
 
     public function niveau()
     {
+        // La relation niveau est dynamique
         return $this->belongsTo(Niveau::class);
     }
 
