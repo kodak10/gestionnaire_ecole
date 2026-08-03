@@ -958,5 +958,86 @@ private function genererMatriculeEleve(int $ecoleId): string
 
 
 
+    /**
+     * Récupérer les élèves d'une classe spécifique (API)
+     */
+    public function getByClasse(Request $request)
+    {
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeScolaireId = session('current_annee_scolaire_id');
+            $annee = session('current_annee_scolaire');
+
+            $classeId = $request->query('classe_id');
+
+            if (!$classeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le paramètre classe_id est requis'
+                ], 400);
+            }
+
+            Log::info('📋 Récupération des élèves par classe', [
+                'classe_id' => $classeId,
+                'ecole_id' => $ecoleId,
+                'annee_scolaire_id' => $anneeScolaireId
+            ]);
+
+            // Récupérer les noms des tables dynamiques
+            $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+            $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
+
+            // Récupérer les élèves de la classe
+            $eleves = DB::table($elevesTable . ' as e')
+                ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
+                ->where('e.ecole_id', $ecoleId)
+                ->where('e.annee_scolaire_id', $anneeScolaireId)
+                ->where('e.classe_id', $classeId)
+                ->where('e.is_active', 1)
+                ->select(
+                    'e.id',
+                    'e.nom',
+                    'e.prenom',
+                    'e.matricule',
+                    'e.sexe',
+                    'e.naissance',
+                    'e.cantine_active',
+                    'e.transport_active',
+                    'c.nom as classe_nom'
+                )
+                ->orderBy('e.nom', 'asc')
+                ->orderBy('e.prenom', 'asc')
+                ->get();
+
+            // Formater les données
+            $eleves->map(function($eleve) {
+                $eleve->nom_complet = $eleve->nom . ' ' . $eleve->prenom;
+                $eleve->naissance_formattee = $eleve->naissance ? date('d/m/Y', strtotime($eleve->naissance)) : '-';
+                return $eleve;
+            });
+
+            Log::info('📊 Élèves trouvés pour la classe', [
+                'classe_id' => $classeId,
+                'count' => $eleves->count()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $eleves
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la récupération des élèves par classe', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 }

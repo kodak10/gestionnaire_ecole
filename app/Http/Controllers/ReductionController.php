@@ -2,35 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Inscription;
 use App\Models\Reduction;
 use App\Models\Tarif;
 use App\Models\TypeFrais;
+use App\Services\TableService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ReductionController extends Controller
 {
-    public function __construct()
+    protected $tableService;
+
+    public function __construct(TableService $tableService)
     {
         $this->middleware(['role:SuperAdministrateur|Administrateur|Caissiere']);
+        $this->tableService = $tableService;
     }
 
+    /**
+     * Afficher la liste des réductions
+     */
     public function index()
     {
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $annee = session('current_annee_scolaire');
 
         Log::info('=== ReductionController index ===', [
             'ecole_id' => $ecoleId,
             'annee_scolaire_id' => $anneeScolaireId
         ]);
 
-        $reductions = Reduction::with(['inscription.eleve', 'inscription.classe', 'tarif.typeFrais'])
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->orderBy('created_at', 'desc')
+        // Récupérer les noms des tables dynamiques
+        $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
+        $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+        $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
+        $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
+
+        // Requête avec jointures dynamiques
+        $reductions = DB::table($reductionsTable . ' as r')
+            ->leftJoin($elevesTable . ' as e', 'r.eleve_id', '=', 'e.id')
+            ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
+            ->leftJoin($tarifsTable . ' as t', 'r.tarif_id', '=', 't.id')
+            ->where('r.ecole_id', $ecoleId)
+            ->where('r.annee_scolaire_id', $anneeScolaireId)
+            ->select(
+                'r.*',
+                'e.nom as eleve_nom',
+                'e.prenom as eleve_prenom',
+                'e.matricule',
+                'c.nom as classe_nom',
+                't.libelle as tarif_libelle',
+                't.montant as tarif_montant'
+            )
+            ->orderBy('r.created_at', 'desc')
             ->paginate(20);
 
         $typeFrais = TypeFrais::orderBy('nom')->get();
@@ -38,214 +64,146 @@ class ReductionController extends Controller
         return view('dashboard.pages.comptabilites.reductions.index', compact('reductions', 'typeFrais'));
     }
 
+    /**
+     * Récupérer la liste des élèves par classe (pour le select)
+     */
+    public function getEleves(Request $request)
+    {
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeScolaireId = session('current_annee_scolaire_id');
+            $annee = session('current_annee_scolaire');
 
-// public function getEleveData(Request $request)
-// {
-//     $request->validate([
-//         'inscription_id' => 'required|exists:inscriptions,id'
-//     ]);
+            $search = $request->get('search', '');
+            $classeId = $request->get('classe_id');
 
-//     try {
-//         $ecoleId = session('current_ecole_id');
-//         $anneeScolaireId = session('current_annee_scolaire_id');
+            Log::info('=== ReductionController getEleves ===', [
+                'search' => $search,
+                'classe_id' => $classeId,
+                'ecole_id' => $ecoleId,
+                'annee_scolaire_id' => $anneeScolaireId
+            ]);
 
-//         Log::info('=== ReductionController getEleveData ===', [
-//             'inscription_id' => $request->inscription_id,
-//             'ecole_id' => $ecoleId,
-//             'annee_scolaire_id' => $anneeScolaireId
-//         ]);
+            // Récupérer les noms des tables dynamiques
+            $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+            $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
 
-//         $inscription = Inscription::with(['eleve', 'classe.niveau'])
-//             ->where('ecole_id', $ecoleId)
-//             ->where('annee_scolaire_id', $anneeScolaireId)
-//             ->findOrFail($request->inscription_id);
+            // Requête pour récupérer les élèves
+            $query = DB::table($elevesTable . ' as e')
+                ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
+                ->where('e.ecole_id', $ecoleId)
+                ->where('e.annee_scolaire_id', $anneeScolaireId)
+                ->where('e.is_active', 1)
+                ->select(
+                    'e.id as eleve_id',
+                    'e.nom',
+                    'e.prenom',
+                    'e.matricule',
+                    'c.nom as classe_nom'
+                );
 
-//         $niveauId = $inscription->classe->niveau_id;
+            // Filtre par recherche (nom, prénom ou matricule)
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('e.nom', 'LIKE', '%' . $search . '%')
+                      ->orWhere('e.prenom', 'LIKE', '%' . $search . '%')
+                      ->orWhere('e.matricule', 'LIKE', '%' . $search . '%');
+                });
+            }
 
-//         Log::info('Inscription trouvée', [
-//             'inscription_id' => $inscription->id,
-//             'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-//             'cantine_active' => $inscription->cantine_active,
-//             'transport_active' => $inscription->transport_active,
-//             'transport_tarif_id' => $inscription->transport_tarif_id,
-//             'cantine_tarif_id' => $inscription->cantine_tarif_id,
-//             'niveau_id' => $niveauId
-//         ]);
+            // Filtre par classe
+            if (!empty($classeId)) {
+                $query->where('e.classe_id', $classeId);
+            }
 
-//         // Récupérer les réductions existantes
-//         $reductions = Reduction::where('inscription_id', $inscription->id)
-//             ->where('ecole_id', $ecoleId)
-//             ->where('annee_scolaire_id', $anneeScolaireId)
-//             ->get()
-//             ->keyBy('tarif_id');
+            // Récupérer les résultats
+            $eleves = $query->orderBy('e.nom', 'asc')
+                ->orderBy('e.prenom', 'asc')
+                ->limit(20)
+                ->get();
 
-//         Log::info('Réductions trouvées', ['count' => $reductions->count()]);
+            Log::info('Élèves trouvés', ['count' => $eleves->count()]);
 
-//         // Récupérer les types de frais pour identifier transport et cantine
-//         $transportTypeIds = TypeFrais::where('nom', 'LIKE', '%Transport%')
-//             ->orWhere('nom', 'LIKE', '%transport%')
-//             ->pluck('id')
-//             ->toArray();
-            
-//         $cantineTypeIds = TypeFrais::where('nom', 'LIKE', '%Cantine%')
-//             ->orWhere('nom', 'LIKE', '%cantine%')
-//             ->pluck('id')
-//             ->toArray();
+            return response()->json([
+                'success' => true,
+                'data' => $eleves->map(function($eleve) {
+                    return [
+                        'id' => $eleve->eleve_id,
+                        'nom_complet' => $eleve->nom . ' ' . $eleve->prenom,
+                        'matricule' => $eleve->matricule,
+                        'classe' => $eleve->classe_nom ?? 'Non inscrit'
+                    ];
+                })
+            ]);
 
-//         Log::info('Types de frais identifiés', [
-//             'transport_type_ids' => $transportTypeIds,
-//             'cantine_type_ids' => $cantineTypeIds
-//         ]);
+        } catch (\Exception $e) {
+            Log::error('ERREUR getEleves: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
-//         // Récupérer les tarifs pour le niveau de l'élève OU NULL (tous les niveaux)
-//         $tarifs = Tarif::where('ecole_id', $ecoleId)
-//             ->where('annee_scolaire_id', $anneeScolaireId)
-//             ->where(function($q) use ($niveauId) {
-//                 $q->where('niveau_id', $niveauId)
-//                   ->orWhereNull('niveau_id');
-//             })
-//             ->with('typeFrais')
-//             ->get();
-
-//         Log::info('Tarifs trouvés pour le niveau', [
-//             'count' => $tarifs->count(),
-//             'niveau_id' => $niveauId
-//         ]);
-
-//         // Séparer les tarifs par type
-//         $fraisData = [];
-//         $transportTarifs = [];
-//         $cantineTarifs = [];
-
-//         foreach ($tarifs as $tarif) {
-//             $typeNom = $tarif->typeFrais->nom ?? 'Inconnu';
-//             $reduction = $reductions->get($tarif->id);
-
-//             $item = [
-//                 'tarif_id' => $tarif->id,
-//                 'type_frais_id' => $tarif->type_frais_id,
-//                 'type_frais_nom' => $typeNom,
-//                 'montant_total' => $tarif->montant,
-//                 'reduction_actuelle' => $reduction->montant ?? 0,
-//                 'reduction_id' => $reduction->id ?? null,
-//                 'libelle' => $tarif->libelle ?? '',
-//                 'obligatoire' => (bool) $tarif->obligatoire,
-//                 'niveau_id' => $tarif->niveau_id
-//             ];
-
-//             // Vérifier si c'est un tarif de Transport ou Cantine
-//             $isTransport = in_array($tarif->type_frais_id, $transportTypeIds);
-//             $isCantine = in_array($tarif->type_frais_id, $cantineTypeIds);
-
-//             // GESTION TRANSPORT
-//             if ($isTransport) {
-//                 // Afficher UNIQUEMENT si transport_active = 1
-//                 if ($inscription->transport_active == 1) {
-//                     // Afficher si le tarif est obligatoire OU si c'est le tarif sélectionné
-//                     if ($tarif->obligatoire || $tarif->id == $inscription->transport_tarif_id) {
-//                         $transportTarifs[] = $item;
-//                         Log::info('Ajout transport tarif (service actif)', [
-//                             'libelle' => $item['libelle'], 
-//                             'montant' => $item['montant_total'],
-//                             'obligatoire' => $item['obligatoire'],
-//                             'est_selectionne' => ($tarif->id == $inscription->transport_tarif_id)
-//                         ]);
-//                     }
-//                 }
-//             } 
-//             // GESTION CANTINE
-//             elseif ($isCantine) {
-//                 // Afficher UNIQUEMENT si cantine_active = 1
-//                 if ($inscription->cantine_active == 1) {
-//                     // Afficher si le tarif est obligatoire OU si c'est le tarif sélectionné
-//                     if ($tarif->obligatoire || $tarif->id == $inscription->cantine_tarif_id) {
-//                         $cantineTarifs[] = $item;
-//                         Log::info('Ajout cantine tarif (service actif)', [
-//                             'libelle' => $item['libelle'], 
-//                             'montant' => $item['montant_total'],
-//                             'obligatoire' => $item['obligatoire'],
-//                             'est_selectionne' => ($tarif->id == $inscription->cantine_tarif_id)
-//                         ]);
-//                     }
-//                 }
-//             } 
-//             // AUTRES FRAIS - toujours affichés
-//             else {
-//                 $fraisData[] = $item;
-//                 Log::info('Ajout frais normal', [
-//                     'type' => $typeNom, 
-//                     'libelle' => $item['libelle']
-//                 ]);
-//             }
-//         }
-
-//         Log::info('Résumé des données', [
-//             'frais' => count($fraisData),
-//             'transport' => count($transportTarifs),
-//             'cantine' => count($cantineTarifs),
-//             'selected_transport' => $inscription->transport_tarif_id,
-//             'selected_cantine' => $inscription->cantine_tarif_id
-//         ]);
-
-//         return response()->json([
-//             'success' => true,
-//             'eleve' => [
-//                 'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-//                 'matricule' => $inscription->eleve->matricule,
-//                 'classe' => $inscription->classe->nom
-//             ],
-//             'frais' => $fraisData,
-//             'transport_tarifs' => $transportTarifs,
-//             'cantine_tarifs' => $cantineTarifs,
-//             'selected_transport_tarif' => $inscription->transport_tarif_id,
-//             'selected_cantine_tarif' => $inscription->cantine_tarif_id
-//         ]);
-
-//     } catch (\Exception $e) {
-//         Log::error('ERREUR getEleveData: ' . $e->getMessage());
-//         Log::error('Stack trace: ' . $e->getTraceAsString());
-//         return response()->json([
-//             'success' => false,
-//             'message' => $e->getMessage()
-//         ], 500);
-//     }
-// }
-
+/**
+ * Récupérer les données d'un élève pour les réductions
+ */
 public function getEleveData(Request $request)
 {
     $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id'
+        'eleve_id' => 'required|exists:eleves,id'
     ]);
 
     try {
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $annee = session('current_annee_scolaire');
 
         Log::info('=== ReductionController getEleveData ===', [
-            'inscription_id' => $request->inscription_id,
+            'eleve_id' => $request->eleve_id,
             'ecole_id' => $ecoleId,
             'annee_scolaire_id' => $anneeScolaireId
         ]);
 
-        $inscription = Inscription::with(['eleve', 'classe.niveau'])
-            ->where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->findOrFail($request->inscription_id);
+        // Récupérer les noms des tables dynamiques
+        $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+        $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
+        $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
+        $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
 
-        $niveauId = $inscription->classe->niveau_id;
+        // Récupérer l'élève avec sa classe
+        $eleve = DB::table($elevesTable . ' as e')
+            ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
+            ->where('e.id', $request->eleve_id)
+            ->where('e.ecole_id', $ecoleId)
+            ->where('e.annee_scolaire_id', $anneeScolaireId)
+            ->select(
+                'e.*',
+                'c.nom as classe_nom',
+                'c.niveau_id'
+            )
+            ->first();
 
-        Log::info('Inscription trouvée', [
-            'inscription_id' => $inscription->id,
-            'eleve' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-            'cantine_active' => $inscription->cantine_active,
-            'transport_active' => $inscription->transport_active,
-            'transport_tarif_id' => $inscription->transport_tarif_id,
-            'cantine_tarif_id' => $inscription->cantine_tarif_id,
-            'niveau_id' => $niveauId
+        if (!$eleve) {
+            throw new \Exception('Élève non trouvé');
+        }
+
+        $niveauId = $eleve->niveau_id;
+
+        Log::info('Élève trouvé', [
+            'eleve_id' => $eleve->id,
+            'eleve' => $eleve->nom . ' ' . $eleve->prenom,
+            'niveau_id' => $niveauId,
+            'transport_active' => $eleve->transport_active,
+            'cantine_active' => $eleve->cantine_active,
+            'transport_tarif_id' => $eleve->transport_tarif_id,
+            'cantine_tarif_id' => $eleve->cantine_tarif_id
         ]);
 
-        // Récupérer les réductions existantes
-        $reductions = Reduction::where('inscription_id', $inscription->id)
+        // Récupérer les réductions existantes pour cet élève
+        $reductions = DB::table($reductionsTable)
+            ->where('eleve_id', $eleve->id)
             ->where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->get()
@@ -270,13 +228,13 @@ public function getEleveData(Request $request)
         ]);
 
         // Récupérer TOUS les tarifs pour le niveau de l'élève OU NULL (tous les niveaux)
-        $tarifs = Tarif::where('ecole_id', $ecoleId)
+        $tarifs = DB::table($tarifsTable)
+            ->where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->where(function($q) use ($niveauId) {
                 $q->where('niveau_id', $niveauId)
                   ->orWhereNull('niveau_id');
             })
-            ->with('typeFrais')
             ->get();
 
         Log::info('Tarifs trouvés pour le niveau', [
@@ -284,13 +242,16 @@ public function getEleveData(Request $request)
             'niveau_id' => $niveauId
         ]);
 
+        // Récupérer les types de frais pour les noms
+        $typeFraisMap = TypeFrais::pluck('nom', 'id')->toArray();
+
         // Séparer les tarifs par type
-        $fraisData = [];           // Pour le tableau des réductions
-        $transportTarifsForSelect = []; // Pour la carte Transport
-        $cantineTarifsForSelect = [];   // Pour la carte Cantine
+        $fraisData = [];                    // Uniquement les frais à afficher (Scolarité, Inscription, etc.)
+        $transportTarifsForSelect = [];     // Tous les tarifs de transport (pour le select)
+        $cantineTarifsForSelect = [];       // Tous les tarifs de cantine (pour le select)
 
         foreach ($tarifs as $tarif) {
-            $typeNom = $tarif->typeFrais->nom ?? 'Inconnu';
+            $typeNom = $typeFraisMap[$tarif->type_frais_id] ?? 'Inconnu';
             $reduction = $reductions->get($tarif->id);
 
             $item = [
@@ -311,43 +272,41 @@ public function getEleveData(Request $request)
 
             // GESTION TRANSPORT
             if ($isTransport) {
-                // ✅ Vérifier d'abord si l'élève fait le service transport
-                if ($inscription->transport_active == 1) {
-                    // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
-                    if ($tarif->id == $inscription->transport_tarif_id || $tarif->obligatoire) {
-                        $fraisData[] = $item;
-                        Log::info('Ajout transport tarif au tableau (service actif)', [
-                            'libelle' => $item['libelle'],
-                            'selected' => ($tarif->id == $inscription->transport_tarif_id),
-                            'obligatoire' => $tarif->obligatoire
-                        ]);
-                    }
-                    
-                    // Pour la carte : TOUS les tarifs (pour permettre à l'élève de choisir)
-                    $transportTarifsForSelect[] = $item;
+                // Ajouter au select pour que l'utilisateur puisse choisir
+                $transportTarifsForSelect[] = $item;
+                
+                // Afficher dans la liste DES SEULEMENT SI :
+                // 1. L'élève a le transport actif ET
+                // 2. Le tarif est obligatoire OU c'est le tarif sélectionné
+                if ($eleve->transport_active == 1 && 
+                    ($tarif->obligatoire == 1 || $tarif->id == $eleve->transport_tarif_id)) {
+                    $fraisData[] = $item;
+                    Log::info('Ajout transport tarif au tableau', [
+                        'libelle' => $item['libelle'],
+                        'obligatoire' => $tarif->obligatoire,
+                        'est_selectionne' => ($tarif->id == $eleve->transport_tarif_id)
+                    ]);
                 }
-                // Si transport_active = 0, on n'ajoute RIEN
             } 
             // GESTION CANTINE
             elseif ($isCantine) {
-                // ✅ Vérifier d'abord si l'élève fait le service cantine
-                if ($inscription->cantine_active == 1) {
-                    // Pour le tableau : UNIQUEMENT si le tarif est sélectionné OU obligatoire
-                    if ($tarif->id == $inscription->cantine_tarif_id || $tarif->obligatoire) {
-                        $fraisData[] = $item;
-                        Log::info('Ajout cantine tarif au tableau (service actif)', [
-                            'libelle' => $item['libelle'],
-                            'selected' => ($tarif->id == $inscription->cantine_tarif_id),
-                            'obligatoire' => $tarif->obligatoire
-                        ]);
-                    }
-                    
-                    // Pour la carte : TOUS les tarifs (pour permettre à l'élève de choisir)
-                    $cantineTarifsForSelect[] = $item;
+                // Ajouter au select pour que l'utilisateur puisse choisir
+                $cantineTarifsForSelect[] = $item;
+                
+                // Afficher dans la liste DES SEULEMENT SI :
+                // 1. L'élève a la cantine active ET
+                // 2. Le tarif est obligatoire OU c'est le tarif sélectionné
+                if ($eleve->cantine_active == 1 && 
+                    ($tarif->obligatoire == 1 || $tarif->id == $eleve->cantine_tarif_id)) {
+                    $fraisData[] = $item;
+                    Log::info('Ajout cantine tarif au tableau', [
+                        'libelle' => $item['libelle'],
+                        'obligatoire' => $tarif->obligatoire,
+                        'est_selectionne' => ($tarif->id == $eleve->cantine_tarif_id)
+                    ]);
                 }
-                // Si cantine_active = 0, on n'ajoute RIEN
             } 
-            // AUTRES FRAIS - toujours affichés (Scolarité, Inscription, etc.)
+            // AUTRES FRAIS (Scolarité, Inscription, etc.) - toujours affichés
             else {
                 $fraisData[] = $item;
                 Log::info('Ajout frais normal', [
@@ -358,27 +317,29 @@ public function getEleveData(Request $request)
         }
 
         Log::info('Résumé des données', [
-            'frais (tableau)' => count($fraisData),
+            'frais (affichés)' => count($fraisData),
             'transport (select)' => count($transportTarifsForSelect),
             'cantine (select)' => count($cantineTarifsForSelect),
-            'selected_transport' => $inscription->transport_tarif_id,
-            'selected_cantine' => $inscription->cantine_tarif_id,
-            'transport_active' => $inscription->transport_active,
-            'cantine_active' => $inscription->cantine_active
+            'transport_active' => $eleve->transport_active,
+            'cantine_active' => $eleve->cantine_active,
+            'transport_selected' => $eleve->transport_tarif_id,
+            'cantine_selected' => $eleve->cantine_tarif_id
         ]);
 
         return response()->json([
             'success' => true,
             'eleve' => [
-                'nom_complet' => $inscription->eleve->nom . ' ' . $inscription->eleve->prenom,
-                'matricule' => $inscription->eleve->matricule,
-                'classe' => $inscription->classe->nom
+                'nom_complet' => $eleve->nom . ' ' . $eleve->prenom,
+                'matricule' => $eleve->matricule,
+                'classe' => $eleve->classe_nom
             ],
             'frais' => $fraisData,
             'transport_tarifs' => $transportTarifsForSelect,
             'cantine_tarifs' => $cantineTarifsForSelect,
-            'selected_transport_tarif' => $inscription->transport_tarif_id,
-            'selected_cantine_tarif' => $inscription->cantine_tarif_id
+            'selected_transport_tarif' => $eleve->transport_tarif_id ?? null,
+            'selected_cantine_tarif' => $eleve->cantine_tarif_id ?? null,
+            'transport_active' => $eleve->transport_active ?? 0,
+            'cantine_active' => $eleve->cantine_active ?? 0
         ]);
 
     } catch (\Exception $e) {
@@ -391,137 +352,156 @@ public function getEleveData(Request $request)
     }
 }
 
-
-
-public function updateTransportTarif(Request $request)
-{
-    $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'tarif_id' => 'required' // Accepte "0" pour désactivation
-    ]);
-
-    try {
-        $ecoleId = session('current_ecole_id');
-        $anneeScolaireId = session('current_annee_scolaire_id');
-
-        Log::info('=== updateTransportTarif ===', [
-            'inscription_id' => $request->inscription_id,
-            'tarif_id' => $request->tarif_id
+    /**
+     * Mettre à jour le tarif de transport d'un élève
+     */
+    public function updateTransportTarif(Request $request)
+    {
+        $request->validate([
+            'eleve_id' => 'required|exists:eleves,id',
+            'tarif_id' => 'required'
         ]);
 
-        $inscription = Inscription::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->findOrFail($request->inscription_id);
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeScolaireId = session('current_annee_scolaire_id');
+            $annee = session('current_annee_scolaire');
 
-        // Vérifier si c'est la désactivation (tarif_id = 0)
-        if ($request->tarif_id == 0) {
-            // Désactiver le transport - start_date à null
-            $inscription->update([
-                'transport_tarif_id' => null,
-                'transport_active' => false,
-                'transport_start_date' => null // 👈 Mettre à null
+            Log::info('=== updateTransportTarif ===', [
+                'eleve_id' => $request->eleve_id,
+                'tarif_id' => $request->tarif_id
             ]);
-            
-            $message = 'Transport désactivé avec succès';
-            Log::info('Transport désactivé', ['inscription_id' => $inscription->id]);
-        } else {
-            // Activer avec un nouveau tarif - start_date à maintenant
-            $inscription->update([
-                'transport_tarif_id' => $request->tarif_id,
-                'transport_active' => true,
-                'transport_start_date' => now() // 👈 Date d'activation
+
+            // Récupérer la table dynamique
+            $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+
+            // Vérifier si c'est la désactivation (tarif_id = 0)
+            if ($request->tarif_id == 0) {
+                DB::table($elevesTable)
+                    ->where('id', $request->eleve_id)
+                    ->where('ecole_id', $ecoleId)
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->update([
+                        'transport_tarif_id' => null,
+                        'transport_active' => 0,
+                        'transport_start_date' => null,
+                        'updated_at' => now()
+                    ]);
+                
+                $message = 'Transport désactivé avec succès';
+                Log::info('Transport désactivé', ['eleve_id' => $request->eleve_id]);
+            } else {
+                DB::table($elevesTable)
+                    ->where('id', $request->eleve_id)
+                    ->where('ecole_id', $ecoleId)
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->update([
+                        'transport_tarif_id' => $request->tarif_id,
+                        'transport_active' => 1,
+                        'transport_start_date' => now(),
+                        'updated_at' => now()
+                    ]);
+                
+                $message = 'Tarif de transport sélectionné avec succès';
+                Log::info('Tarif transport mis à jour', [
+                    'eleve_id' => $request->eleve_id,
+                    'transport_tarif_id' => $request->tarif_id
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
             ]);
-            
-            $message = 'Tarif de transport sélectionné avec succès';
-            Log::info('Tarif transport mis à jour', [
-                'inscription_id' => $inscription->id,
-                'transport_tarif_id' => $request->tarif_id,
-                'transport_start_date' => $inscription->transport_start_date
-            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ERREUR updateTransportTarif: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => $message
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('ERREUR updateTransportTarif: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 500);
     }
-}
 
-public function updateCantineTarif(Request $request)
-{
-    $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'tarif_id' => 'required' // Accepte "0" pour désactivation
-    ]);
-
-    try {
-        $ecoleId = session('current_ecole_id');
-        $anneeScolaireId = session('current_annee_scolaire_id');
-
-        Log::info('=== updateCantineTarif ===', [
-            'inscription_id' => $request->inscription_id,
-            'tarif_id' => $request->tarif_id
+    /**
+     * Mettre à jour le tarif de cantine d'un élève
+     */
+    public function updateCantineTarif(Request $request)
+    {
+        $request->validate([
+            'eleve_id' => 'required|exists:eleves,id',
+            'tarif_id' => 'required'
         ]);
 
-        $inscription = Inscription::where('ecole_id', $ecoleId)
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->findOrFail($request->inscription_id);
+        try {
+            $ecoleId = session('current_ecole_id');
+            $anneeScolaireId = session('current_annee_scolaire_id');
+            $annee = session('current_annee_scolaire');
 
-        // Vérifier si c'est la désactivation (tarif_id = 0)
-        if ($request->tarif_id == 0) {
-            // Désactiver la cantine - start_date à null
-            $inscription->update([
-                'cantine_tarif_id' => null,
-                'cantine_active' => false,
-                'cantine_start_date' => null // 👈 Mettre à null
+            Log::info('=== updateCantineTarif ===', [
+                'eleve_id' => $request->eleve_id,
+                'tarif_id' => $request->tarif_id
             ]);
-            
-            $message = 'Cantine désactivée avec succès';
-            Log::info('Cantine désactivée', ['inscription_id' => $inscription->id]);
-        } else {
-            // Activer avec un nouveau tarif - start_date à maintenant
-            $inscription->update([
-                'cantine_tarif_id' => $request->tarif_id,
-                'cantine_active' => true,
-                'cantine_start_date' => now() // 👈 Date d'activation
+
+            // Récupérer la table dynamique
+            $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+
+            // Vérifier si c'est la désactivation (tarif_id = 0)
+            if ($request->tarif_id == 0) {
+                DB::table($elevesTable)
+                    ->where('id', $request->eleve_id)
+                    ->where('ecole_id', $ecoleId)
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->update([
+                        'cantine_tarif_id' => null,
+                        'cantine_active' => 0,
+                        'cantine_start_date' => null,
+                        'updated_at' => now()
+                    ]);
+                
+                $message = 'Cantine désactivée avec succès';
+                Log::info('Cantine désactivée', ['eleve_id' => $request->eleve_id]);
+            } else {
+                DB::table($elevesTable)
+                    ->where('id', $request->eleve_id)
+                    ->where('ecole_id', $ecoleId)
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->update([
+                        'cantine_tarif_id' => $request->tarif_id,
+                        'cantine_active' => 1,
+                        'cantine_start_date' => now(),
+                        'updated_at' => now()
+                    ]);
+                
+                $message = 'Tarif de cantine sélectionné avec succès';
+                Log::info('Tarif cantine mis à jour', [
+                    'eleve_id' => $request->eleve_id,
+                    'cantine_tarif_id' => $request->tarif_id
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
             ]);
-            
-            $message = 'Tarif de cantine sélectionné avec succès';
-            Log::info('Tarif cantine mis à jour', [
-                'inscription_id' => $inscription->id,
-                'cantine_tarif_id' => $request->tarif_id,
-                'cantine_start_date' => $inscription->cantine_start_date
-            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ERREUR updateCantineTarif: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => $message
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('ERREUR updateCantineTarif: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 500);
     }
-}
 
-
-
+/**
+ * Enregistrer une nouvelle réduction
+ */
 public function store(Request $request)
 {
     $request->validate([
-        'inscription_id' => 'required|exists:inscriptions,id',
-        'tarif_id' => 'required|exists:tarifs,id',
+        'eleve_id' => 'required|exists:eleves,id',
+        'tarif_id' => 'required',
         'montant' => 'required|numeric|min:0',
         'raison' => 'nullable|string|max:255'
     ]);
@@ -531,40 +511,58 @@ public function store(Request $request)
 
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
+        $annee = session('current_annee_scolaire');
 
-        Log::info('=== store Reduction ===', [
-            'inscription_id' => $request->inscription_id,
-            'tarif_id' => $request->tarif_id,
-            'montant' => $request->montant,
-            'user_id' => auth()->id()
-        ]);
+        // Récupérer la table dynamique
+        $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
+        $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
 
-        $reduction = Reduction::where('inscription_id', $request->inscription_id)
+        // Vérifier que le tarif existe dans la table dynamique
+        $tarifExists = DB::table($tarifsTable)
+            ->where('id', $request->tarif_id)
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->exists();
+
+        if (!$tarifExists) {
+            throw new \Exception('Le tarif sélectionné n\'existe pas pour cette année scolaire');
+        }
+
+        // Vérifier si la réduction existe déjà
+        $existingReduction = DB::table($reductionsTable)
+            ->where('eleve_id', $request->eleve_id)
             ->where('tarif_id', $request->tarif_id)
             ->where('ecole_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->first();
 
-        if ($reduction) {
-            $reduction->update([
-                'montant' => $request->montant,
-                'raison' => $request->raison,
-                'user_id' => auth()->id() // Ajout de l'utilisateur qui modifie
-            ]);
+        if ($existingReduction) {
+            // Mettre à jour
+            DB::table($reductionsTable)
+                ->where('id', $existingReduction->id)
+                ->update([
+                    'montant' => $request->montant,
+                    'raison' => $request->raison,
+                    'user_id' => auth()->id(),
+                    'updated_at' => now()
+                ]);
             $message = 'Réduction mise à jour avec succès';
-            Log::info('Réduction mise à jour', ['reduction_id' => $reduction->id]);
+            Log::info('Réduction mise à jour', ['reduction_id' => $existingReduction->id]);
         } else {
-            $reduction = Reduction::create([
+            // Créer une nouvelle réduction
+            DB::table($reductionsTable)->insert([
                 'ecole_id' => $ecoleId,
                 'annee_scolaire_id' => $anneeScolaireId,
-                'inscription_id' => $request->inscription_id,
+                'eleve_id' => $request->eleve_id,
                 'tarif_id' => $request->tarif_id,
-                'user_id' => auth()->id(), // Ajout de l'utilisateur qui crée
+                'user_id' => auth()->id(),
                 'montant' => $request->montant,
-                'raison' => $request->raison
+                'raison' => $request->raison,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
             $message = 'Réduction ajoutée avec succès';
-            Log::info('Réduction créée', ['reduction_id' => $reduction->id]);
+            Log::info('Réduction créée');
         }
 
         DB::commit();
@@ -583,18 +581,29 @@ public function store(Request $request)
         ], 500);
     }
 }
-
+    /**
+     * Supprimer une réduction
+     */
     public function destroy($id)
     {
         try {
             $ecoleId = session('current_ecole_id');
+            $annee = session('current_annee_scolaire');
 
-            Log::info('=== destroy Reduction ===', ['reduction_id' => $id]);
+            $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
 
-            $reduction = Reduction::where('ecole_id', $ecoleId)
-                ->findOrFail($id);
+            $reduction = DB::table($reductionsTable)
+                ->where('id', $id)
+                ->where('ecole_id', $ecoleId)
+                ->first();
 
-            $reduction->delete();
+            if (!$reduction) {
+                throw new \Exception('Réduction non trouvée');
+            }
+
+            DB::table($reductionsTable)
+                ->where('id', $id)
+                ->delete();
 
             Log::info('Réduction supprimée', ['reduction_id' => $id]);
 

@@ -16,7 +16,7 @@
     </div>
     <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
         <div class="pe-1 mb-2">
-            <a href="{{ route('tarifs.index') }}" class="btn btn-outline-light bg-white btn-icon me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Actualiser">
+            <a href="{{ route('scolarite.tarifs.index') }}" class="btn btn-outline-light bg-white btn-icon me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Actualiser">
                 <i class="ti ti-refresh"></i>
             </a>
         </div>
@@ -106,7 +106,7 @@
                 </button>
 
                 <!-- Bouton Supprimer -->
-                <form action="{{ route('tarifs.destroy', $tarif->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de ce tarif ?');">
+                <form action="{{ route('scolarite.tarifs.destroy', $tarif->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmez-vous la suppression de ce tarif ?');">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-white btn-icon btn-sm bg-danger text-white" title="Supprimer">
@@ -132,7 +132,7 @@
                 <h5 class="modal-title">Ajouter un Tarif</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('tarifs.store') }}" method="POST" id="addTarifForm">
+            <form action="{{ route('scolarite.tarifs.store') }}" method="POST" id="addTarifForm">
                 @csrf
                 <div class="modal-body">
                     <div class="row">

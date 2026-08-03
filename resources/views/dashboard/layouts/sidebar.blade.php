@@ -205,12 +205,12 @@
 
                         @hasanyrole('SuperAdministrateur')
                         <li class="submenu">
-                            <a href="javascript:void(0);" class="{{ request()->routeIs(['tarifs*', 'tarifs-mensuels.index']) ? 'active subdrop' : '' }}">
+                            <a href="javascript:void(0);" class="{{ request()->routeIs(['scolarite.*', 'scolarite.tarifs-mensuels.index']) ? 'active subdrop' : '' }}">
                                 <i class="ti ti-cash"></i><span>Scolarités</span><span class="menu-arrow"></span>
                             </a>
                             <ul>
-                                <li><a href="{{ route('tarifs.index') }}" class="{{ request()->routeIs('tarifs.index') ? 'active' : '' }}">Frais de Scolarité</a></li>
-                                <li><a href="{{ route('tarifs-mensuels.index') }}" class="{{ request()->routeIs('tarifs-mensuels.index') ? 'active' : '' }}">Parametrage de Règlement</a></li>
+                                <li><a href="{{ route('scolarite.tarifs.index') }}" class="{{ request()->routeIs('scolarite.tarifs.index') ? 'active' : '' }}">Frais de Scolarité</a></li>
+                                <li><a href="{{ route('scolarite.tarifs-mensuels.index') }}" class="{{ request()->routeIs('scolarite.tarifs-mensuels.index') ? 'active' : '' }}">Parametrage de Règlement</a></li>
                             </ul>
                         </li>
                         @endhasanyrole

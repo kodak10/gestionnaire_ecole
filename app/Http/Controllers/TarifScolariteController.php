@@ -119,7 +119,7 @@ class TarifScolariteController extends Controller
             Log::info('✅ Tarif(s) créé(s)', ['count' => count($niveauIds) ?: 1]);
 
             return redirect()
-                ->route('tarifs.index')
+                ->route('scolarite.tarifs.index')
                 ->with('success', 'Tarif(s) ajouté(s) avec succès.');
 
         } catch (\Exception $e) {
@@ -186,7 +186,7 @@ class TarifScolariteController extends Controller
             Log::info('✅ Tarif mis à jour', ['id' => $id]);
 
             return redirect()
-                ->route('tarifs.index')
+                ->route('scolarite.tarifs.index')
                 ->with('success', 'Tarif mis à jour avec succès.');
 
         } catch (\Exception $e) {
@@ -218,7 +218,7 @@ class TarifScolariteController extends Controller
             Log::info('✅ Tarif supprimé', ['id' => $id]);
 
             return redirect()
-                ->route('tarifs.index')
+                ->route('scolarite.tarifs.index')
                 ->with('success', 'Tarif supprimé avec succès.');
 
         } catch (\Exception $e) {

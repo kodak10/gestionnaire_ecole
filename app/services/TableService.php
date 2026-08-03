@@ -279,13 +279,7 @@ class TableService
         return $this->getTableName('eleves', $ecoleId, $annee);
     }
 
-    /**
-     * Obtenir le nom de la table des inscriptions
-     */
-    public function getInscriptionsTableName(int $ecoleId, string $annee): string
-    {
-        return $this->getTableName('inscriptions', $ecoleId, $annee);
-    }
+
 
     /**
      * Obtenir le nom de la table des notes

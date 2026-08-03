@@ -62,7 +62,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Élève <span class="text-danger">*</span></label>
-                    <select class="form-select select2" id="inscription_id" name="inscription_id" required disabled>
+                    <select class="form-select select2" id="eleve_id" name="eleve_id" required disabled>
                         <option value="">Sélectionner un élève</option>
                     </select>
                 </div>
@@ -72,8 +72,6 @@
                 </button>
             </div>
         </div>
-
-       
     </div>
 
     <!-- Colonne de droite - Gestion des réductions -->
@@ -256,28 +254,28 @@ $(document).ready(function() {
         allowClear: true
     });
 
-    let currentInscriptionId = null;
+    let currentEleveId = null;
     let currentReductionToDelete = null;
 
     // Charger les élèves quand une classe est sélectionnée
     $('#classe_id').change(function() {
         const classeId = $(this).val();
-        $('#inscription_id').empty().append('<option value="">Sélectionner un élève</option>');
+        $('#eleve_id').empty().append('<option value="">Sélectionner un élève</option>');
 
         if (classeId) {
-            $('#inscription_id').prop('disabled', false);
+            $('#eleve_id').prop('disabled', false);
 
             $.ajax({
-                url: '{{ route("eleves.by_classe") }}',
+                url: '{{ route("reductions.get_eleves") }}',
                 type: 'GET',
                 data: { classe_id: classeId },
                 success: function(response) {
-                    if (response.length > 0) {
-                        $.each(response, function(index, eleve) {
-                            $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
+                    if (response.success && response.data.length > 0) {
+                        $.each(response.data, function(index, eleve) {
+                            $('#eleve_id').append(`<option value="${eleve.id}">${eleve.nom_complet} (${eleve.matricule})</option>`);
                         });
                     } else {
-                        $('#inscription_id').append('<option value="">Aucun élève dans cette classe</option>');
+                        $('#eleve_id').append('<option value="">Aucun élève dans cette classe</option>');
                     }
                 },
                 error: function() {
@@ -285,34 +283,33 @@ $(document).ready(function() {
                 }
             });
         } else {
-            $('#inscription_id').prop('disabled', true);
+            $('#eleve_id').prop('disabled', true);
         }
         $('#load-btn').prop('disabled', true);
     });
 
     // Activer le bouton de chargement quand un élève est sélectionné
-    $('#inscription_id').change(function() {
+    $('#eleve_id').change(function() {
         $('#load-btn').prop('disabled', !$(this).val());
     });
 
     // Charger les données de l'élève
     $('#load-btn').click(function() {
-        const inscriptionId = $('#inscription_id').val();
+        const eleveId = $('#eleve_id').val();
 
-        if (inscriptionId) {
-            currentInscriptionId = inscriptionId;
-            loadEleveData(inscriptionId);
+        if (eleveId) {
+            currentEleveId = eleveId;
+            loadEleveData(eleveId);
         }
     });
 
-    function loadEleveData(inscriptionId) {
+    function loadEleveData(eleveId) {
         $.ajax({
             url: '{{ route("reductions.get_eleve_data") }}',
             type: 'GET',
-            data: { inscription_id: inscriptionId },
+            data: { eleve_id: eleveId },
             beforeSend: function() {
                 $('#reductions-container').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div></div>');
-                $('#recap-card').hide();
                 $('#transport-tarif-card').hide();
                 $('#cantine-tarif-card').hide();
             },
@@ -320,7 +317,6 @@ $(document).ready(function() {
                 if (response.success) {
                     updateEleveInfo(response);
                     displayReductions(response);
-                    updateRecap(response);
                     displayTarifsSelection(response);
                 } else {
                     toastr.error(response.message);
@@ -341,7 +337,6 @@ $(document).ready(function() {
     }
 
     function displayReductions(data) {
-        // UNIQUEMENT les frais (Scolarité, Inscription, etc.)
         let allTarifs = [];
 
         if (data.frais && data.frais.length > 0) {
@@ -381,7 +376,6 @@ $(document).ready(function() {
             const montantTotal = parseFloat(item.montant_total) || 0;
             const montantAPayer = montantTotal - reductionMontant;
 
-            // Déterminer la classe CSS et l'icône selon le type
             let rowClass = 'tarif-row-default';
             let badgeClass = 'badge-frais';
             let icon = '📋';
@@ -396,10 +390,8 @@ $(document).ready(function() {
                 icon = '🍽️';
             }
 
-            // Format: "Type de Frais - Nom du Tarif"
             const displayLibelle = `${icon} ${typeFraisNom} - ${libelle}`;
 
-            // Couleur du montant à payer
             let montantAPayerClass = 'fw-bold';
             if (montantAPayer === 0) {
                 montantAPayerClass = 'fw-bold text-success';
@@ -468,7 +460,7 @@ $(document).ready(function() {
                 return;
             }
 
-            saveReduction(currentInscriptionId, tarifId, montant, reductionId);
+            saveReduction(currentEleveId, tarifId, montant, reductionId);
         });
 
         $('.delete-reduction').click(function() {
@@ -477,7 +469,6 @@ $(document).ready(function() {
             $('#confirmModal').modal('show');
         });
 
-        // Validation des montants et mise à jour dynamique du "Montant à Payer"
         $('.reduction-input').on('input', function() {
             const max = parseFloat($(this).attr('max')) || 0;
             const value = parseFloat($(this).val()) || 0;
@@ -490,12 +481,9 @@ $(document).ready(function() {
                 toastr.warning('La réduction ne peut pas dépasser le montant total');
             }
 
-            // Mettre à jour le montant à payer dynamiquement
             const montantAPayerElement = $(`#montant-a-payer-${tarifId}`);
             if (montantAPayerElement.length) {
                 montantAPayerElement.text(formatMoney(nouveauMontantAPayer));
-                
-                // Changer la couleur en fonction du montant
                 montantAPayerElement.removeClass('text-success');
                 if (nouveauMontantAPayer === 0) {
                     montantAPayerElement.addClass('text-success');
@@ -505,7 +493,6 @@ $(document).ready(function() {
     }
 
     function displayTarifsSelection(data) {
-        // Transport - Affiche la carte si transport actif ET qu'il y a des tarifs
         if (data.transport_tarifs && data.transport_tarifs.length > 0) {
             $('#transport-tarif-card').show();
             const select = $('#transport_tarif_select');
@@ -523,7 +510,6 @@ $(document).ready(function() {
                 </option>`);
             });
 
-            // Pré-sélectionner le tarif actuel
             if (data.selected_transport_tarif) {
                 $('#transport_tarif_select').val(data.selected_transport_tarif);
             }
@@ -531,14 +517,12 @@ $(document).ready(function() {
             $('#transport-tarif-card').hide();
         }
 
-        // Cantine - Affiche la carte si cantine active ET qu'il y a des tarifs
         if (data.cantine_tarifs && data.cantine_tarifs.length > 0) {
             $('#cantine-tarif-card').show();
             const select = $('#cantine_tarif_select');
             select.empty();
             select.append('<option value="">-- Sélectionner un tarif --</option>');
             select.append('<option value="0">❌ Ne fait plus la cantine</option>');
-            
             
             data.cantine_tarifs.forEach(function(tarif) {
                 const selected = (data.selected_cantine_tarif == tarif.tarif_id) ? 'selected' : '';
@@ -550,7 +534,6 @@ $(document).ready(function() {
                 </option>`);
             });
 
-            // Pré-sélectionner le tarif actuel (même si NULL, l'option vide sera sélectionnée)
             if (data.selected_cantine_tarif) {
                 $('#cantine_tarif_select').val(data.selected_cantine_tarif);
             }
@@ -559,122 +542,7 @@ $(document).ready(function() {
         }
     }
 
-    function updateRecap(data) {
-        // Récupérer les données
-        let scolarite = null;
-        let inscription = null;
-        let transport = null;
-        let cantine = null;
-
-        // Parcourir les frais pour trouver Scolarité et Inscription
-        if (data.frais && data.frais.length > 0) {
-            data.frais.forEach(function(item) {
-                if (item.type_frais_nom && item.type_frais_nom.includes('Scolarité')) {
-                    scolarite = item;
-                } else if (item.type_frais_nom && item.type_frais_nom.includes('inscription')) {
-                    inscription = item;
-                }
-            });
-        }
-
-        // Récupérer le transport sélectionné
-        if (data.selected_transport_tarif && data.transport_tarifs && data.transport_tarifs.length > 0) {
-            const selectedTransport = data.transport_tarifs.find(t => t.tarif_id == data.selected_transport_tarif);
-            if (selectedTransport) {
-                transport = selectedTransport;
-            }
-        }
-
-        // Récupérer la cantine sélectionnée
-        if (data.selected_cantine_tarif && data.cantine_tarifs && data.cantine_tarifs.length > 0) {
-            const selectedCantine = data.cantine_tarifs.find(t => t.tarif_id == data.selected_cantine_tarif);
-            if (selectedCantine) {
-                cantine = selectedCantine;
-            }
-        }
-
-        // Calcul des totaux
-        let totalGeneral = 0;
-        let totalRestant = 0;
-
-        // ---- Scolarité ----
-        if (scolarite) {
-            const montant = parseFloat(scolarite.montant_total) || 0;
-            const reduction = parseFloat(scolarite.reduction_actuelle) || 0;
-            const reste = montant - reduction;
-
-            $('#card-scolarite').show();
-            $('#montant_scolarite').val(formatMoney(montant));
-            $('#reduction_scolarite').val(formatMoney(reduction));
-            $('#reste_scolarite').val(formatMoney(reste));
-
-            totalGeneral += montant;
-            totalRestant += reste;
-        } else {
-            $('#card-scolarite').hide();
-        }
-
-        // ---- Inscription ----
-        if (inscription) {
-            const montant = parseFloat(inscription.montant_total) || 0;
-            const reduction = parseFloat(inscription.reduction_actuelle) || 0;
-            const reste = montant - reduction;
-
-            $('#card-inscription').show();
-            $('#montant_inscription').val(formatMoney(montant));
-            $('#reduction_inscription').val(formatMoney(reduction));
-            $('#reste_inscription').val(formatMoney(reste));
-
-            totalGeneral += montant;
-            totalRestant += reste;
-        } else {
-            $('#card-inscription').hide();
-        }
-
-        // ---- Transport ----
-        if (transport) {
-            const montant = parseFloat(transport.montant_total) || 0;
-
-            $('#card-transport').show();
-            $('#montant_transport').val(formatMoney(montant));
-            $('#statut_transport').val(`Sélectionné - ${transport.libelle}`);
-            $('#reste_transport').val(formatMoney(montant));
-
-            totalGeneral += montant;
-            totalRestant += montant;
-        } else {
-            $('#card-transport').hide();
-        }
-
-        // ---- Cantine ----
-        if (cantine) {
-            const montant = parseFloat(cantine.montant_total) || 0;
-
-            $('#card-cantine').show();
-            $('#montant_cantine').val(formatMoney(montant));
-            $('#statut_cantine').val(`Sélectionné - ${cantine.libelle}`);
-            $('#reste_cantine').val(formatMoney(montant));
-
-            totalGeneral += montant;
-            totalRestant += montant;
-        } else {
-            $('#card-cantine').hide();
-        }
-
-        // ---- Total Général ----
-        if (totalGeneral > 0) {
-            $('#card-total-general').show();
-            $('#total_general').val(formatMoney(totalGeneral));
-            $('#total_restant').val(formatMoney(totalRestant));
-        } else {
-            $('#card-total-general').hide();
-        }
-
-        // Afficher la carte récapitulative principale
-        $('#recap-card').show();
-    }
-
-    function saveReduction(inscriptionId, tarifId, montant, reductionId) {
+    function saveReduction(eleveId, tarifId, montant, reductionId) {
         if (!montant || parseFloat(montant) < 0) {
             toastr.error('Veuillez saisir un montant valide');
             return;
@@ -685,7 +553,7 @@ $(document).ready(function() {
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                inscription_id: inscriptionId,
+                eleve_id: eleveId,
                 tarif_id: tarifId,
                 montant: montant,
                 raison: 'Réduction manuelle'
@@ -693,7 +561,7 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    loadEleveData(inscriptionId);
+                    loadEleveData(eleveId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -708,7 +576,7 @@ $(document).ready(function() {
         });
     }
 
-    // Sauvegarder le tarif de transport
+    // Sauvegarder le tarif de transport - CORRIGÉ
     $('#save-transport-tarif-btn').click(function() {
         const tarifId = $('#transport_tarif_select').val();
         if (!tarifId) {
@@ -724,13 +592,13 @@ $(document).ready(function() {
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                inscription_id: currentInscriptionId,
+                eleve_id: currentEleveId,
                 tarif_id: tarifId
             },
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    loadEleveData(currentInscriptionId);
+                    loadEleveData(currentEleveId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -748,7 +616,7 @@ $(document).ready(function() {
         });
     });
 
-    // Sauvegarder le tarif de cantine
+    // Sauvegarder le tarif de cantine - CORRIGÉ
     $('#save-cantine-tarif-btn').click(function() {
         const tarifId = $('#cantine_tarif_select').val();
         if (!tarifId) {
@@ -764,13 +632,13 @@ $(document).ready(function() {
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                inscription_id: currentInscriptionId,
+                eleve_id: currentEleveId,
                 tarif_id: tarifId
             },
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    loadEleveData(currentInscriptionId);
+                    loadEleveData(currentEleveId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -799,7 +667,7 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    loadEleveData(currentInscriptionId);
+                    loadEleveData(currentEleveId);
                 } else {
                     toastr.error(response.message);
                 }
@@ -829,7 +697,6 @@ $(document).ready(function() {
                 <p>Sélectionnez un élève pour gérer ses réductions</p>
             </div>
         `);
-        $('#recap-card').hide();
         $('#transport-tarif-card').hide();
         $('#cantine-tarif-card').hide();
     }
