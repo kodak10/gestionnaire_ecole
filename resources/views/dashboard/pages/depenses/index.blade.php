@@ -49,15 +49,19 @@
                 <h4 class="text-dark">Filtres</h4>
             </div>
             <div class="card-body">
-
                 <div class="mb-3">
                     <label class="form-label">Catégorie</label>
-                    <select class="form-select" id="depense_category_id" name="depense_category_id">
-                        <option value="">Toutes les catégories</option>
-                        @foreach($categories as $categorie)
-                            <option value="{{ $categorie->id }}">{{ $categorie->nom }}</option>
-                        @endforeach
-                    </select>
+                    <div class="input-group">
+                        <select class="form-select" id="depense_category_id" name="depense_category_id">
+                            <option value="">Toutes les catégories</option>
+                            @foreach($categories as $categorie)
+                                <option value="{{ $categorie->id }}">{{ $categorie->nom }}</option>
+                            @endforeach
+                        </select>
+                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                            <i class="ti ti-plus"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -80,8 +84,6 @@
                 </button>
             </div>
         </div>
-
-       
     </div>
 
     <!-- Colonne de droite - Liste des dépenses et statistiques -->
@@ -143,11 +145,6 @@
                 </div>
             </div>
         </div>
-
-        
-
-        
-        
     </div>
 </div>
 
@@ -181,12 +178,17 @@
 
                         <div class="col-md-6">
                             <label class="form-label">Catégorie <span class="text-danger">*</span></label>
-                            <select class="form-select" id="depense_category_id_select" name="depense_category_id" required>
-                                <option value="">Sélectionner une catégorie</option>
-                                @foreach($categories as $categorie)
-                                    <option value="{{ $categorie->id }}">{{ $categorie->nom }}</option>
-                                @endforeach
-                            </select>
+                            <div class="input-group">
+                                <select class="form-select" id="depense_category_id_select" name="depense_category_id" required>
+                                    <option value="">Sélectionner une catégorie</option>
+                                    @foreach($categories as $categorie)
+                                        <option value="{{ $categorie->id }}">{{ $categorie->nom }}</option>
+                                    @endforeach
+                                </select>
+                                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addCategoryModalForm">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -204,14 +206,10 @@
                             <input type="text" class="form-control" id="beneficiaire" name="beneficiaire" required>
                         </div>
 
-                        
-
                         <div class="col-12">
                             <label class="form-label">Description</label>
                             <textarea class="form-control" id="description" name="description" rows="2"></textarea>
                         </div>
-
-                       
                     </div>
 
                     <div class="text-end mt-3">
@@ -221,6 +219,50 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Catégorie (depuis filtres) -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter une Catégorie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom de la catégorie <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_category_name_filter" placeholder="Ex: Fournitures, Entretien, etc.">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="save-category-filter-btn">Ajouter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Catégorie (depuis formulaire) -->
+<div class="modal fade" id="addCategoryModalForm" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter une Catégorie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom de la catégorie <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_category_name_form" placeholder="Ex: Fournitures, Entretien, etc.">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="save-category-form-btn">Ajouter</button>
             </div>
         </div>
     </div>
@@ -281,7 +323,6 @@ toastr.options = {
 };
 
 $(document).ready(function() {
-    // Variables globales
     let categorieChart = null;
     let depenseToDelete = null;
 
@@ -289,6 +330,69 @@ $(document).ready(function() {
     $('#filter-btn').click(function() {
         loadDepenses();
     });
+
+    // Ajouter une catégorie depuis les filtres
+    $('#save-category-filter-btn').click(function() {
+        const nom = $('#new_category_name_filter').val().trim();
+        if (!nom) {
+            toastr.error('Veuillez saisir un nom de catégorie');
+            return;
+        }
+        saveCategory(nom, 'filter');
+    });
+
+    // Ajouter une catégorie depuis le formulaire
+    $('#save-category-form-btn').click(function() {
+        const nom = $('#new_category_name_form').val().trim();
+        if (!nom) {
+            toastr.error('Veuillez saisir un nom de catégorie');
+            return;
+        }
+        saveCategory(nom, 'form');
+    });
+
+    function saveCategory(nom, source) {
+        $.ajax({
+            url: '{{ route("depenses.categories.store") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                nom: nom
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    // Ajouter la nouvelle catégorie aux selects
+                    const option = `<option value="${response.categorie.id}">${response.categorie.nom}</option>`;
+                    $('#depense_category_id').append(option);
+                    $('#depense_category_id_select').append(option);
+                    
+                    // Fermer les modals
+                    $('#addCategoryModal').modal('hide');
+                    $('#addCategoryModalForm').modal('hide');
+                    
+                    // Vider les champs
+                    $('#new_category_name_filter').val('');
+                    $('#new_category_name_form').val('');
+                    
+                    // Recharger les données
+                    loadDepenses();
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    const errors = xhr.responseJSON.errors;
+                    $.each(errors, function(key, value) {
+                        toastr.error(value[0]);
+                    });
+                } else {
+                    toastr.error('Erreur lors de l\'ajout de la catégorie');
+                }
+            }
+        });
+    }
 
     // Charger les dépenses selon les filtres
     function loadDepenses() {
@@ -325,7 +429,6 @@ $(document).ready(function() {
         });
     }
 
-    // Mettre à jour le tableau des dépenses
     function updateDepensesTable(depenses) {
         let html = '';
         
@@ -335,12 +438,11 @@ $(document).ready(function() {
                 <tr>
                     <td>${formatDate(depense.date_depense)}</td>
                     <td>${depense.libelle}</td>
-                    <td><span class="badge bg-primary">${depense.category ? depense.category.nom : 'N/A'}</span></td>
+                    <td><span class="badge bg-primary">${depense.categorie_nom || 'N/A'}</span></td>
                     <td class="fw-bold">${formatMoney(depense.montant)}</td>
                     <td>${depense.beneficiaire}</td>
                     <td>
                         <div class="d-flex gap-2">
-                           
                             <button class="btn btn-sm btn-warning btn-edit" data-id="${depense.id}">
                                 <i class="ti ti-edit"></i>
                             </button>
@@ -358,12 +460,6 @@ $(document).ready(function() {
         
         $('#depenses-table tbody').html(html);
         
-        // Ajouter les événements aux boutons
-        $('.btn-view').click(function() {
-            const depenseId = $(this).data('id');
-            viewDepense(depenseId);
-        });
-        
         $('.btn-edit').click(function() {
             const depenseId = $(this).data('id');
             editDepense(depenseId);
@@ -375,17 +471,14 @@ $(document).ready(function() {
         });
     }
 
-    // Mettre à jour les statistiques
     function updateStats(totalDepenses, nombreDepenses) {
         $('#total-depenses').text(formatMoney(totalDepenses));
         $('#nombre-depenses').text(nombreDepenses);
     }
 
-    // Mettre à jour le graphique
     function updateChart(statsCategories) {
         const ctx = document.getElementById('categorieChart').getContext('2d');
         
-        // Détruire le graphique existant s'il y en a un
         if (categorieChart) {
             categorieChart.destroy();
         }
@@ -431,7 +524,6 @@ $(document).ready(function() {
         });
     }
 
-    // Formater un montant en argent
     function formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR', { 
             style: 'currency', 
@@ -440,7 +532,6 @@ $(document).ready(function() {
         }).format(amount);
     }
 
-    // Formater une date
     function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR');
@@ -451,8 +542,9 @@ $(document).ready(function() {
         e.preventDefault();
         
         const formData = $(this).serialize();
-        const url = $('#depense_id').val() ? '{{ route("depenses.update", ":id") }}'.replace(':id', $('#depense_id').val()) : '{{ route("depenses.store") }}';
-        const method = $('#depense_id').val() ? 'PUT' : 'POST';
+        const depenseId = $('#depense_id').val();
+        const url = depenseId ? '{{ route("depenses.update", ":id") }}'.replace(':id', depenseId) : '{{ route("depenses.store") }}';
+        const method = depenseId ? 'PUT' : 'POST';
         
         $.ajax({
             url: url,
@@ -484,7 +576,6 @@ $(document).ready(function() {
         });
     });
 
-    // Annuler l'édition
     $('#cancel-edit').click(function() {
         $('#depense-form')[0].reset();
         $('#date_depense').val('{{ date('Y-m-d') }}');
@@ -492,13 +583,6 @@ $(document).ready(function() {
         $(this).hide();
     });
 
-    // Voir les détails d'une dépense
-    function viewDepense(depenseId) {
-        // Implémenter la vue des détails
-        toastr.info('Fonctionnalité de visualisation à implémenter');
-    }
-
-    // Éditer une dépense
     function editDepense(depenseId) {
         $.ajax({
             url: '{{ url("depenses") }}/' + depenseId,
@@ -513,11 +597,8 @@ $(document).ready(function() {
                     $('#depense_category_id_select').val(response.depense_category_id);
                     $('#mode_paiement').val(response.mode_paiement);
                     $('#beneficiaire').val(response.beneficiaire);
-                    $('#reference').val(response.reference);
-                    $('#justificatif').val(response.justificatif);
                     $('#cancel-edit').show();
                     
-                    // Scroll to form
                     $('html, body').animate({
                         scrollTop: $('#depense-form').offset().top - 100
                     }, 500);
@@ -529,13 +610,11 @@ $(document).ready(function() {
         });
     }
 
-    // Afficher le modal de suppression
     function showDeleteModal(depenseId) {
         depenseToDelete = depenseId;
         $('#deleteModal').modal('show');
     }
 
-    // Confirmer la suppression
     $('#confirm-delete').click(function() {
         if (!depenseToDelete) return;
         

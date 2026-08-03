@@ -20,7 +20,6 @@ class TableService
         'mois_scolaires',
         'permissions',
         'roles',
-        'depense_categories',
         'documents',
         'document_templates',
     ];

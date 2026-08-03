@@ -321,6 +321,7 @@ Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {
         Route::get('/', [DepenseController::class, 'index'])->name('index');
         Route::get('/data', [DepenseController::class, 'getDepensesData'])->name('data');
         Route::post('/', [DepenseController::class, 'store'])->name('store');
+        Route::post('/categories', [DepenseController::class, 'storeCategorie'])->name('categories.store');
         Route::get('/{id}', [DepenseController::class, 'show'])->name('show');
         Route::put('/{id}', [DepenseController::class, 'update'])->name('update');
         Route::delete('/{id}', [DepenseController::class, 'destroy'])->name('destroy');
