@@ -37,12 +37,6 @@ class TarifMensuelController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
         $annee = session('current_annee_scolaire');
 
-        Log::info('📋 CHARGEMENT TARIFS MENSUELS', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'annee' => $annee
-        ]);
-
         // Récupérer les niveaux (table dynamique via Eloquent)
         $niveaux = Niveau::where('ecole_id', $ecoleId)
             ->orderBy('ordre', 'asc')
@@ -67,8 +61,6 @@ class TarifMensuelController extends Controller
         $moisScolaires = $this->genererMoisScolaires($anneeScolaire);
 
         $selectedTarifId = $request->get('tarif_id');
-
-        Log::info('📊 Tarifs trouvés', ['count' => $tarifs->count()]);
 
         return view(
             'dashboard.pages.parametrage.scolarite.tarif-mensuel',
@@ -149,8 +141,6 @@ class TarifMensuelController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('📝 STORE TARIFS MENSUELS', ['data' => $request->all()]);
-
         $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
         $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
         $annee = session('current_annee_scolaire');
@@ -190,7 +180,6 @@ class TarifMensuelController extends Controller
 
         // Vérifier si la table des tarifs mensuels existe
         if (!Schema::hasTable($tarifsMensuelsTable)) {
-            Log::error('❌ Table des tarifs mensuels non trouvée', ['table' => $tarifsMensuelsTable]);
             return back()
                 ->with('error', 'La table des tarifs mensuels n\'existe pas pour cette année.')
                 ->withInput();
@@ -219,10 +208,6 @@ class TarifMensuelController extends Controller
             // Vérifier si le total mensuel dépasse le montant annuel
             if ($totalMensuel > $tarif->montant) {
                 DB::rollBack();
-                Log::warning('Dépassement du montant annuel', [
-                    'total' => $totalMensuel,
-                    'annuel' => $tarif->montant
-                ]);
                 return back()
                     ->with('error', 'La somme des montants mensuels (' . number_format($totalMensuel, 0, ',', ' ') . ' FCFA) dépasse le montant annuel (' . number_format($tarif->montant, 0, ',', ' ') . ' FCFA) pour ce tarif.')
                     ->withInput();
@@ -248,7 +233,6 @@ class TarifMensuelController extends Controller
                     $moisScolaire = MoisScolaire::find($moisId);
                     
                     if (!$moisScolaire) {
-                        Log::warning('Mois non trouvé', ['mois_id' => $moisId]);
                         continue;
                     }
                     

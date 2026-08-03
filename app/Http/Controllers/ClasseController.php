@@ -31,21 +31,9 @@ class ClasseController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
 
-        Log::info('📋 CHARGEMENT CLASSES', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'annee' => $annee
-        ]);
-
         // Récupérer les noms des tables
         $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
         $niveauxTable = $this->tableService->getNiveauxTableName($ecoleId, $annee);
-
-        Log::info('📋 Tables dynamiques', [
-            'classes' => $classesTable,
-            'niveaux' => $niveauxTable,
-            'enseignants' => 'enseignants (statique)'
-        ]);
 
         // Vérifier les tables
         if (!Schema::hasTable($classesTable)) {
@@ -80,8 +68,6 @@ class ClasseController extends Controller
                 'e.nom_prenoms as enseignant_nom'
             )
             ->get();
-
-        Log::info('📊 Classes trouvées', ['count' => $classes->count()]);
 
         // Niveaux (table dynamique)
         $niveaux = DB::table($niveauxTable)
@@ -123,8 +109,6 @@ class ClasseController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('📝 CRÉATION CLASSE', ['data' => $request->all()]);
-
         $request->validate([
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
@@ -176,15 +160,11 @@ class ClasseController extends Controller
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Classe créée', ['nom' => $nomComplet]);
-
         return redirect()->route('classes.index')->with('success', 'Classe créée avec succès');
     }
 
     public function update(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR CLASSE', ['id' => $id]);
-
         $request->validate([
             'niveau_id' => 'required|exists:niveaux,id',
             'nom' => 'required|string|max:50',
@@ -234,15 +214,11 @@ class ClasseController extends Controller
                 'updated_at' => now(),
             ]);
 
-        Log::info('✅ Classe mise à jour', ['id' => $id]);
-
         return redirect()->route('classes.index')->with('success', 'Classe mise à jour avec succès');
     }
 
     public function destroy($id)
     {
-        Log::info('🗑️ SUPPRESSION CLASSE', ['id' => $id]);
-
         $ecoleId = session('current_ecole_id');
         $annee = session('current_annee_scolaire');
 
@@ -263,7 +239,6 @@ class ClasseController extends Controller
         
         if (Schema::hasTable($classesTable)) {
             DB::table($classesTable)->where('id', $id)->delete();
-            Log::info('✅ Classe supprimée', ['id' => $id]);
         }
 
         return redirect()->route('classes.index')->with('success', 'Classe supprimée avec succès');

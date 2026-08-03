@@ -63,7 +63,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Élève <span class="text-danger">*</span></label>
-                    <select class="form-select select2" id="inscription_id" name="inscription_id" required disabled>
+                    <select class="form-select select2" id="eleve_id" name="eleve_id" required disabled>
                         <option value="">Sélectionner un élève</option>
                     </select>
                 </div>
@@ -72,6 +72,12 @@
                     <i class="ti ti-search me-2"></i>Charger les données
                 </button>
             </div>
+        </div>
+
+        <!-- Informations de l'élève -->
+        <div id="eleve-info" class="alert alert-info d-none mt-2">
+            <h5 class="mb-1" id="eleve-nom"></h5>
+            <p class="mb-0" id="eleve-details"></p>
         </div>
         
         <!-- Card Scolarité -->
@@ -136,6 +142,8 @@
                 </div>
             </div>
         </div>
+
+
     </div>
 
     <!-- Colonne de droite - Détails des Paiements -->
@@ -169,7 +177,7 @@
                     <h5 class="mb-3">Nouveau Paiement</h5>
                     <form id="paiement-form">
                         @csrf
-                        <input type="hidden" id="paiement_inscription_id" name="inscription_id">
+                        <input type="hidden" id="paiement_eleve_id" name="eleve_id">
                         
                         <div class="row">
                             <div class="col-md-6">
@@ -311,7 +319,7 @@ $(document).ready(function() {
         allowClear: true
     });
 
-    let currentInscriptionId = null;
+    let currentEleveId = null;
     let paiementToDelete = null;
     let currentResteInscription = 0;
     let currentResteScolarite = 0;
@@ -319,60 +327,59 @@ $(document).ready(function() {
     let currentResteCantine = 0;
 
     // Charger les élèves quand une classe est sélectionnée
-    // Charger les élèves quand une classe est sélectionnée
-$('#classe_id').change(function() {
-    const classeId = $(this).val();
-    $('#inscription_id').empty().append('<option value="">Sélectionner un élève</option>');
+    $('#classe_id').change(function() {
+        const classeId = $(this).val();
+        $('#eleve_id').empty().append('<option value="">Sélectionner un élève</option>');
 
-    if (classeId) {
-        $('#inscription_id').prop('disabled', false);
+        if (classeId) {
+            $('#eleve_id').prop('disabled', false);
 
-        $.ajax({
-            url: '{{ route("eleves.by_classe") }}',
-            type: 'GET',
-            data: { classe_id: classeId },
-            success: function(response) {
-                if (response.length > 0) {
-                    $.each(response, function(index, eleve) {
-                        $('#inscription_id').append(`<option value="${eleve.inscription_id}">${eleve.nom_complet}</option>`);
-                    });
-                } else {
-                    $('#inscription_id').append('<option value="">Aucun élève dans cette classe</option>');
+            $.ajax({
+                url: '{{ route("eleves.by-classe") }}',
+                type: 'GET',
+                data: { classe_id: classeId },
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        $.each(response.data, function(index, eleve) {
+                            $('#eleve_id').append(`<option value="${eleve.id}">${eleve.nom_complet}</option>`);
+                        });
+                    } else {
+                        $('#eleve_id').append('<option value="">Aucun élève dans cette classe</option>');
+                    }
+                },
+                error: function() {
+                    toastr.error('Erreur lors du chargement des élèves');
                 }
-            },
-            error: function() {
-                toastr.error('Erreur lors du chargement des élèves');
-            }
-        });
-    } else {
-        $('#inscription_id').prop('disabled', true);
-    }
-    $('#load-btn').prop('disabled', true);
-});
+            });
+        } else {
+            $('#eleve_id').prop('disabled', true);
+        }
+        $('#load-btn').prop('disabled', true);
+    });
 
     // Activer le bouton de chargement quand un élève est sélectionné
-    $('#inscription_id').change(function() {
+    $('#eleve_id').change(function() {
         $('#load-btn').prop('disabled', !$(this).val());
     });
 
     // Charger les données de l'élève
     $('#load-btn').click(function() {
-        const inscriptionId = $('#inscription_id').val();
+        const eleveId = $('#eleve_id').val();
 
-        if (inscriptionId) {
-            currentInscriptionId = inscriptionId;
-            $('#paiement_inscription_id').val(inscriptionId);
-            loadEleveData(inscriptionId);
+        if (eleveId) {
+            currentEleveId = eleveId;
+            $('#paiement_eleve_id').val(eleveId);
+            loadEleveData(eleveId);
         }
     });
 
     // Charger les données d'un élève
-    function loadEleveData(inscriptionId) {
+    function loadEleveData(eleveId) {
         $.ajax({
             url: '{{ route("reglements.eleve_data") }}',
             type: 'GET',
             data: { 
-                inscription_id: inscriptionId,
+                eleve_id: eleveId,
             },
             beforeSend: function() {
                 $('#paiements-table tbody').html('<tr><td colspan="5" class="text-center">Chargement en cours...</td></tr>');
@@ -393,127 +400,152 @@ $('#classe_id').change(function() {
         });
     }
 
-function updateSummary(data) {
-    // Mise à jour des informations de l'élève
-    $('#eleve-nom').text(data.eleve.nom_complet);
-    $('#eleve-details').text(`Matricule: ${data.eleve.matricule} | Classe: ${data.eleve.classe}`);
-    $('#eleve-info').removeClass('d-none');
+    function updateSummary(data) {
+        if (data.eleve) {
+            $('#eleve-nom').text(data.eleve.nom_complet || '');
+            $('#eleve-details').text(`Matricule: ${data.eleve.matricule || ''} | Classe: ${data.eleve.classe || ''}`);
+            $('#eleve-info').removeClass('d-none');
+        }
 
-    let totalReste = 0;
+        let totalReste = 0;
 
-    // ---- Scolarité ----
-    const montantScolarite = parseFloat(data.frais.scolarite) || 0;
-    const payeScolarite = parseFloat(data.total_paye.scolarite) || 0;
-    const resteScolarite = parseFloat(data.reste_a_payer.scolarite) || 0;
+        const montantInscription = parseFloat(data.frais.inscription) || 0;
+        const payeInscription = parseFloat(data.total_paye.inscription) || 0;
+        const resteInscription = parseFloat(data.reste_a_payer.inscription) || 0;
 
-    if (montantScolarite > 0) {
-        $('#card-scolarite').show();
-        $('#montant_scolarite').val(formatMoney(montantScolarite));
-        $('#total_paye_scolarite').val(formatMoney(payeScolarite));
-        $('#reste_a_payer_scolarite').val(formatMoney(resteScolarite));
-        totalReste += resteScolarite;
-        currentResteScolarite = resteScolarite;
-        $('#reste_scolarite_label').text(formatMoney(resteScolarite));
-        $('#montant_scolarite_input').val(0).attr('max', resteScolarite);
-    } else {
-        $('#card-scolarite').hide();
+        if (montantInscription > 0) {
+            currentResteInscription = resteInscription;
+            $('#reste_inscription_label').text(formatMoney(resteInscription));
+            $('#montant_inscription_input').val(0).attr('max', resteInscription);
+            totalReste += resteInscription;
+        } else {
+            $('#reste_inscription_label').text('0 FCFA');
+            $('#montant_inscription_input').val(0).prop('disabled', true);
+        }
+
+        const montantScolarite = parseFloat(data.frais.scolarite) || 0;
+        const payeScolarite = parseFloat(data.total_paye.scolarite) || 0;
+        const resteScolarite = parseFloat(data.reste_a_payer.scolarite) || 0;
+
+        if (montantScolarite > 0) {
+            $('#card-scolarite').show();
+            $('#montant_scolarite').val(formatMoney(montantScolarite));
+            $('#total_paye_scolarite').val(formatMoney(payeScolarite));
+            $('#reste_a_payer_scolarite').val(formatMoney(resteScolarite));
+            totalReste += resteScolarite;
+            currentResteScolarite = resteScolarite;
+            $('#reste_scolarite_label').text(formatMoney(resteScolarite));
+            $('#montant_scolarite_input').val(0).attr('max', resteScolarite);
+        } else {
+            $('#card-scolarite').hide();
+            currentResteScolarite = 0;
+            $('#reste_scolarite_label').text('0 FCFA');
+            $('#montant_scolarite_input').val(0).prop('disabled', true);
+        }
+
+        const montantTransport = parseFloat(data.frais.transport) || 0;
+        const payeTransport = parseFloat(data.total_paye.transport) || 0;
+        const resteTransport = parseFloat(data.reste_a_payer.transport) || 0;
+
+        if (montantTransport > 0) {
+            $('#card-transport').show();
+            $('#montant_transport').val(formatMoney(montantTransport));
+            $('#total_paye_transport').val(formatMoney(payeTransport));
+            $('#reste_a_payer_transport').val(formatMoney(resteTransport));
+            totalReste += resteTransport;
+            currentResteTransport = resteTransport;
+            $('#reste_transport_label').text(formatMoney(resteTransport));
+            $('#montant_transport_input').val(0).attr('max', resteTransport);
+        } else {
+            $('#card-transport').hide();
+            currentResteTransport = 0;
+            $('#reste_transport_label').text('0 FCFA');
+            $('#montant_transport_input').val(0).prop('disabled', true);
+        }
+
+        const montantCantine = parseFloat(data.frais.cantine) || 0;
+        const payeCantine = parseFloat(data.total_paye.cantine) || 0;
+        const resteCantine = parseFloat(data.reste_a_payer.cantine) || 0;
+
+        if (montantCantine > 0) {
+            $('#card-cantine').show();
+            $('#montant_cantine').val(formatMoney(montantCantine));
+            $('#total_paye_cantine').val(formatMoney(payeCantine));
+            $('#reste_a_payer_cantine').val(formatMoney(resteCantine));
+            totalReste += resteCantine;
+            currentResteCantine = resteCantine;
+            $('#reste_cantine_label').text(formatMoney(resteCantine));
+            $('#montant_cantine_input').val(0).attr('max', resteCantine);
+        } else {
+            $('#card-cantine').hide();
+            currentResteCantine = 0;
+            $('#reste_cantine_label').text('0 FCFA');
+            $('#montant_cantine_input').val(0).prop('disabled', true);
+        }
+
+        if (totalReste > 0) {
+            $('#card-total-reste').show();
+            $('#total_reste').val(formatMoney(totalReste));
+        } else {
+            $('#card-total-reste').hide();
+        }
     }
 
-    // ---- Transport ----
-    const montantTransport = parseFloat(data.frais.transport) || 0;
-    const payeTransport = parseFloat(data.total_paye.transport) || 0;
-    const resteTransport = parseFloat(data.reste_a_payer.transport) || 0;
+    function updatePaiementsTable(paiements) {
+        let html = '';
+        if (paiements && paiements.length > 0) {
+            $.each(paiements, function(index, paiement) {
+                let totalMontant = parseFloat(paiement.montant) || 0;
+                
+                let types = '';
+                if (paiement.details && paiement.details.length > 0) {
+                    types = paiement.details.map(function(detail) {
+                        return detail.libelle || 'Inconnu';
+                    }).join(' + ');
+                } else {
+                    types = 'Paiement';
+                }
 
-    if (montantTransport > 0) {
-        $('#card-transport').show();
-        $('#montant_transport').val(formatMoney(montantTransport));
-        $('#total_paye_transport').val(formatMoney(payeTransport));
-        $('#reste_a_payer_transport').val(formatMoney(resteTransport));
-        totalReste += resteTransport;
-        currentResteTransport = resteTransport;
-        $('#reste_transport_label').text(formatMoney(resteTransport));
-        $('#montant_transport_input').val(0).attr('max', resteTransport);
-    } else {
-        $('#card-transport').hide();
-    }
+                html += `
+                <tr>
+                    <td>${formatDate(paiement.created_at)}</td>
+                    <td>${types}</td>
+                    <td>${formatMoney(totalMontant)}</td>
+                    <td>${formatModePaiement(paiement.mode_paiement)}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
+                                <i class="ti ti-printer"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            });
+        } else {
+            html = '<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>';
+        }
+        $('#paiements-table tbody').html(html);
 
-    // ---- Cantine ----
-    const montantCantine = parseFloat(data.frais.cantine) || 0;
-    const payeCantine = parseFloat(data.total_paye.cantine) || 0;
-    const resteCantine = parseFloat(data.reste_a_payer.cantine) || 0;
-
-    if (montantCantine > 0) {
-        $('#card-cantine').show();
-        $('#montant_cantine').val(formatMoney(montantCantine));
-        $('#total_paye_cantine').val(formatMoney(payeCantine));
-        $('#reste_a_payer_cantine').val(formatMoney(resteCantine));
-        totalReste += resteCantine;
-        currentResteCantine = resteCantine;
-        $('#reste_cantine_label').text(formatMoney(resteCantine));
-        $('#montant_cantine_input').val(0).attr('max', resteCantine);
-    } else {
-        $('#card-cantine').hide();
-    }
-
-    // ---- Total Reste ----
-    if (totalReste > 0) {
-        $('#card-total-reste').show();
-        $('#total_reste').val(formatMoney(totalReste));
-    } else {
-        $('#card-total-reste').hide();
-    }
-}
-
-function updatePaiementsTable(paiements) {
-    let html = '';
-    if (paiements.length > 0) {
-        $.each(paiements, function(index, paiement) {
-            let totalMontant = parseFloat(paiement.montant) || 0;
-            
-            // Récupérer les libellés depuis les détails
-            let types = paiement.details.map(function(detail) {
-                return detail.libelle || 'Inconnu';
-            }).join(' + ');
-
-            html += `
-            <tr>
-                <td>${formatDate(paiement.created_at)}</td>
-                <td>${types}</td>
-                <td>${formatMoney(totalMontant)}</td>
-                <td>${formatModePaiement(paiement.mode_paiement)}</td>
-                <td>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-success btn-recu" data-id="${paiement.id}">
-                            <i class="ti ti-printer"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-delete" data-id="${paiement.id}">
-                            <i class="ti ti-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            `;
+        $('.btn-recu').click(function() {
+            const paiementId = $(this).data('id');
+            window.open(`{{ url('reglements/receipt') }}/${paiementId}`, '_blank');
         });
-    } else {
-        html = '<tr><td colspan="5" class="text-center">Aucun paiement trouvé</td></tr>';
+        
+        $('.btn-delete').click(function() {
+            showDeleteModal($(this).data('id'));
+        });
     }
-    $('#paiements-table tbody').html(html);
-
-    $('.btn-recu').click(function() {
-        const paiementId = $(this).data('id');
-        window.open(`{{ url('reglements/receipt') }}/${paiementId}`, '_blank');
-    });
-    
-    $('.btn-delete').click(function() {
-        showDeleteModal($(this).data('id'));
-    });
-}
 
     function formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount || 0);
     }
 
     function formatDate(dateString) {
+        if (!dateString) return '-';
         const date = new Date(dateString);
         return date.toLocaleDateString('fr-FR');
     }
@@ -523,11 +555,10 @@ function updatePaiementsTable(paiements) {
         return modes[mode] || mode;
     }
 
-    // Validation des montants saisis
     $('#montant_inscription_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteInscription) {
-            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            toastr.warning('Le montant ne peut pas dépasser le reste à payer');
             $(this).val(currentResteInscription);
         }
     });
@@ -535,7 +566,7 @@ function updatePaiementsTable(paiements) {
     $('#montant_scolarite_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteScolarite) {
-            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            toastr.warning('Le montant ne peut pas dépasser le reste à payer');
             $(this).val(currentResteScolarite);
         }
     });
@@ -543,7 +574,7 @@ function updatePaiementsTable(paiements) {
     $('#montant_transport_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteTransport) {
-            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            toastr.warning('Le montant ne peut pas dépasser le reste à payer');
             $(this).val(currentResteTransport);
         }
     });
@@ -551,15 +582,14 @@ function updatePaiementsTable(paiements) {
     $('#montant_cantine_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteCantine) {
-            toastr.error('Le montant ne peut pas dépasser le reste à payer');
+            toastr.warning('Le montant ne peut pas dépasser le reste à payer');
             $(this).val(currentResteCantine);
         }
     });
 
-    // Soumission du formulaire de paiement
     $('#paiement-form').submit(function(e) {
         e.preventDefault();
-        if (!currentInscriptionId) { 
+        if (!currentEleveId) { 
             toastr.error('Veuillez sélectionner un élève'); 
             return; 
         }
@@ -608,7 +638,7 @@ function updatePaiementsTable(paiements) {
                     $('#montant_transport_input').val(0);
                     $('#montant_cantine_input').val(0);
                     $('#reference').val('');
-                    loadEleveData(currentInscriptionId);
+                    loadEleveData(currentEleveId);
 
                     if (response.paiement_id) {
                         window.open(`{{ url('reglements/receipt') }}/${response.paiement_id}`, '_blank');
@@ -644,7 +674,10 @@ function updatePaiementsTable(paiements) {
         $.ajax({
             url: '{{ route("reglements.delete_paiement") }}',
             type: 'DELETE',
-            data: { _token: '{{ csrf_token() }}', paiement_id: paiementToDelete },
+            data: { 
+                _token: '{{ csrf_token() }}', 
+                paiement_id: paiementToDelete 
+            },
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
@@ -652,7 +685,7 @@ function updatePaiementsTable(paiements) {
                     toastr.error(response.message);
                 }
                 $('#deleteModal').modal('hide');
-                loadEleveData(currentInscriptionId);
+                loadEleveData(currentEleveId);
             },
             error: function() { 
                 toastr.error('Erreur lors de la suppression du paiement'); 

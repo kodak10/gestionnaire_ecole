@@ -29,11 +29,6 @@ class ReductionController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
 
-        Log::info('=== ReductionController index ===', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId
-        ]);
-
         // Récupérer les noms des tables dynamiques
         $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
         $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
@@ -77,13 +72,6 @@ class ReductionController extends Controller
             $search = $request->get('search', '');
             $classeId = $request->get('classe_id');
 
-            Log::info('=== ReductionController getEleves ===', [
-                'search' => $search,
-                'classe_id' => $classeId,
-                'ecole_id' => $ecoleId,
-                'annee_scolaire_id' => $anneeScolaireId
-            ]);
-
             // Récupérer les noms des tables dynamiques
             $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
             $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
@@ -122,8 +110,6 @@ class ReductionController extends Controller
                 ->limit(20)
                 ->get();
 
-            Log::info('Élèves trouvés', ['count' => $eleves->count()]);
-
             return response()->json([
                 'success' => true,
                 'data' => $eleves->map(function($eleve) {
@@ -160,12 +146,6 @@ public function getEleveData(Request $request)
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
 
-        Log::info('=== ReductionController getEleveData ===', [
-            'eleve_id' => $request->eleve_id,
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId
-        ]);
-
         // Récupérer les noms des tables dynamiques
         $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
         $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
@@ -191,16 +171,6 @@ public function getEleveData(Request $request)
 
         $niveauId = $eleve->niveau_id;
 
-        Log::info('Élève trouvé', [
-            'eleve_id' => $eleve->id,
-            'eleve' => $eleve->nom . ' ' . $eleve->prenom,
-            'niveau_id' => $niveauId,
-            'transport_active' => $eleve->transport_active,
-            'cantine_active' => $eleve->cantine_active,
-            'transport_tarif_id' => $eleve->transport_tarif_id,
-            'cantine_tarif_id' => $eleve->cantine_tarif_id
-        ]);
-
         // Récupérer les réductions existantes pour cet élève
         $reductions = DB::table($reductionsTable)
             ->where('eleve_id', $eleve->id)
@@ -208,8 +178,6 @@ public function getEleveData(Request $request)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->get()
             ->keyBy('tarif_id');
-
-        Log::info('Réductions trouvées', ['count' => $reductions->count()]);
 
         // Récupérer les types de frais pour identifier transport et cantine
         $transportTypeIds = TypeFrais::where('nom', 'LIKE', '%Transport%')
@@ -222,11 +190,6 @@ public function getEleveData(Request $request)
             ->pluck('id')
             ->toArray();
 
-        Log::info('Types de frais identifiés', [
-            'transport_type_ids' => $transportTypeIds,
-            'cantine_type_ids' => $cantineTypeIds
-        ]);
-
         // Récupérer TOUS les tarifs pour le niveau de l'élève OU NULL (tous les niveaux)
         $tarifs = DB::table($tarifsTable)
             ->where('ecole_id', $ecoleId)
@@ -236,11 +199,6 @@ public function getEleveData(Request $request)
                   ->orWhereNull('niveau_id');
             })
             ->get();
-
-        Log::info('Tarifs trouvés pour le niveau', [
-            'count' => $tarifs->count(),
-            'niveau_id' => $niveauId
-        ]);
 
         // Récupérer les types de frais pour les noms
         $typeFraisMap = TypeFrais::pluck('nom', 'id')->toArray();
@@ -281,11 +239,6 @@ public function getEleveData(Request $request)
                 if ($eleve->transport_active == 1 && 
                     ($tarif->obligatoire == 1 || $tarif->id == $eleve->transport_tarif_id)) {
                     $fraisData[] = $item;
-                    Log::info('Ajout transport tarif au tableau', [
-                        'libelle' => $item['libelle'],
-                        'obligatoire' => $tarif->obligatoire,
-                        'est_selectionne' => ($tarif->id == $eleve->transport_tarif_id)
-                    ]);
                 }
             } 
             // GESTION CANTINE
@@ -299,32 +252,13 @@ public function getEleveData(Request $request)
                 if ($eleve->cantine_active == 1 && 
                     ($tarif->obligatoire == 1 || $tarif->id == $eleve->cantine_tarif_id)) {
                     $fraisData[] = $item;
-                    Log::info('Ajout cantine tarif au tableau', [
-                        'libelle' => $item['libelle'],
-                        'obligatoire' => $tarif->obligatoire,
-                        'est_selectionne' => ($tarif->id == $eleve->cantine_tarif_id)
-                    ]);
                 }
             } 
             // AUTRES FRAIS (Scolarité, Inscription, etc.) - toujours affichés
             else {
                 $fraisData[] = $item;
-                Log::info('Ajout frais normal', [
-                    'type' => $typeNom, 
-                    'libelle' => $item['libelle']
-                ]);
             }
         }
-
-        Log::info('Résumé des données', [
-            'frais (affichés)' => count($fraisData),
-            'transport (select)' => count($transportTarifsForSelect),
-            'cantine (select)' => count($cantineTarifsForSelect),
-            'transport_active' => $eleve->transport_active,
-            'cantine_active' => $eleve->cantine_active,
-            'transport_selected' => $eleve->transport_tarif_id,
-            'cantine_selected' => $eleve->cantine_tarif_id
-        ]);
 
         return response()->json([
             'success' => true,
@@ -367,11 +301,6 @@ public function getEleveData(Request $request)
             $anneeScolaireId = session('current_annee_scolaire_id');
             $annee = session('current_annee_scolaire');
 
-            Log::info('=== updateTransportTarif ===', [
-                'eleve_id' => $request->eleve_id,
-                'tarif_id' => $request->tarif_id
-            ]);
-
             // Récupérer la table dynamique
             $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
 
@@ -389,7 +318,6 @@ public function getEleveData(Request $request)
                     ]);
                 
                 $message = 'Transport désactivé avec succès';
-                Log::info('Transport désactivé', ['eleve_id' => $request->eleve_id]);
             } else {
                 DB::table($elevesTable)
                     ->where('id', $request->eleve_id)
@@ -403,10 +331,6 @@ public function getEleveData(Request $request)
                     ]);
                 
                 $message = 'Tarif de transport sélectionné avec succès';
-                Log::info('Tarif transport mis à jour', [
-                    'eleve_id' => $request->eleve_id,
-                    'transport_tarif_id' => $request->tarif_id
-                ]);
             }
 
             return response()->json([
@@ -438,11 +362,6 @@ public function getEleveData(Request $request)
             $anneeScolaireId = session('current_annee_scolaire_id');
             $annee = session('current_annee_scolaire');
 
-            Log::info('=== updateCantineTarif ===', [
-                'eleve_id' => $request->eleve_id,
-                'tarif_id' => $request->tarif_id
-            ]);
-
             // Récupérer la table dynamique
             $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
 
@@ -460,7 +379,6 @@ public function getEleveData(Request $request)
                     ]);
                 
                 $message = 'Cantine désactivée avec succès';
-                Log::info('Cantine désactivée', ['eleve_id' => $request->eleve_id]);
             } else {
                 DB::table($elevesTable)
                     ->where('id', $request->eleve_id)
@@ -474,10 +392,6 @@ public function getEleveData(Request $request)
                     ]);
                 
                 $message = 'Tarif de cantine sélectionné avec succès';
-                Log::info('Tarif cantine mis à jour', [
-                    'eleve_id' => $request->eleve_id,
-                    'cantine_tarif_id' => $request->tarif_id
-                ]);
             }
 
             return response()->json([
@@ -547,7 +461,6 @@ public function store(Request $request)
                     'updated_at' => now()
                 ]);
             $message = 'Réduction mise à jour avec succès';
-            Log::info('Réduction mise à jour', ['reduction_id' => $existingReduction->id]);
         } else {
             // Créer une nouvelle réduction
             DB::table($reductionsTable)->insert([
@@ -562,7 +475,6 @@ public function store(Request $request)
                 'updated_at' => now()
             ]);
             $message = 'Réduction ajoutée avec succès';
-            Log::info('Réduction créée');
         }
 
         DB::commit();
@@ -604,8 +516,6 @@ public function store(Request $request)
             DB::table($reductionsTable)
                 ->where('id', $id)
                 ->delete();
-
-            Log::info('Réduction supprimée', ['reduction_id' => $id]);
 
             return response()->json([
                 'success' => true,

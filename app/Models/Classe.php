@@ -83,14 +83,7 @@ class Classe extends Model
         $sigle = $this->getEcoleSigle($ecoleId);
         $anneeFormatted = str_replace('-', '_', $annee);
         $tableName = 'classes_' . $sigle . '_' . $anneeFormatted;
-        
-        Log::debug('📋 Nom de table généré', [
-            'ecole_id' => $ecoleId,
-            'sigle' => $sigle,
-            'annee' => $annee,
-            'table_name' => $tableName
-        ]);
-        
+                
         return $tableName;
     }
 

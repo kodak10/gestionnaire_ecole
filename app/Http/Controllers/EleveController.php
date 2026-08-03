@@ -43,13 +43,6 @@ class EleveController extends Controller
         $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
         $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
 
-        Log::info('📋 CHARGEMENT ELEVES', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'eleves_table' => $elevesTable,
-            'classes_table' => $classesTable
-        ]);
-
         // Récupérer les classes pour le filtre
         $classes = DB::table($classesTable . ' as c')
             ->join('niveaux', 'c.niveau_id', '=', 'niveaux.id')
@@ -110,8 +103,6 @@ class EleveController extends Controller
         }
 
         $viewMode = $request->get('view_mode', 'grid');
-
-        Log::info('📊 Élèves trouvés', ['count' => $eleves->count()]);
 
         return view('dashboard.pages.eleves.index', compact('eleves', 'classes', 'viewMode'));
     }
@@ -258,7 +249,6 @@ class EleveController extends Controller
 
     public function store(Request $request)
 {
-    Log::info('📝 CRÉATION ÉLÈVE - Début', ['data' => $request->all()]);
 
     // ============================================
     // 1. VALIDATION DES DONNÉES
@@ -304,11 +294,6 @@ class EleveController extends Controller
 
     // Vérification des données de session
     if (!$ecoleId || !$anneeScolaireId || !$annee) {
-        Log::error('❌ Données de session manquantes', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'annee' => $annee
-        ]);
         return redirect()->back()
             ->with('error', 'Données de session manquantes. Veuillez vous reconnecter.')
             ->withInput();
@@ -326,7 +311,6 @@ class EleveController extends Controller
     if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
         try {
             $photoPath = $request->file('photo')->store('eleves_photos', 'public');
-            Log::info('📸 Photo téléchargée', ['path' => $photoPath]);
         } catch (\Exception $e) {
             Log::error('❌ Erreur lors du téléchargement de la photo', [
                 'error' => $e->getMessage()
@@ -349,11 +333,6 @@ class EleveController extends Controller
         $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
         $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
         
-        Log::info('📋 Tables dynamiques', [
-            'eleves' => $elevesTable,
-            'classes' => $classesTable,
-            'tarifs' => $tarifsTable
-        ]);
     } catch (\Exception $e) {
         Log::error('❌ Erreur lors de la récupération des noms de tables', [
             'error' => $e->getMessage()
@@ -405,13 +384,6 @@ class EleveController extends Controller
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Élève créé', [
-            'eleve_id' => $eleveId,
-            'matricule' => $matricule,
-            'nom' => $request->nom,
-            'prenom' => $request->prenom
-        ]);
-
         // ============================================
         // 7.2 RÉCUPÉRATION DU NIVEAU DE LA CLASSE
         // ============================================
@@ -424,12 +396,6 @@ class EleveController extends Controller
         }
 
         $niveauId = $classe->niveau_id ?? null;
-
-        Log::info('📚 Classe et niveau', [
-            'classe_id' => $request->classe_id,
-            'classe_nom' => $classe->nom ?? 'N/A',
-            'niveau_id' => $niveauId
-        ]);
 
         // ============================================
         // 7.3 GESTION DU PAIEMENT
@@ -445,17 +411,6 @@ class EleveController extends Controller
 
         if ($totalPaiement > 0) {
             $modePaiement = $request->mode_paiement ?? 'especes';
-
-            Log::info('💰 Traitement du paiement', [
-                'total' => $totalPaiement,
-                'mode' => $modePaiement,
-                'details' => [
-                    'inscription' => $fraisInscription,
-                    'scolarite' => $fraisScolarite,
-                    'transport' => $fraisTransport,
-                    'cantine' => $fraisCantine
-                ]
-            ]);
 
             // CRÉATION DU PAIEMENT D'ABORD
             $paiementId = $this->enregistrerPaiement(
@@ -476,12 +431,7 @@ class EleveController extends Controller
                 $tarif = $this->getTarif($typeInscription->id, $ecoleId, $anneeScolaireId, $niveauId);
                 if ($tarif) {
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, $tarif->id, $fraisInscription);
-                    Log::info('✅ Détail inscription enregistré', ['tarif_id' => $tarif->id]);
                 } else {
-                    Log::warning('⚠️ Aucun tarif trouvé pour l\'inscription', [
-                        'type_frais_id' => $typeInscription->id,
-                        'niveau_id' => $niveauId
-                    ]);
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, null, $fraisInscription);
                 }
             }
@@ -490,12 +440,7 @@ class EleveController extends Controller
                 $tarif = $this->getTarif($typeScolarite->id, $ecoleId, $anneeScolaireId, $niveauId);
                 if ($tarif) {
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, $tarif->id, $fraisScolarite);
-                    Log::info('✅ Détail scolarité enregistré', ['tarif_id' => $tarif->id]);
                 } else {
-                    Log::warning('⚠️ Aucun tarif trouvé pour la scolarité', [
-                        'type_frais_id' => $typeScolarite->id,
-                        'niveau_id' => $niveauId
-                    ]);
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, null, $fraisScolarite);
                 }
             }
@@ -504,12 +449,7 @@ class EleveController extends Controller
                 $tarif = $this->getTarif($typeTransport->id, $ecoleId, $anneeScolaireId, $niveauId);
                 if ($tarif) {
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, $tarif->id, $fraisTransport);
-                    Log::info('✅ Détail transport enregistré', ['tarif_id' => $tarif->id]);
                 } else {
-                    Log::warning('⚠️ Aucun tarif trouvé pour le transport', [
-                        'type_frais_id' => $typeTransport->id,
-                        'niveau_id' => $niveauId
-                    ]);
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, null, $fraisTransport);
                 }
             }
@@ -518,25 +458,12 @@ class EleveController extends Controller
                 $tarif = $this->getTarif($typeCantine->id, $ecoleId, $anneeScolaireId, $niveauId);
                 if ($tarif) {
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, $tarif->id, $fraisCantine);
-                    Log::info('✅ Détail cantine enregistré', ['tarif_id' => $tarif->id]);
                 } else {
-                    Log::warning('⚠️ Aucun tarif trouvé pour la cantine', [
-                        'type_frais_id' => $typeCantine->id,
-                        'niveau_id' => $niveauId
-                    ]);
                     $this->enregistrerDetailPaiement($paiementId, $eleveId, null, $fraisCantine);
                 }
             }
 
-            Log::info('💰 Paiement enregistré avec succès', [
-                'eleve_id' => $eleveId,
-                'paiement_id' => $paiementId,
-                'total' => $totalPaiement
-            ]);
         } else {
-            Log::info('ℹ️ Aucun paiement à enregistrer', [
-                'eleve_id' => $eleveId
-            ]);
         }
 
         // ============================================
@@ -547,28 +474,16 @@ class EleveController extends Controller
         // ============================================
         // 9. MESSAGE DE SUCCÈS
         // ============================================
-        $message = '🎉 Élève inscrit avec succès! Matricule: ' . $matricule;
+        $message = 'Élève inscrit avec succès! Matricule: ' . $matricule;
         if ($totalPaiement > 0) {
             $message .= ' Paiement de ' . number_format($totalPaiement, 0, ',', ' ') . ' FCFA enregistré.';
         }
-
-        Log::info('✅ Inscription terminée avec succès', [
-            'eleve_id' => $eleveId,
-            'matricule' => $matricule,
-            'total_paiement' => $totalPaiement
-        ]);
 
         return redirect()->route('eleves.index')->with('success', $message);
 
     } catch (\Exception $e) {
         DB::rollBack();
         
-        Log::error('❌ ERREUR INSCRIPTION ÉLÈVE', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'request_data' => $request->all()
-        ]);
-
         return redirect()->back()
             ->with('error', 'Erreur lors de l\'inscription: ' . $e->getMessage())
             ->withInput();
@@ -648,12 +563,6 @@ private function enregistrerPaiement($eleveId, $montant, $modePaiement, $referen
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Paiement créé', [
-            'paiement_id' => $paiementId,
-            'eleve_id' => $eleveId,
-            'montant' => $montant
-        ]);
-
         return $paiementId;
         
     } catch (\Exception $e) {
@@ -699,12 +608,6 @@ private function enregistrerDetailPaiement($paiementId, $eleveId, $tarifId, $mon
         }
 
         $detailId = DB::table($paiementDetailsTable)->insertGetId($data);
-
-        Log::info('✅ Détail paiement créé', [
-            'detail_id' => $detailId,
-            'paiement_id' => $paiementId,
-            'montant' => $montant
-        ]);
 
         return $detailId;
         
@@ -761,11 +664,6 @@ private function genererMatriculeEleve(int $ecoleId): string
             $matricule = $alias . '-' . $numeroFormate;
 
         } while (DB::table($elevesTable)->where('matricule', $matricule)->exists());
-
-        Log::info('✅ Matricule généré', [
-            'eleve_id' => $ecoleId,
-            'matricule' => $matricule
-        ]);
 
         return $matricule;
         
@@ -918,8 +816,6 @@ private function genererMatriculeEleve(int $ecoleId): string
                 ->where('ecole_id', $ecoleId)
                 ->update($updateData);
 
-            Log::info('✅ Élève modifié', ['id' => $id]);
-
             return redirect()->route('eleves.index')->with('success', 'Élève modifié avec succès!');
 
         } catch (\Exception $e) {
@@ -944,8 +840,6 @@ private function genererMatriculeEleve(int $ecoleId): string
                 ->where('id', $id)
                 ->where('ecole_id', $ecoleId)
                 ->delete();
-
-            Log::info('🗑️ Élève supprimé', ['id' => $id]);
 
             return redirect()->route('eleves.index')->with('success', 'Élève supprimé avec succès');
 
@@ -976,12 +870,6 @@ private function genererMatriculeEleve(int $ecoleId): string
                     'message' => 'Le paramètre classe_id est requis'
                 ], 400);
             }
-
-            Log::info('📋 Récupération des élèves par classe', [
-                'classe_id' => $classeId,
-                'ecole_id' => $ecoleId,
-                'annee_scolaire_id' => $anneeScolaireId
-            ]);
 
             // Récupérer les noms des tables dynamiques
             $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
@@ -1015,11 +903,6 @@ private function genererMatriculeEleve(int $ecoleId): string
                 $eleve->naissance_formattee = $eleve->naissance ? date('d/m/Y', strtotime($eleve->naissance)) : '-';
                 return $eleve;
             });
-
-            Log::info('📊 Élèves trouvés pour la classe', [
-                'classe_id' => $classeId,
-                'count' => $eleves->count()
-            ]);
 
             return response()->json([
                 'success' => true,

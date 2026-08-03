@@ -28,18 +28,8 @@ class MentionController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
 
-        Log::info('📋 CHARGEMENT MENTIONS', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'annee' => $annee
-        ]);
-
         // Récupérer le nom de la table des mentions
         $mentionsTable = $this->tableService->getMentionsTableName($ecoleId, $annee);
-
-        Log::info('📋 Table dynamique', [
-            'mentions' => $mentionsTable
-        ]);
 
         // Vérifier si la table existe
         if (!Schema::hasTable($mentionsTable)) {
@@ -53,8 +43,6 @@ class MentionController extends Controller
                 ->orderBy('min_note', 'asc')
                 ->get();
         }
-
-        Log::info('📊 Mentions trouvées', ['count' => $mentions->count()]);
 
         return view('dashboard.pages.parametrage.mention', [
             'mentions' => $mentions,
@@ -70,8 +58,6 @@ class MentionController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('📝 CRÉATION MENTION', ['data' => $request->all()]);
-
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
@@ -126,22 +112,12 @@ class MentionController extends Controller
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Mention créée', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('mentions.index')
             ->with('success', 'Mention créée avec succès.');
     }
 
     public function update(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR MENTION', [
-            'id' => $id,
-            'data' => $request->all()
-        ]);
-
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
@@ -205,19 +181,12 @@ class MentionController extends Controller
                 'updated_at' => now(),
             ]);
 
-        Log::info('✅ Mention mise à jour', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('mentions.index')
             ->with('success', 'Mention mise à jour avec succès.');
     }
 
     public function destroy($id)
     {
-        Log::info('🗑️ SUPPRESSION MENTION', ['id' => $id]);
-
         $ecoleId = session('current_ecole_id');
         $anneeScolaireId = session('current_annee_scolaire_id');
         $annee = session('current_annee_scolaire');
@@ -245,8 +214,6 @@ class MentionController extends Controller
         DB::table($mentionsTable)
             ->where('id', $id)
             ->delete();
-
-        Log::info('✅ Mention supprimée', ['id' => $id]);
 
         return redirect()->route('mentions.index')
             ->with('success', 'Mention supprimée avec succès.');

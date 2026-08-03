@@ -72,11 +72,6 @@ class TableService
             // Normaliser le sigle (supprimer les espaces, caractères spéciaux)
             $sigle = $this->normalizeSigle($ecole->sigle_ecole);
             
-            Log::debug('✅ Sigle trouvé', [
-                'ecole_id' => $ecoleId,
-                'sigle_original' => $ecole->sigle_ecole,
-                'sigle_normalise' => $sigle
-            ]);
             return $sigle;
         }
         
@@ -88,13 +83,7 @@ class TableService
         if (empty($sigle)) {
             $sigle = 'ecole';
         }
-        
-        Log::debug('⚠️ Sigle généré depuis le nom', [
-            'ecole_id' => $ecoleId,
-            'nom' => $ecole->nom_ecole,
-            'sigle_genere' => $sigle
-        ]);
-        
+                
         return $sigle;
     }
 
@@ -111,14 +100,7 @@ class TableService
         $sigle = $this->getEcoleSigle($ecoleId);
         $anneeFormatted = str_replace('-', '_', $annee);
         $tableName = $base . '_' . $sigle . '_' . $anneeFormatted;
-        
-        Log::debug('📋 Nom de table généré', [
-            'base' => $base,
-            'sigle' => $sigle,
-            'annee' => $annee,
-            'table_name' => $tableName
-        ]);
-        
+                
         return $tableName;
     }
 
@@ -130,11 +112,6 @@ class TableService
         $tableName = $this->getTableName($base, $ecoleId, $annee);
         $exists = Schema::hasTable($tableName);
         
-        Log::debug('🔍 Vérification table', [
-            'table' => $tableName,
-            'exists' => $exists
-        ]);
-        
         return $exists;
     }
 
@@ -144,10 +121,6 @@ class TableService
     public function tableExistsExact(string $tableName): bool
     {
         $exists = Schema::hasTable($tableName);
-        Log::debug('🔍 Vérification table exacte', [
-            'table' => $tableName,
-            'exists' => $exists
-        ]);
         return $exists;
     }
 
@@ -197,11 +170,6 @@ class TableService
                     $similarTables[] = $table;
                 }
             }
-            
-            Log::warning('⚠️ Table non trouvée, tables similaires', [
-                'recherche' => $tableName,
-                'similaires' => $similarTables
-            ]);
             
             return [
                 'exists' => false,
@@ -465,13 +433,6 @@ class TableService
                 $dynamicTables[] = $table;
             }
         }
-        
-        Log::debug('📋 Tables dynamiques trouvées', [
-            'ecole_id' => $ecoleId,
-            'annee' => $annee,
-            'sigle' => $sigle,
-            'tables' => $dynamicTables
-        ]);
         
         return $dynamicTables;
     }

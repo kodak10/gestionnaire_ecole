@@ -30,12 +30,6 @@ class TarifScolariteController extends Controller
         $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
         $annee = session('current_annee_scolaire');
 
-        Log::info('📋 CHARGEMENT TARIFS', [
-            'ecole_id' => $ecoleId,
-            'annee_scolaire_id' => $anneeScolaireId,
-            'annee' => $annee
-        ]);
-
         // Récupérer les niveaux (table dynamique)
         $niveaux = Niveau::where('ecole_id', $ecoleId)
             ->orderBy('ordre', 'asc')
@@ -52,8 +46,6 @@ class TarifScolariteController extends Controller
         // Récupérer les types de frais (statique)
         $typeFrais = TypeFrais::orderBy('nom')->get();
 
-        Log::info('📊 Tarifs trouvés', ['count' => $tarifs->count()]);
-
         return view('dashboard.pages.parametrage.scolarite.tarif', compact(
             'niveaux',
             'tarifs',
@@ -63,8 +55,6 @@ class TarifScolariteController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('📝 CRÉATION TARIF', ['data' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'type_frais_id' => 'required|exists:type_frais,id',
             'obligatoire' => 'nullable|boolean',
@@ -116,8 +106,6 @@ class TarifScolariteController extends Controller
 
             DB::commit();
 
-            Log::info('✅ Tarif(s) créé(s)', ['count' => count($niveauIds) ?: 1]);
-
             return redirect()
                 ->route('scolarite.tarifs.index')
                 ->with('success', 'Tarif(s) ajouté(s) avec succès.');
@@ -131,11 +119,6 @@ class TarifScolariteController extends Controller
 
     public function update(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR TARIF', [
-            'id' => $id,
-            'data' => $request->all()
-        ]);
-
         $validator = Validator::make($request->all(), [
             'type_frais_id' => 'required|exists:type_frais,id',
             'montant' => 'required|numeric|min:0',
@@ -183,8 +166,6 @@ class TarifScolariteController extends Controller
 
             DB::commit();
 
-            Log::info('✅ Tarif mis à jour', ['id' => $id]);
-
             return redirect()
                 ->route('scolarite.tarifs.index')
                 ->with('success', 'Tarif mis à jour avec succès.');
@@ -198,8 +179,6 @@ class TarifScolariteController extends Controller
 
     public function destroy($id)
     {
-        Log::info('🗑️ SUPPRESSION TARIF', ['id' => $id]);
-
         $ecoleId = session('current_ecole_id') ?? auth()->user()->ecole_id;
         $anneeScolaireId = session('current_annee_scolaire_id') ?? auth()->user()->annee_scolaire_id;
 
@@ -214,8 +193,6 @@ class TarifScolariteController extends Controller
             }
 
             $tarif->delete();
-
-            Log::info('✅ Tarif supprimé', ['id' => $id]);
 
             return redirect()
                 ->route('scolarite.tarifs.index')

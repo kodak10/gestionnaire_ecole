@@ -32,10 +32,6 @@ class ScolariteController extends Controller
     ->ordered()
     ->get();
         
-            Log::info('Classes chargées pour l\'année ' . $anneeScolaireId, [
-        'classes' => $classes->pluck('id', 'nom'),
-        'total' => $classes->count()
-    ]);
 
         $typesFrais = TypeFrais::orderBy('nom')->get();
 
@@ -74,8 +70,6 @@ class ScolariteController extends Controller
                     'matricule' => $inscription->eleve->matricule,
                     'classe_nom' => $inscription->classe->nom,
                 ]);
-
-            Log::info('Élèves chargés pour la classe ID ' . $request->classe_id, ['eleves' => $eleves]);
 
             return response()->json($eleves);
 

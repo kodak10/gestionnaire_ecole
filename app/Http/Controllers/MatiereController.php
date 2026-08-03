@@ -32,11 +32,6 @@ class MatiereController extends Controller
         $annee = session('current_annee_scolaire');
         $anneeScolaireId = session('current_annee_scolaire_id');
 
-        Log::info('📋 CHARGEMENT MATIERES', [
-            'ecole_id' => $ecoleId,
-            'annee' => $annee
-        ]);
-
         // Récupérer les noms des tables dynamiques
         $matieresTable = $this->tableService->getTableName('matieres', $ecoleId, $annee);
         $niveauxTable = $this->tableService->getNiveauxTableName($ecoleId, $annee);
@@ -88,8 +83,6 @@ class MatiereController extends Controller
             }
         }
 
-        Log::info('📊 Matières trouvées', ['count' => $matieres->count()]);
-
         return view('dashboard.pages.parametrage.matiere', [
             'matieres' => $matieres,
             'niveaux' => $niveaux,
@@ -139,12 +132,6 @@ class MatiereController extends Controller
                 'nm.denominateur'
             )
             ->get();
-
-        Log::info('📊 Matières du niveau', [
-            'niveau' => $niveau->nom,
-            'count' => $matieres->count()
-        ]);
-
         return response()->json($matieres);
     }
 
@@ -153,8 +140,6 @@ class MatiereController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('📝 CRÉATION MATIERE', ['data' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'nom' => 'required|string|max:255',
         ]);
@@ -197,11 +182,6 @@ class MatiereController extends Controller
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Matière créée', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('matieres.index')
             ->with('success', 'Matière créée avec succès.');
     }
@@ -211,11 +191,6 @@ class MatiereController extends Controller
      */
     public function update(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR MATIERE', [
-            'id' => $id,
-            'data' => $request->all()
-        ]);
-
         $validator = Validator::make($request->all(), [
             'nom' => 'required|string|max:255',
         ]);
@@ -268,11 +243,6 @@ class MatiereController extends Controller
                 'updated_at' => now(),
             ]);
 
-        Log::info('✅ Matière mise à jour', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('matieres.index')
             ->with('success', 'Matière mise à jour avec succès.');
     }
@@ -282,8 +252,6 @@ class MatiereController extends Controller
      */
     public function destroy($id)
     {
-        Log::info('🗑️ SUPPRESSION MATIERE', ['id' => $id]);
-
         $ecoleId = session('current_ecole_id');
         $annee = session('current_annee_scolaire');
 
@@ -324,8 +292,6 @@ class MatiereController extends Controller
             ->where('id', $id)
             ->delete();
 
-        Log::info('✅ Matière supprimée', ['id' => $id]);
-
         return redirect()->route('matieres.index')
             ->with('success', 'Matière supprimée avec succès.');
     }
@@ -335,8 +301,6 @@ class MatiereController extends Controller
      */
     public function assignMatieres(Request $request)
     {
-        Log::info('📝 ASSIGNATION MATIERES', ['data' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'niveau_id' => 'required|exists:niveaux,id',
             'matieres' => 'required|array',
@@ -398,11 +362,6 @@ class MatiereController extends Controller
             ]);
         }
 
-        Log::info('✅ Matières assignées au niveau', [
-            'niveau_id' => $request->niveau_id,
-            'count' => count($request->matieres)
-        ]);
-
         return redirect()->back()
             ->with('success', 'Matières assignées avec succès.');
     }
@@ -412,11 +371,6 @@ class MatiereController extends Controller
      */
     public function updateClasses(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR CLASSES MATIERE', [
-            'matiere_id' => $id,
-            'data' => $request->all()
-        ]);
-
         $validator = Validator::make($request->all(), [
             'niveaux' => 'required|array',
             'niveaux.*' => 'integer|min:0|max:10'
@@ -473,10 +427,6 @@ class MatiereController extends Controller
                 ]);
             }
         }
-
-        Log::info('✅ Classes de la matière mises à jour', [
-            'matiere_id' => $id
-        ]);
 
         return redirect()->route('matieres.index')
             ->with('success', 'Classes associées mises à jour avec succès.');

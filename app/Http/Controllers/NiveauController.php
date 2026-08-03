@@ -29,17 +29,8 @@ class NiveauController extends Controller
         $ecoleId = session('current_ecole_id');
         $annee = session('current_annee_scolaire');
 
-        Log::info('📋 CHARGEMENT NIVEAUX', [
-            'ecole_id' => $ecoleId,
-            'annee' => $annee
-        ]);
-
         // Récupérer le nom de la table des niveaux
         $niveauxTable = $this->tableService->getNiveauxTableName($ecoleId, $annee);
-
-        Log::info('📋 Table dynamique', [
-            'niveaux' => $niveauxTable
-        ]);
 
         // Vérifier si la table existe
         if (!Schema::hasTable($niveauxTable)) {
@@ -53,8 +44,6 @@ class NiveauController extends Controller
             ->where('ecole_id', $ecoleId)
             ->orderBy('ordre', 'asc')
             ->get();
-
-        Log::info('📊 Niveaux trouvés', ['count' => $niveaux->count()]);
 
         // Compter les classes par niveau
         $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
@@ -87,8 +76,6 @@ class NiveauController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('📝 CRÉATION NIVEAU', ['data' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'nom' => 'required|string|max:100',
             'ordre' => 'required|integer|min:0',
@@ -132,11 +119,6 @@ class NiveauController extends Controller
             'updated_at' => now(),
         ]);
 
-        Log::info('✅ Niveau créé', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('niveaux.index')
             ->with('success', 'Niveau créé avec succès.');
     }
@@ -146,11 +128,6 @@ class NiveauController extends Controller
      */
     public function update(Request $request, $id)
     {
-        Log::info('📝 MISE À JOUR NIVEAU', [
-            'id' => $id,
-            'data' => $request->all()
-        ]);
-
         $validator = Validator::make($request->all(), [
             'nom' => 'required|string|max:100',
             'ordre' => 'required|integer|min:0',
@@ -205,11 +182,6 @@ class NiveauController extends Controller
                 'updated_at' => now(),
             ]);
 
-        Log::info('✅ Niveau mis à jour', [
-            'id' => $id,
-            'nom' => $request->nom
-        ]);
-
         return redirect()->route('niveaux.index')
             ->with('success', 'Niveau mis à jour avec succès.');
     }
@@ -219,8 +191,6 @@ class NiveauController extends Controller
      */
     public function destroy($id)
     {
-        Log::info('🗑️ SUPPRESSION NIVEAU', ['id' => $id]);
-
         $ecoleId = session('current_ecole_id');
         $annee = session('current_annee_scolaire');
 
@@ -261,8 +231,6 @@ class NiveauController extends Controller
             ->where('id', $id)
             ->delete();
 
-        Log::info('✅ Niveau supprimé', ['id' => $id]);
-
         return redirect()->route('niveaux.index')
             ->with('success', 'Niveau supprimé avec succès.');
     }
@@ -272,8 +240,6 @@ class NiveauController extends Controller
      */
     public function reorder(Request $request)
     {
-        Log::info('🔄 RÉORGANISATION NIVEAUX', ['data' => $request->all()]);
-
         $validator = Validator::make($request->all(), [
             'order' => 'required|array',
             'order.*' => 'required|integer|exists:niveaux,id',
@@ -305,8 +271,6 @@ class NiveauController extends Controller
                     ->where('ecole_id', $ecoleId)
                     ->update(['ordre' => $index + 1]);
             }
-
-            Log::info('✅ Niveaux réorganisés');
 
             return response()->json([
                 'success' => true,
