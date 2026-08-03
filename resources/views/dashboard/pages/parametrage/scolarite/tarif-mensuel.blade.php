@@ -16,7 +16,7 @@
     </div>
     <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
         <div class="pe-1 mb-2">
-            <a href="{{ route('tarifs-mensuels.index') }}" class="btn btn-outline-light bg-white btn-icon me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Actualiser">
+            <a href="{{ route('scolarite.tarifs-mensuels.index') }}" class="btn btn-outline-light bg-white btn-icon me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Actualiser">
                 <i class="ti ti-refresh"></i>
             </a>
         </div>
@@ -63,7 +63,7 @@
             </span>
         </div> --}}
 
-        <form action="{{ route('tarifs-mensuels.store') }}" method="POST" id="tarifMensuelForm">
+        <form action="{{ route('scolarite.tarifs-mensuels.store') }}" method="POST" id="tarifMensuelForm">
             @csrf
             <div class="row">
                 <div class="col-md-4">
@@ -292,7 +292,7 @@ $(document).ready(function () {
         }
 
         $.ajax({
-            url: "{{ route('tarifs-mensuels.get-tarifs') }}",
+            url: "{{ route('scolarite.tarifs-mensuels.get-tarifs') }}",
             type: "GET",
             data: {
                 tarif_id: tarifId

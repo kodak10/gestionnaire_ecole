@@ -135,14 +135,10 @@
                     
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover" id="relance-table">
-                            <!-- Dans l'en-tête du tableau -->
                             <thead class="table-light">
                                 <tr>
-                                    <th><input type="checkbox" id="select-all"></th>
+                                    <th width="30"><input type="checkbox" id="select-all"></th>
                                     <th>Élève</th>
-                                    <th>Classe</th>
-                                    <th>Type - Tarif</th>
-                                    <th>Début</th>
                                     <th>Montant Mois</th>
                                     <th>Cumul Attendu</th>
                                     <th>Cumul Payé</th>
@@ -332,7 +328,6 @@ $(document).ready(function() {
         chargerRelance();
     });
 
-    // Appuyer sur Entrée pour générer la relance
     $('#classe_id, #date_reference, #tarif_id, #montant_min, #montant_max').on('keypress', function(e) {
         if (e.which === 13) {
             e.preventDefault();
@@ -413,10 +408,10 @@ function afficherResultats(data) {
         summaryText += ` - Tarif: ${tarifLibelle}`;
     }
     if (data.montant_min) {
-        summaryText += ` - Min: ${formatMoney(data.montant_min)}`;
+        summaryText += ` - Min: ${formatMoney(parseFloat(data.montant_min))}`;
     }
     if (data.montant_max) {
-        summaryText += ` - Max: ${formatMoney(data.montant_max)}`;
+        summaryText += ` - Max: ${formatMoney(parseFloat(data.montant_max))}`;
     }
     $('#result-summary').text(summaryText);
     
@@ -426,7 +421,7 @@ function afficherResultats(data) {
     if (!data.data || data.data.length === 0) {
         tbody.append(`
             <tr>
-                <td colspan="11" class="text-center py-4">
+                <td colspan="8" class="text-center py-4">
                     <i class="ti ti-inbox fs-3 text-muted"></i>
                     <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
                 </td>
@@ -444,17 +439,22 @@ function afficherResultats(data) {
     let totalEnRetard = 0;
     
     data.data.forEach(function(eleve, index) {
-        totalMontantMois += eleve.montant_mois || 0;
-        totalCumulAttendu += eleve.cumul_attendu || 0;
-        totalCumulPaye += eleve.total_paye || 0;
-        totalResteMois += eleve.reste_mois || 0;
-        totalResteCumul += eleve.reste_cumul || 0;
+        // ✅ Convertir correctement les valeurs numériques
+        const montantMois = parseFloat(eleve.montant_mois) || 0;
+        const cumulAttendu = parseFloat(eleve.cumul_attendu) || 0;
+        const totalPaye = parseFloat(eleve.total_paye) || 0;
+        const resteMois = parseFloat(eleve.reste_mois) || 0;
+        const resteCumul = parseFloat(eleve.reste_cumul) || 0;
+        
+        totalMontantMois += montantMois;
+        totalCumulAttendu += cumulAttendu;
+        totalCumulPaye += totalPaye;
+        totalResteMois += resteMois;
+        totalResteCumul += resteCumul;
         if (eleve.statut === 'En retard') totalEnRetard++;
         
         const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
         const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
-        const typeTarif = eleve.type_tarif || '-';
-        const dateDebut = eleve.date_debut || '-';
         
         tbody.append(`
             <tr>
@@ -463,24 +463,20 @@ function afficherResultats(data) {
                            data-eleve='${JSON.stringify(eleve).replace(/'/g, "&#39;")}'>
                 </td>
                 <td><div class="fw-semibold">${eleveNom}</div></td>
-                <td>${eleve.classe || ''}</td>
-                <td>${typeTarif}</td>
-                <td>${dateDebut}</td>
-                <td class="fw-bold">${formatMoney(eleve.montant_mois || 0)}</td>
-                <td>${formatMoney(eleve.cumul_attendu || 0)}</td>
-                <td class="text-success">${formatMoney(eleve.total_paye || 0)}</td>
-                <td class="text-danger">${formatMoney(eleve.reste_mois || 0)}</td>
-                <td class="text-danger fw-bold">${formatMoney(eleve.reste_cumul || 0)}</td>
+                <td class="fw-bold text-primary">${formatMoney(montantMois)}</td>
+                <td>${formatMoney(cumulAttendu)}</td>
+                <td class="text-success">${formatMoney(totalPaye)}</td>
+                <td class="text-danger">${formatMoney(resteMois)}</td>
+                <td class="text-danger fw-bold">${formatMoney(resteCumul)}</td>
                 <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
             </tr>
         `);
     });
     
-    // Ligne de total
     const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
     tbody.append(`
         <tr class="table-active fw-bold">
-            <td colspan="5" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
+            <td colspan="2" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
             <td>${formatMoney(totalMontantMois)}</td>
             <td>${formatMoney(totalCumulAttendu)}</td>
             <td class="text-success">${formatMoney(totalCumulPaye)}</td>
@@ -528,12 +524,6 @@ function afficherResultats(data) {
 
     function getEcoleName() {
         return '{{ session("current_ecole") ? session("current_ecole")->nom_ecole ?? "" : "Ecole" }}';
-    }
-
-    function getNextPaymentDate() {
-        const date = new Date();
-        date.setDate(date.getDate() + 5);
-        return date.toLocaleDateString('fr-FR');
     }
 
     // ============================================
@@ -626,13 +616,11 @@ function afficherResultats(data) {
             return;
         }
 
-        // Vérifier si les élèves ont des numéros de téléphone
         const sansTelephone = selectedEleves.filter(e => !e.telephone && !e.parent_telephone);
         if (sansTelephone.length > 0) {
             toastr.warning(sansTelephone.length + ' élève(s) n\'ont pas de numéro de téléphone');
         }
 
-        // Utiliser un message par défaut
         const message = generateDefaultSmsMessage(selectedEleves[0]);
         
         $('#sms-preview-content').text(message);
@@ -651,7 +639,6 @@ function afficherResultats(data) {
             try {
                 const data = $(this).data('eleve');
                 if (data) {
-                    // S'assurer que les données sont un objet
                     if (typeof data === 'string') {
                         try {
                             eleves.push(JSON.parse(data));
@@ -794,7 +781,6 @@ function afficherResultats(data) {
     // 8. RECHARGE AU CHANGEMENT DE CLASSE
     // ============================================
     $('#classe_id').change(function() {
-        // Vider les résultats quand la classe change
         $('#relance-results').addClass('d-none');
         $('#no-data').removeClass('d-none');
         $('#result-title').text('');
@@ -804,7 +790,6 @@ function afficherResultats(data) {
     // ============================================
     // 9. INITIALISATION
     // ============================================
-    // Vérifier si les filtres sont déjà remplis (après erreur)
     if ($('#classe_id').val() && $('#date_reference').val()) {
         chargerRelance();
     }

@@ -268,7 +268,7 @@ class TarifMensuelController extends Controller
             ]);
 
             return redirect()
-                ->route('tarifs-mensuels.index', ['tarif_id' => $request->tarif_id])
+                ->route('scolarite.tarifs-mensuels.index', ['tarif_id' => $request->tarif_id])
                 ->with('success', $message);
 
         } catch (\Exception $e) {

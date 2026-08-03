@@ -24,7 +24,7 @@
 <h3 class="mb-4">Configuration des Frais Mensuels</h3>
 
 <!-- Formulaire de filtres -->
-<form method="GET" action="{{ route('tarifs-mensuels.index') }}" class="row mb-4 g-3" id="filterForm">
+<form method="GET" action="{{ route('scolarite.tarifs-mensuels.index') }}" class="row mb-4 g-3" id="filterForm">
     <div class="col-md-4">
         <label for="filter_type_frais_id" class="form-label">Filtrer par Type de Frais</label>
         <select id="filter_type_frais_id" name="type_frais_id" class="form-select">
@@ -63,7 +63,7 @@
 
     <div class="col-12 mt-3">
         <button type="submit" class="btn btn-primary">Appliquer les filtres</button>
-        <a href="{{ route('tarifs-mensuels.index') }}" class="btn btn-secondary">Réinitialiser</a>
+        <a href="{{ route('scolarite.tarifs-mensuels.index') }}" class="btn btn-secondary">Réinitialiser</a>
     </div>
 </form>
 
@@ -78,7 +78,7 @@
 <div class="card mt-4">
     <div class="card-body">
         <h5>Ajouter un tarif mensuel</h5>
-        <form id="tarifForm" method="POST" action="{{ route('tarifs-mensuels.store') }}">
+        <form id="tarifForm" method="POST" action="{{ route('scolarite.tarifs-mensuels.store') }}">
             @csrf
             <div class="row gy-3">
                 <div class="col-md-3">
@@ -166,10 +166,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editModalLabel">Modifier le tarif</h5>
-                <a href="{{ route('tarifs-mensuels.index') }}" class="btn-close"></a>
+                <a href="{{ route('scolarite.tarifs-mensuels.index') }}" class="btn-close"></a>
             </div>
             <div class="modal-body">
-                <form id="editTarifForm" method="POST" action="{{ route('tarifs-mensuels.update', $selectedTarif->id) }}">
+                <form id="editTarifForm" method="POST" action="{{ route('scolarite.tarifs-mensuels.update', $selectedTarif->id) }}">
                     @csrf
                     @method('PUT')
                     
@@ -215,7 +215,7 @@
                     </div>
                     
                     <div class="modal-footer">
-                        <a href="{{ route('tarifs-mensuels.index') }}" class="btn btn-secondary">Fermer</a>
+                        <a href="{{ route('scolarite.tarifs-mensuels.index') }}" class="btn btn-secondary">Fermer</a>
 
                         <!-- Formulaire de suppression -->
                         <form action="{{ route('tarifs-mensuels.destroy', $selectedTarif->id) }}" method="POST" class="d-inline"
