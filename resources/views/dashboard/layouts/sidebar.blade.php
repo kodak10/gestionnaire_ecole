@@ -191,18 +191,7 @@
                         </li>
                         @endhasanyrole
 
-                        <li class="submenu">
-                            <a href="javascript:void(0);" class="">
-                                <i class="ti ti-users"></i><span>Relances</span><span class="menu-arrow"></span>
-                            </a>
-                            <ul>
-
-                                <li><a href="{{ route('templates.index') }}" class="">Relance SMS</a></li>
-                                <li><a href="#" class="">Relance PAPIER</a></li>
-                                
-                            </ul>
-                        </li>
-
+                       
                         @hasanyrole('SuperAdministrateur')
                         <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['scolarite.*', 'scolarite.tarifs-mensuels.index']) ? 'active subdrop' : '' }}">
@@ -214,6 +203,11 @@
                             </ul>
                         </li>
                         @endhasanyrole
+
+                        @hasanyrole('SuperAdministrateur')
+                        <li><a href="{{ route('templates.index') }}" class="{{ request()->routeIs('templates.index') ? 'active' : '' }}"><i class="ti ti-building"></i><span>Messages</span></a></li>
+                        @endhasanyrole
+
                         
                         <li class="submenu">
                             <a href="javascript:void(0);" class="{{ request()->routeIs(['profile', 'users*']) ? 'active subdrop' : '' }}">

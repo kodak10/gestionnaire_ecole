@@ -140,11 +140,13 @@
 
                                             <!-- Mot de passe -->
                                             <label class="form-label">Mot de passe</label>
-                                            <div class="pass-group">
+                                            <div class="pass-group position-relative">
                                                 <input type="password" name="password" 
-                                                       class="pass-input form-control @error('password') is-invalid @enderror" 
-                                                       required>
-                                                <span class="ti toggle-password ti-eye-off"></span>
+                                                    id="passwordInput"
+                                                    class="pass-input form-control @error('password') is-invalid @enderror" 
+                                                    required>
+                                                <span class="ti toggle-password ti-eye-off position-absolute" 
+                                                    style="right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
                                                 @error('password')
                                                     <span class="invalid-feedback" role="alert">
                                                         <strong>{{ $message }}</strong>
@@ -160,7 +162,7 @@
                                                            name="remember" id="remember" 
                                                            {{ old('remember') ? 'checked' : '' }}>
                                                 </div>
-                                                <label class="ms-1 mb-0" for="remember">Se souvenir de moi</label>
+                                                {{-- <label class="ms-1 mb-0" for="remember">Se souvenir de moi</label> --}}
                                             </div>
                                         </div>
 
@@ -181,147 +183,42 @@
     </div>
 </div>
 
-{{-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle password visibility
-        document.querySelectorAll('.toggle-password').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const input = this.previousElementSibling;
-                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                input.setAttribute('type', type);
-                this.classList.toggle('ti-eye');
-                this.classList.toggle('ti-eye-off');
-            });
-        });
-
-        // Éléments du DOM
-        const ecoleSelect = document.getElementById('ecoleSelect');
-        const anneeSelect = document.getElementById('anneeScolaireSelect');
-        const loginForm = document.getElementById('loginForm');
-
-        // Fonction pour charger les années scolaires d'une école
-        function loadAnneesScolaires(ecoleId, selectedAnneeId = null) {
-            if (!ecoleId) {
-                anneeSelect.innerHTML = '<option value="">Sélectionnez d\'abord une école</option>';
-                anneeSelect.disabled = true;
-                return;
-            }
-
-            anneeSelect.innerHTML = '<option value="">Chargement...</option>';
-            anneeSelect.disabled = true;
-
-            fetch(`/ecoles/${ecoleId}/annees-scolaires`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erreur HTTP: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    anneeSelect.disabled = false;
-                    
-                    if (!Array.isArray(data) || data.length === 0) {
-                        anneeSelect.innerHTML = '<option value="">Aucune année scolaire disponible</option>';
-                        return;
-                    }
-
-                    let options = '';
-                    let activeAnneeId = null;
-                    
-                    data.forEach(annee => {
-                        const isActive = annee.est_active == 1 || annee.est_active === true;
-                        const selected = (selectedAnneeId && annee.id == selectedAnneeId) ? 'selected' : '';
-                        options += `<option value="${annee.id}" ${selected}>
-                            ${annee.annee}
-                        </option>`;
-                        
-                        if (isActive) {
-                            activeAnneeId = annee.id;
-                        }
-                    });
-
-                    anneeSelect.innerHTML = options;
-
-                    // Sélectionner automatiquement l'année active si aucune n'est sélectionnée
-                    if (activeAnneeId && !selectedAnneeId) {
-                        anneeSelect.value = activeAnneeId;
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    anneeSelect.innerHTML = `<option value="">Erreur: ${error.message}</option>`;
-                    anneeSelect.disabled = false;
-                });
-        }
-
-        // Événement de changement d'école
-        ecoleSelect.addEventListener('change', function() {
-            const ecoleId = this.value;
-            loadAnneesScolaires(ecoleId);
-            document.querySelector('input[name="pseudo"]').value = '';
-        });
-
-        // Si une école est déjà sélectionnée (après erreur de validation)
-        const oldEcoleId = {{ old('ecole_id') ?? 'null' }};
-        const oldAnneeId = {{ old('annee_scolaire_id') ?? 'null' }};
-        
-        if (oldEcoleId) {
-            // Charger les années avec l'ancienne sélection
-            loadAnneesScolaires(oldEcoleId, oldAnneeId);
-            // Sélectionner l'école
-            ecoleSelect.value = oldEcoleId;
-        }
-
-        // Validation du formulaire
-        loginForm.addEventListener('submit', function(e) {
-            const ecoleValue = ecoleSelect.value;
-            const anneeValue = anneeSelect.value;
-            const pseudoValue = document.querySelector('input[name="pseudo"]').value;
-            const passwordValue = document.querySelector('input[name="password"]').value;
-
-            if (!ecoleValue) {
-                e.preventDefault();
-                alert('Veuillez sélectionner une école');
-                ecoleSelect.focus();
-                return false;
-            }
-
-            if (!anneeValue) {
-                e.preventDefault();
-                alert('Veuillez sélectionner une année scolaire');
-                anneeSelect.focus();
-                return false;
-            }
-
-            if (!pseudoValue) {
-                e.preventDefault();
-                alert('Veuillez entrer votre nom d\'utilisateur');
-                document.querySelector('input[name="pseudo"]').focus();
-                return false;
-            }
-
-            if (!passwordValue) {
-                e.preventDefault();
-                alert('Veuillez entrer votre mot de passe');
-                document.querySelector('input[name="password"]').focus();
-                return false;
-            }
-
-            return true;
-        });
-    });
-</script> --}}
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Toggle password visibility
         document.querySelectorAll('.toggle-password').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const input = this.previousElementSibling;
-                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                input.setAttribute('type', type);
-                this.classList.toggle('ti-eye');
-                this.classList.toggle('ti-eye-off');
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const parent = this.closest('.pass-group');
+                let input = parent.querySelector('input[type="password"], input[type="text"]');
+                if (!input) {
+                    input = parent.querySelector('input');
+                }
+                
+                if (input) {
+                    const currentType = input.getAttribute('type');
+                    
+                    if (currentType === 'password' || currentType === 'text') {
+                        const newType = currentType === 'password' ? 'text' : 'password';
+                        input.setAttribute('type', newType);
+                    }
+                    
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                    } else if (input.type === 'text') {
+                        input.type = 'password';
+                    }
+                    
+                    const isVisible = input.type === 'text';
+                    if (isVisible) {
+                        this.classList.remove('ti-eye-off');
+                        this.classList.add('ti-eye');
+                    } else {
+                        this.classList.remove('ti-eye');
+                        this.classList.add('ti-eye-off');
+                    }
+                }
             });
         });
 
@@ -339,14 +236,11 @@
             const preferences = {
                 ecole_id: ecoleSelect.value,
                 annee_id: anneeSelect.value
-                // Pseudo volontairement exclu
             };
             
-            // Ne sauvegarder que si une école est sélectionnée
             if (preferences.ecole_id) {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
             } else {
-                // Si aucune école n'est sélectionnée, on supprime les préférences
                 localStorage.removeItem(STORAGE_KEY);
             }
         }
@@ -359,27 +253,22 @@
             try {
                 const preferences = JSON.parse(stored);
                 
-                // Vérifier si les données sont valides
                 if (!preferences.ecole_id) return false;
 
-                // Charger l'école
                 ecoleSelect.value = preferences.ecole_id;
                 
-                // Charger les années scolaires pour cette école
                 if (preferences.annee_id) {
                     loadAnneesScolaires(preferences.ecole_id, preferences.annee_id);
                 } else {
                     loadAnneesScolaires(preferences.ecole_id);
                 }
                 
-                // Ne pas charger le pseudo - le champ reste vide
                 if (pseudoInput) {
                     pseudoInput.value = '';
                 }
 
                 return true;
             } catch (e) {
-                console.error('Erreur lors du chargement des préférences:', e);
                 localStorage.removeItem(STORAGE_KEY);
                 return false;
             }
@@ -428,20 +317,16 @@
 
                     anneeSelect.innerHTML = options;
 
-                    // Sélectionner automatiquement l'année active si aucune n'est sélectionnée
                     if (activeAnneeId && !selectedAnneeId) {
                         anneeSelect.value = activeAnneeId;
-                        // Sauvegarder la nouvelle sélection
                         savePreferences();
                     }
                     
-                    // Sauvegarder après le chargement
                     if (selectedAnneeId) {
                         savePreferences();
                     }
                 })
                 .catch(error => {
-                    console.error('Erreur:', error);
                     anneeSelect.innerHTML = `<option value="">Erreur: ${error.message}</option>`;
                     anneeSelect.disabled = false;
                 });
@@ -452,17 +337,14 @@
             const ecoleId = this.value;
             if (ecoleId) {
                 loadAnneesScolaires(ecoleId);
-                // Effacer le pseudo quand on change d'école
                 if (pseudoInput) {
                     pseudoInput.value = '';
                 }
             } else {
                 anneeSelect.innerHTML = '<option value="">Sélectionnez d\'abord une école</option>';
                 anneeSelect.disabled = true;
-                // Supprimer les préférences si aucune école n'est sélectionnée
                 localStorage.removeItem(STORAGE_KEY);
             }
-            // Sauvegarder immédiatement
             savePreferences();
         });
 
@@ -471,19 +353,10 @@
             savePreferences();
         });
 
-        // NE PAS sauvegarder quand le pseudo change
-        // Le pseudo ne sera jamais sauvegardé
-        // if (pseudoInput) {
-        //     pseudoInput.addEventListener('input', function() {
-        //         savePreferences();
-        //     });
-        // }
-
         // Sauvegarder avant soumission du formulaire
         loginForm.addEventListener('submit', function(e) {
             savePreferences();
             
-            // Validation existante
             const ecoleValue = ecoleSelect.value;
             const anneeValue = anneeSelect.value;
             const pseudoValue = pseudoInput ? pseudoInput.value : '';
@@ -523,11 +396,9 @@
         // Charger les préférences au démarrage
         const hasPreferences = loadPreferences();
 
-        // Si une école est déjà sélectionnée via old() après erreur de validation
         const oldEcoleId = {{ old('ecole_id') ?? 'null' }};
         const oldAnneeId = {{ old('annee_scolaire_id') ?? 'null' }};
         
-        // Priorité aux données POST (old) si présentes
         if (oldEcoleId) {
             ecoleSelect.value = oldEcoleId;
             loadAnneesScolaires(oldEcoleId, oldAnneeId);
@@ -538,13 +409,11 @@
                 pseudoInput.value = '{{ old('pseudo') }}';
             }
             savePreferences();
-        } 
-        // Sinon utiliser les préférences sauvegardées
-        else if (!hasPreferences) {
-            // Si aucune préférence n'est chargée, laisser les champs vides
+        } else if (!hasPreferences) {
             anneeSelect.innerHTML = '<option value="">Sélectionnez d\'abord une école</option>';
             anneeSelect.disabled = true;
         }
     });
 </script>
+
 @endsection

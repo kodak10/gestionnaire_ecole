@@ -303,15 +303,7 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
-toastr.options = {
-    "closeButton": true,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
-    "timeOut": "5000"
-};
-
 $(document).ready(function() {
     // Initialisation des select2
     $('.select2').select2({
@@ -401,6 +393,13 @@ $(document).ready(function() {
     }
 
     function updateSummary(data) {
+
+        console.log('=== Données reçues ===');
+    console.log('Transport:', data.frais.transport);
+    console.log('Cantine:', data.frais.cantine);
+    console.log('Type de transport:', typeof data.frais.transport);
+    console.log('Type de cantine:', typeof data.frais.cantine);
+    
         if (data.eleve) {
             $('#eleve-nom').text(data.eleve.nom_complet || '');
             $('#eleve-details').text(`Matricule: ${data.eleve.matricule || ''} | Classe: ${data.eleve.classe || ''}`);
@@ -409,6 +408,7 @@ $(document).ready(function() {
 
         let totalReste = 0;
 
+        // ---- Inscription ----
         const montantInscription = parseFloat(data.frais.inscription) || 0;
         const payeInscription = parseFloat(data.total_paye.inscription) || 0;
         const resteInscription = parseFloat(data.reste_a_payer.inscription) || 0;
@@ -423,6 +423,7 @@ $(document).ready(function() {
             $('#montant_inscription_input').val(0).prop('disabled', true);
         }
 
+        // ---- Scolarité ----
         const montantScolarite = parseFloat(data.frais.scolarite) || 0;
         const payeScolarite = parseFloat(data.total_paye.scolarite) || 0;
         const resteScolarite = parseFloat(data.reste_a_payer.scolarite) || 0;
@@ -443,10 +444,12 @@ $(document).ready(function() {
             $('#montant_scolarite_input').val(0).prop('disabled', true);
         }
 
+        // ---- Transport ----
         const montantTransport = parseFloat(data.frais.transport) || 0;
         const payeTransport = parseFloat(data.total_paye.transport) || 0;
         const resteTransport = parseFloat(data.reste_a_payer.transport) || 0;
 
+        // ✅ La card transport s'affiche UNIQUEMENT si montantTransport > 0
         if (montantTransport > 0) {
             $('#card-transport').show();
             $('#montant_transport').val(formatMoney(montantTransport));
@@ -463,10 +466,12 @@ $(document).ready(function() {
             $('#montant_transport_input').val(0).prop('disabled', true);
         }
 
+        // ---- Cantine ----
         const montantCantine = parseFloat(data.frais.cantine) || 0;
         const payeCantine = parseFloat(data.total_paye.cantine) || 0;
         const resteCantine = parseFloat(data.reste_a_payer.cantine) || 0;
 
+        // ✅ La card cantine s'affiche UNIQUEMENT si montantCantine > 0
         if (montantCantine > 0) {
             $('#card-cantine').show();
             $('#montant_cantine').val(formatMoney(montantCantine));
@@ -483,6 +488,7 @@ $(document).ready(function() {
             $('#montant_cantine_input').val(0).prop('disabled', true);
         }
 
+        // ---- Total Reste ----
         if (totalReste > 0) {
             $('#card-total-reste').show();
             $('#total_reste').val(formatMoney(totalReste));
@@ -555,6 +561,7 @@ $(document).ready(function() {
         return modes[mode] || mode;
     }
 
+    // Validation des montants saisis
     $('#montant_inscription_input').on('input', function() {
         const montant = parseFloat($(this).val()) || 0;
         if (montant > currentResteInscription) {
@@ -587,6 +594,7 @@ $(document).ready(function() {
         }
     });
 
+    // Soumission du formulaire de paiement
     $('#paiement-form').submit(function(e) {
         e.preventDefault();
         if (!currentEleveId) { 

@@ -95,74 +95,90 @@ class ReglementController extends Controller
         return response()->json($eleves);
     }
 
-    /**
-     * Récupérer les données d'un élève (API)
-     */
-    public function eleveData(Request $request)
-    {
-        $request->validate([
-            'eleve_id' => 'required|exists:eleves,id',
+/**
+ * Récupérer les données d'un élève (API)
+ */
+public function eleveData(Request $request)
+{
+    $request->validate([
+        'eleve_id' => 'required|exists:eleves,id',
+    ]);
+
+    try {
+        $ecoleId = session('current_ecole_id');
+        $anneeScolaireId = session('current_annee_scolaire_id');
+        $annee = session('current_annee_scolaire');
+
+        // Récupérer les tables dynamiques
+        $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
+        $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
+        $paiementsTable = $this->tableService->getPaiementsTableName($ecoleId, $annee);
+        $paiementDetailsTable = $this->tableService->getPaiementDetailsTableName($ecoleId, $annee);
+        $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
+        $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
+
+        // Récupérer l'élève avec sa classe
+        $eleve = DB::table($elevesTable . ' as e')
+            ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
+            ->where('e.id', $request->eleve_id)
+            ->where('e.ecole_id', $ecoleId)
+            ->where('e.annee_scolaire_id', $anneeScolaireId)
+            ->select(
+                'e.*',
+                'c.nom as classe_nom',
+                'c.niveau_id'
+            )
+            ->first();
+
+        if (!$eleve) {
+            throw new \Exception('Élève non trouvé');
+        }
+
+        // LOG pour déboguer
+        Log::info('👤 Élève chargé', [
+            'id' => $eleve->id,
+            'nom' => $eleve->nom . ' ' . $eleve->prenom,
+            'transport_active' => $eleve->transport_active,
+            'cantine_active' => $eleve->cantine_active,
+            'transport_active_type' => gettype($eleve->transport_active),
+            'cantine_active_type' => gettype($eleve->cantine_active)
         ]);
 
-        try {
-            $ecoleId = session('current_ecole_id');
-            $anneeScolaireId = session('current_annee_scolaire_id');
-            $annee = session('current_annee_scolaire');
+        $niveauId = $eleve->niveau_id;
 
-            // Récupérer les tables dynamiques
-            $elevesTable = $this->tableService->getElevesTableName($ecoleId, $annee);
-            $classesTable = $this->tableService->getClassesTableName($ecoleId, $annee);
-            $paiementsTable = $this->tableService->getPaiementsTableName($ecoleId, $annee);
-            $paiementDetailsTable = $this->tableService->getPaiementDetailsTableName($ecoleId, $annee);
-            $tarifsTable = $this->tableService->getTarifsTableName($ecoleId, $annee);
-            $reductionsTable = $this->tableService->getReductionsTableName($ecoleId, $annee);
+        // Récupérer les types de frais
+        $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
+        $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
+        $typeTransport = TypeFrais::where('nom', "Transport")->first();
+        $typeCantine = TypeFrais::where('nom', "Cantine")->first();
 
-            // Récupérer l'élève avec sa classe
-            $eleve = DB::table($elevesTable . ' as e')
-                ->leftJoin($classesTable . ' as c', 'e.classe_id', '=', 'c.id')
-                ->where('e.id', $request->eleve_id)
-                ->where('e.ecole_id', $ecoleId)
-                ->where('e.annee_scolaire_id', $anneeScolaireId)
-                ->select(
-                    'e.*',
-                    'c.nom as classe_nom',
-                    'c.niveau_id'
-                )
-                ->first();
+        // Récupérer les tarifs (Inscription et Scolarité toujours affichés)
+        $tarifInscription = DB::table($tarifsTable)
+            ->where('type_frais_id', $typeInscription->id ?? 0)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId)
+            ->where(function($q) use ($niveauId) {
+                $q->where('niveau_id', $niveauId)
+                  ->orWhereNull('niveau_id');
+            })
+            ->first();
 
-            if (!$eleve) {
-                throw new \Exception('Élève non trouvé');
-            }
+        $tarifScolarite = DB::table($tarifsTable)
+            ->where('type_frais_id', $typeScolarite->id ?? 0)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('ecole_id', $ecoleId)
+            ->where(function($q) use ($niveauId) {
+                $q->where('niveau_id', $niveauId)
+                  ->orWhereNull('niveau_id');
+            })
+            ->first();
 
-            $niveauId = $eleve->niveau_id;
+        $montantInscription = $tarifInscription->montant ?? 0;
+        $montantScolarite = $tarifScolarite->montant ?? 0;
 
-            // Récupérer les types de frais
-            $typeInscription = TypeFrais::where('nom', "Frais d'inscription")->first();
-            $typeScolarite = TypeFrais::where('nom', "Scolarité")->first();
-            $typeTransport = TypeFrais::where('nom', "Transport")->first();
-            $typeCantine = TypeFrais::where('nom', "Cantine")->first();
-
-            // Récupérer les tarifs
-            $tarifInscription = DB::table($tarifsTable)
-                ->where('type_frais_id', $typeInscription->id ?? 0)
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->where('ecole_id', $ecoleId)
-                ->where(function($q) use ($niveauId) {
-                    $q->where('niveau_id', $niveauId)
-                      ->orWhereNull('niveau_id');
-                })
-                ->first();
-
-            $tarifScolarite = DB::table($tarifsTable)
-                ->where('type_frais_id', $typeScolarite->id ?? 0)
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->where('ecole_id', $ecoleId)
-                ->where(function($q) use ($niveauId) {
-                    $q->where('niveau_id', $niveauId)
-                      ->orWhereNull('niveau_id');
-                })
-                ->first();
-
+        // ✅ Transport - UNIQUEMENT SI transport_active = 1
+        $montantTransport = 0;
+        if ((int) $eleve->transport_active === 1) {
             $tarifTransport = DB::table($tarifsTable)
                 ->where('type_frais_id', $typeTransport->id ?? 0)
                 ->where('annee_scolaire_id', $anneeScolaireId)
@@ -172,7 +188,15 @@ class ReglementController extends Controller
                       ->orWhereNull('niveau_id');
                 })
                 ->first();
+            $montantTransport = $tarifTransport->montant ?? 0;
+            Log::info('🚌 Transport actif pour ' . $eleve->nom . ' ' . $eleve->prenom, ['montant' => $montantTransport]);
+        } else {
+            Log::info('🚌 Transport INACTIF pour ' . $eleve->nom . ' ' . $eleve->prenom);
+        }
 
+        // ✅ Cantine - UNIQUEMENT SI cantine_active = 1
+        $montantCantine = 0;
+        if ((int) $eleve->cantine_active === 1) {
             $tarifCantine = DB::table($tarifsTable)
                 ->where('type_frais_id', $typeCantine->id ?? 0)
                 ->where('annee_scolaire_id', $anneeScolaireId)
@@ -182,130 +206,137 @@ class ReglementController extends Controller
                       ->orWhereNull('niveau_id');
                 })
                 ->first();
-
-            $montantInscription = $tarifInscription->montant ?? 0;
-            $montantScolarite = $tarifScolarite->montant ?? 0;
-            $montantTransport = $tarifTransport->montant ?? 0;
             $montantCantine = $tarifCantine->montant ?? 0;
-
-            // Appliquer les réductions sur la scolarité
-            $reduction = DB::table($reductionsTable)
-                ->where('eleve_id', $eleve->id)
-                ->where('ecole_id', $ecoleId)
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->sum('montant');
-                
-            $montantScolarite = max(0, $montantScolarite - $reduction);
-
-            // Récupérer les paiements liés à cet élève
-            $paiements = DB::table($paiementsTable . ' as p')
-                ->leftJoin($paiementDetailsTable . ' as pd', 'p.id', '=', 'pd.paiement_id')
-                ->leftJoin($tarifsTable . ' as t', 'pd.tarif_id', '=', 't.id')
-                ->where('p.eleve_id', $eleve->id)
-                ->where('p.ecole_id', $ecoleId)
-                ->where('p.annee_scolaire_id', $anneeScolaireId)
-                ->select(
-                    'p.id as paiement_id',
-                    'p.montant',
-                    'p.mode_paiement',
-                    'p.created_at',
-                    'pd.id as detail_id',
-                    'pd.montant as detail_montant',
-                    't.libelle as tarif_libelle',
-                    't.type_frais_id'
-                )
-                ->orderBy('p.created_at', 'desc')
-                ->get();
-
-            // Calculer les totaux payés par type (SANS ecole_id et annee_scolaire_id car ces colonnes n'existent pas dans paiement_details)
-            $totalPayeInscription = DB::table($paiementDetailsTable)
-                ->where('eleve_id', $eleve->id)
-                ->where('tarif_id', $tarifInscription->id ?? 0)
-                ->sum('montant');
-
-            $totalPayeScolarite = DB::table($paiementDetailsTable)
-                ->where('eleve_id', $eleve->id)
-                ->where('tarif_id', $tarifScolarite->id ?? 0)
-                ->sum('montant');
-
-            $totalPayeTransport = DB::table($paiementDetailsTable)
-                ->where('eleve_id', $eleve->id)
-                ->where('tarif_id', $tarifTransport->id ?? 0)
-                ->sum('montant');
-
-            $totalPayeCantine = DB::table($paiementDetailsTable)
-                ->where('eleve_id', $eleve->id)
-                ->where('tarif_id', $tarifCantine->id ?? 0)
-                ->sum('montant');
-
-            $resteInscription = max(0, $montantInscription - $totalPayeInscription);
-            $resteScolarite = max(0, $montantScolarite - $totalPayeScolarite);
-            $resteTransport = max(0, $montantTransport - $totalPayeTransport);
-            $resteCantine = max(0, $montantCantine - $totalPayeCantine);
-
-            // Formater les paiements
-            $paiementsFormatted = [];
-            $groupedPaiements = $paiements->groupBy('paiement_id');
-            
-            foreach ($groupedPaiements as $paiementId => $items) {
-                $first = $items->first();
-                $details = $items->map(function($item) {
-                    return [
-                        'id' => $item->detail_id,
-                        'montant' => $item->detail_montant,
-                        'libelle' => $item->tarif_libelle ?? 'Inconnu',
-                        'type_frais_id' => $item->type_frais_id
-                    ];
-                });
-
-                $paiementsFormatted[] = [
-                    'id' => $paiementId,
-                    'montant' => $first->montant,
-                    'mode_paiement' => $first->mode_paiement,
-                    'created_at' => $first->created_at,
-                    'details' => $details
-                ];
-            }
-
-            return response()->json([
-                'success' => true,
-                'eleve' => [
-                    'nom_complet' => $eleve->nom . ' ' . $eleve->prenom,
-                    'matricule' => $eleve->matricule,
-                    'classe' => $eleve->classe_nom
-                ],
-                'frais' => [
-                    'inscription' => $montantInscription,
-                    'scolarite' => $montantScolarite,
-                    'transport' => $montantTransport,
-                    'cantine' => $montantCantine
-                ],
-                'total_paye' => [
-                    'inscription' => $totalPayeInscription,
-                    'scolarite' => $totalPayeScolarite,
-                    'transport' => $totalPayeTransport,
-                    'cantine' => $totalPayeCantine
-                ],
-                'reste_a_payer' => [
-                    'inscription' => $resteInscription,
-                    'scolarite' => $resteScolarite,
-                    'transport' => $resteTransport,
-                    'cantine' => $resteCantine
-                ],
-                'reduction' => [
-                    'scolarite' => $reduction
-                ],
-                'paiements' => $paiementsFormatted
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur eleveData: ' . $e->getMessage());
-            return response()->json([
-                'success' => false, 
-                'message' => $e->getMessage()
-            ]);
+            Log::info('🍽️ Cantine active pour ' . $eleve->nom . ' ' . $eleve->prenom, ['montant' => $montantCantine]);
+        } else {
+            Log::info('🍽️ Cantine INACTIVE pour ' . $eleve->nom . ' ' . $eleve->prenom);
         }
+
+        // Appliquer les réductions sur la scolarité
+        $reduction = DB::table($reductionsTable)
+            ->where('eleve_id', $eleve->id)
+            ->where('ecole_id', $ecoleId)
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->sum('montant');
+            
+        $montantScolarite = max(0, $montantScolarite - $reduction);
+
+        // Récupérer les paiements liés à cet élève
+        $paiements = DB::table($paiementsTable . ' as p')
+            ->leftJoin($paiementDetailsTable . ' as pd', 'p.id', '=', 'pd.paiement_id')
+            ->leftJoin($tarifsTable . ' as t', 'pd.tarif_id', '=', 't.id')
+            ->where('p.eleve_id', $eleve->id)
+            ->where('p.ecole_id', $ecoleId)
+            ->where('p.annee_scolaire_id', $anneeScolaireId)
+            ->select(
+                'p.id as paiement_id',
+                'p.montant',
+                'p.mode_paiement',
+                'p.created_at',
+                'pd.id as detail_id',
+                'pd.montant as detail_montant',
+                't.libelle as tarif_libelle',
+                't.type_frais_id'
+            )
+            ->orderBy('p.created_at', 'desc')
+            ->get();
+
+        // Calculer les totaux payés par type
+        $totalPayeInscription = DB::table($paiementDetailsTable)
+            ->where('eleve_id', $eleve->id)
+            ->where('tarif_id', $tarifInscription->id ?? 0)
+            ->sum('montant');
+
+        $totalPayeScolarite = DB::table($paiementDetailsTable)
+            ->where('eleve_id', $eleve->id)
+            ->where('tarif_id', $tarifScolarite->id ?? 0)
+            ->sum('montant');
+
+        $totalPayeTransport = DB::table($paiementDetailsTable)
+            ->where('eleve_id', $eleve->id)
+            ->where('tarif_id', $tarifTransport->id ?? 0)
+            ->sum('montant');
+
+        $totalPayeCantine = DB::table($paiementDetailsTable)
+            ->where('eleve_id', $eleve->id)
+            ->where('tarif_id', $tarifCantine->id ?? 0)
+            ->sum('montant');
+
+        $resteInscription = max(0, $montantInscription - $totalPayeInscription);
+        $resteScolarite = max(0, $montantScolarite - $totalPayeScolarite);
+        $resteTransport = max(0, $montantTransport - $totalPayeTransport);
+        $resteCantine = max(0, $montantCantine - $totalPayeCantine);
+
+        // Formater les paiements
+        $paiementsFormatted = [];
+        $groupedPaiements = $paiements->groupBy('paiement_id');
+        
+        foreach ($groupedPaiements as $paiementId => $items) {
+            $first = $items->first();
+            $details = $items->map(function($item) {
+                return [
+                    'id' => $item->detail_id,
+                    'montant' => $item->detail_montant,
+                    'libelle' => $item->tarif_libelle ?? 'Inconnu',
+                    'type_frais_id' => $item->type_frais_id
+                ];
+            });
+
+            $paiementsFormatted[] = [
+                'id' => $paiementId,
+                'montant' => $first->montant,
+                'mode_paiement' => $first->mode_paiement,
+                'created_at' => $first->created_at,
+                'details' => $details
+            ];
+        }
+
+        Log::info('📊 Données retournées pour ' . $eleve->nom . ' ' . $eleve->prenom, [
+            'transport' => $montantTransport,
+            'cantine' => $montantCantine,
+            'transport_active' => $eleve->transport_active,
+            'cantine_active' => $eleve->cantine_active
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'eleve' => [
+                'nom_complet' => $eleve->nom . ' ' . $eleve->prenom,
+                'matricule' => $eleve->matricule,
+                'classe' => $eleve->classe_nom
+            ],
+            'frais' => [
+                'inscription' => $montantInscription,
+                'scolarite' => $montantScolarite,
+                'transport' => $montantTransport,
+                'cantine' => $montantCantine
+            ],
+            'total_paye' => [
+                'inscription' => $totalPayeInscription,
+                'scolarite' => $totalPayeScolarite,
+                'transport' => $totalPayeTransport,
+                'cantine' => $totalPayeCantine
+            ],
+            'reste_a_payer' => [
+                'inscription' => $resteInscription,
+                'scolarite' => $resteScolarite,
+                'transport' => $resteTransport,
+                'cantine' => $resteCantine
+            ],
+            'reduction' => [
+                'scolarite' => $reduction
+            ],
+            'paiements' => $paiementsFormatted
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Erreur eleveData: ' . $e->getMessage());
+        return response()->json([
+            'success' => false, 
+            'message' => $e->getMessage()
+        ]);
     }
+}
 
     /**
      * Enregistrer un paiement

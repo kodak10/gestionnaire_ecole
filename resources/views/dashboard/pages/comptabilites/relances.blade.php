@@ -180,24 +180,12 @@
                     <div class="alert alert-info">
                         <strong>Résumé de l'envoi :</strong>
                         <ul class="mt-2">
-                            <li><strong>Modèle :</strong> <span id="sms-template-name">-</span></li>
                             <li><strong>Nombre d'élèves :</strong> <span id="sms-count-eleves">0</span></li>
                             <li><strong>Nombre de SMS :</strong> <span id="sms-count-messages">0</span></li>
-                            <li><strong>Total caractères :</strong> <span id="sms-total-characters">0</span></li>
                         </ul>
                     </div>
                     
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <strong>Aperçu du message :</strong>
-                            <span class="badge bg-info float-end" id="preview-char-count">0 caractères</span>
-                        </div>
-                        <div class="card-body">
-                            <div id="sms-preview-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; background: #f8f9fa; padding: 15px; border-radius: 5px; min-height: 100px;">
-                                ...
-                            </div>
-                        </div>
-                    </div>
+                   
                 </div>
             </div>
             <div class="modal-footer">
@@ -313,12 +301,15 @@
 </style>
 @endsection
 
-@section('scripts')
+{{-- @section('scripts')
 <script>
 $(document).ready(function() {
     let relanceData = [];
     let selectedTemplateId = null;
     let smsTemplates = [];
+    let allData = [];
+    let currentPage = 1;
+    let perPage = 50;
 
     // ============================================
     // 1. GÉNÉRATION DE LA RELANCE
@@ -378,6 +369,7 @@ $(document).ready(function() {
                 
                 if (response.success) {
                     relanceData = response.data;
+                    allData = response.data || [];
                     afficherResultats(response);
                 } else {
                     toastr.error(response.message);
@@ -396,114 +388,352 @@ $(document).ready(function() {
         });
     }
 
-function afficherResultats(data) {
-    const classeNom = data.classe || 'Classe';
-    const moisNom = data.mois_reference || 'Mois';
-    const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
-    
-    $('#result-title').text(classeNom);
-    
-    let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
-    if (data.tarif_id) {
-        summaryText += ` - Tarif: ${tarifLibelle}`;
-    }
-    if (data.montant_min) {
-        summaryText += ` - Min: ${formatMoney(parseFloat(data.montant_min))}`;
-    }
-    if (data.montant_max) {
-        summaryText += ` - Max: ${formatMoney(parseFloat(data.montant_max))}`;
-    }
-    $('#result-summary').text(summaryText);
-    
-    const tbody = $('#relance-table tbody');
-    tbody.empty();
-    
-    if (!data.data || data.data.length === 0) {
-        tbody.append(`
-            <tr>
-                <td colspan="8" class="text-center py-4">
-                    <i class="ti ti-inbox fs-3 text-muted"></i>
-                    <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
-                </td>
-            </tr>
-        `);
+    function afficherResultats(data) {
+        const classeNom = data.classe || 'Classe';
+        const moisNom = data.mois_reference || 'Mois';
+        const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
+        
+        $('#result-title').text(classeNom);
+        
+        let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
+        if (data.tarif_id) {
+            summaryText += ` - Tarif: ${tarifLibelle}`;
+        }
+        if (data.montant_min) {
+            summaryText += ` - Min: ${formatMoney(parseFloat(data.montant_min))}`;
+        }
+        if (data.montant_max) {
+            summaryText += ` - Max: ${formatMoney(parseFloat(data.montant_max))}`;
+        }
+        $('#result-summary').text(summaryText);
+        
+        allData = data.data || [];
+        
+        if (!allData || allData.length === 0) {
+            const tbody = $('#relance-table tbody');
+            tbody.empty();
+            tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="ti ti-inbox fs-3 text-muted"></i>
+                        <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
+                    </td>
+                </tr>
+            `);
+            $('#relance-results').removeClass('d-none');
+            updateSmsButtonText();
+            return;
+        }
+        
+        displayPage(1);
         $('#relance-results').removeClass('d-none');
-        return;
+        updateSmsButtonText();
     }
-    
-    let totalMontantMois = 0;
-    let totalCumulAttendu = 0;
-    let totalCumulPaye = 0;
-    let totalResteMois = 0;
-    let totalResteCumul = 0;
-    let totalEnRetard = 0;
-    
-    data.data.forEach(function(eleve, index) {
-        // ✅ Convertir correctement les valeurs numériques
-        const montantMois = parseFloat(eleve.montant_mois) || 0;
-        const cumulAttendu = parseFloat(eleve.cumul_attendu) || 0;
-        const totalPaye = parseFloat(eleve.total_paye) || 0;
-        const resteMois = parseFloat(eleve.reste_mois) || 0;
-        const resteCumul = parseFloat(eleve.reste_cumul) || 0;
-        
-        totalMontantMois += montantMois;
-        totalCumulAttendu += cumulAttendu;
-        totalCumulPaye += totalPaye;
-        totalResteMois += resteMois;
-        totalResteCumul += resteCumul;
-        if (eleve.statut === 'En retard') totalEnRetard++;
-        
-        const statutClass = eleve.statut === 'À jour' ? 'a-jour-badge' : 'retard-badge';
-        const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
-        
-        tbody.append(`
-            <tr>
-                <td>
-                    <input type="checkbox" class="eleve-checkbox" 
-                           data-eleve='${JSON.stringify(eleve).replace(/'/g, "&#39;")}'>
-                </td>
-                <td><div class="fw-semibold">${eleveNom}</div></td>
-                <td class="fw-bold text-primary">${formatMoney(montantMois)}</td>
-                <td>${formatMoney(cumulAttendu)}</td>
-                <td class="text-success">${formatMoney(totalPaye)}</td>
-                <td class="text-danger">${formatMoney(resteMois)}</td>
-                <td class="text-danger fw-bold">${formatMoney(resteCumul)}</td>
-                <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
-            </tr>
-        `);
-    });
-    
-    const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
-    tbody.append(`
-        <tr class="table-active fw-bold">
-            <td colspan="2" class="text-end">TOTAL (${data.data.length} élève${data.data.length > 1 ? 's' : ''})</td>
-            <td>${formatMoney(totalMontantMois)}</td>
-            <td>${formatMoney(totalCumulAttendu)}</td>
-            <td class="text-success">${formatMoney(totalCumulPaye)}</td>
-            <td class="text-danger">${formatMoney(totalResteMois)}</td>
-            <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
-            <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
-        </tr>
-    `);
-    
-    $('#relance-results').removeClass('d-none');
-}
 
     // ============================================
-    // 2. SÉLECTION DES ÉLÈVES
+    // 2. PAGINATION
     // ============================================
+    function displayPage(page) {
+        if (perPage === -1) {
+            buildTableRows(allData);
+            updatePaginationInfo(1, allData.length, allData.length);
+            $('#pagination-controls').html('');
+            return;
+        }
+        
+        const totalItems = allData.length;
+        const totalPages = Math.ceil(totalItems / perPage);
+        
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        
+        const start = (page - 1) * perPage;
+        const end = Math.min(start + perPage, totalItems);
+        const pageData = allData.slice(start, end);
+        
+        buildTableRows(pageData);
+        updatePaginationInfo(start + 1, end, totalItems);
+        buildPaginationControls(totalPages, page);
+    }
+
+    function buildTableRows(data) {
+        const tbody = $('#relance-table tbody');
+        tbody.empty();
+        
+        if (!data || data.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="ti ti-inbox fs-3 text-muted"></i>
+                        <p class="text-muted mt-2">Aucun élève à afficher</p>
+                    </td>
+                </tr>
+            `);
+            updateSelectAllState();
+            updateSmsButtonText();
+            return;
+        }
+        
+        let totalMontantMois = 0;
+        let totalCumulAttendu = 0;
+        let totalCumulPaye = 0;
+        let totalResteMois = 0;
+        let totalResteCumul = 0;
+        let totalEnRetard = 0;
+        
+        data.forEach(function(eleve, index) {
+            const montantMois = parseFloat(eleve.montant_mois) || 0;
+            const cumulAttendu = parseFloat(eleve.cumul_attendu) || 0;
+            const totalPaye = parseFloat(eleve.total_paye) || 0;
+            const resteMois = parseFloat(eleve.reste_mois) || 0;
+            const resteCumul = parseFloat(eleve.reste_cumul) || 0;
+            
+            totalMontantMois += montantMois;
+            totalCumulAttendu += cumulAttendu;
+            totalCumulPaye += totalPaye;
+            totalResteMois += resteMois;
+            totalResteCumul += resteCumul;
+            if (eleve.statut === 'En retard') totalEnRetard++;
+            
+            const statutClass = eleve.statut === 'A jour' ? 'a-jour-badge' : 'retard-badge';
+            const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
+            
+            const eleveJson = JSON.stringify(eleve).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+            
+            tbody.append(`
+                <tr>
+                    <td>
+                        <input type="checkbox" class="eleve-checkbox" 
+                               data-eleve='${eleveJson}'>
+                    </td>
+                    <td><div class="fw-semibold">${eleveNom}</div></td>
+                    <td class="fw-bold text-primary">${formatMoney(montantMois)}</td>
+                    <td>${formatMoney(cumulAttendu)}</td>
+                    <td class="text-success">${formatMoney(totalPaye)}</td>
+                    <td class="text-danger">${formatMoney(resteMois)}</td>
+                    <td class="text-danger fw-bold">${formatMoney(resteCumul)}</td>
+                    <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
+                </tr>
+            `);
+        });
+        
+        const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
+        tbody.append(`
+            <tr class="table-active fw-bold">
+                <td colspan="2" class="text-end">TOTAL (${data.length} élève${data.length > 1 ? 's' : ''})</td>
+                <td>${formatMoney(totalMontantMois)}</td>
+                <td>${formatMoney(totalCumulAttendu)}</td>
+                <td class="text-success">${formatMoney(totalCumulPaye)}</td>
+                <td class="text-danger">${formatMoney(totalResteMois)}</td>
+                <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
+                <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
+            </tr>
+        `);
+        
+        updateSelectAllState();
+        updateSmsButtonText();
+    }
+
+    function updatePaginationInfo(start, end, total) {
+        if (total === 0) {
+            $('#pagination-info').text('Aucun résultat');
+            return;
+        }
+        $('#pagination-info').text(`Affichage ${start}-${end} sur ${total}`);
+    }
+
+    function buildPaginationControls(totalPages, currentPage) {
+        const controls = $('#pagination-controls');
+        controls.empty();
+        
+        if (totalPages <= 1) {
+            controls.html('<li class="page-item disabled"><a class="page-link" href="#">1</a></li>');
+            return;
+        }
+        
+        controls.append(`
+            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">Précédent</a>
+            </li>
+        `);
+        
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        
+        if (startPage > 1) {
+            controls.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`);
+            if (startPage > 2) {
+                controls.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            controls.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `);
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                controls.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+            }
+            controls.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`);
+        }
+        
+        controls.append(`
+            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">Suivant</a>
+            </li>
+        `);
+        
+        controls.find('a.page-link').click(function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            if (page && page !== 'prev' && page !== 'next') {
+                displayPage(parseInt(page));
+            }
+        });
+    }
+
+    // ============================================
+    // 3. SÉLECTION DES ÉLÈVES EN RETARD
+    // ============================================
+    function updateSelectAllState() {
+        const retardCheckboxes = $('.eleve-checkbox').filter(function() {
+            const data = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (data) {
+                statut = data.statut || '';
+            }
+            
+            return statut === 'En retard';
+        });
+        
+        const retardChecked = retardCheckboxes.filter(':checked').length;
+        const totalRetard = retardCheckboxes.length;
+        
+        $('#select-all').prop('checked', 
+            totalRetard > 0 && retardChecked === totalRetard
+        );
+    }
+
+    function updateSmsButtonText() {
+        const selected = $('.eleve-checkbox').filter(function() {
+            const data = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (data) {
+                statut = data.statut || '';
+            }
+            
+            return statut === 'En retard' && $(this).is(':checked');
+        }).length;
+        
+        if (selected > 0) {
+            $('#send-sms-btn').html(`<i class="ti ti-send me-2"></i>Envoyer les SMS (${selected} élève${selected > 1 ? 's' : ''})`);
+        } else {
+            $('#send-sms-btn').html(`<i class="ti ti-send me-2"></i>Envoyer les relances par SMS`);
+        }
+    }
+
     $('#select-all').change(function() {
-        $('.eleve-checkbox').prop('checked', $(this).prop('checked'));
+        const isChecked = $(this).prop('checked');
+        
+        $('.eleve-checkbox').each(function() {
+            const eleveData = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof eleveData === 'string') {
+                try {
+                    const parsed = JSON.parse(eleveData);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (eleveData) {
+                statut = eleveData.statut || '';
+            }
+            
+            if (statut === 'En retard') {
+                $(this).prop('checked', isChecked);
+            } else {
+                $(this).prop('checked', false);
+            }
+        });
+        updateSelectAllState();
+        updateSmsButtonText();
     });
 
     $(document).on('change', '.eleve-checkbox', function() {
-        const total = $('.eleve-checkbox').length;
-        const checked = $('.eleve-checkbox:checked').length;
-        $('#select-all').prop('checked', total === checked && total > 0);
+        const data = $(this).data('eleve');
+        let statut = '';
+        
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                statut = parsed.statut || '';
+            } catch(e) {
+                statut = '';
+            }
+        } else if (data) {
+            statut = data.statut || '';
+        }
+        
+        if (statut !== 'En retard' && $(this).is(':checked')) {
+            $(this).prop('checked', false);
+            toastr.warning('Seuls les élèves en retard peuvent être sélectionnés');
+            return;
+        }
+        
+        updateSelectAllState();
+        updateSmsButtonText();
     });
 
+    function getSelectedEleves() {
+        const eleves = [];
+        $('.eleve-checkbox:checked').each(function() {
+            try {
+                const data = $(this).data('eleve');
+                if (data) {
+                    let parsedData = data;
+                    if (typeof data === 'string') {
+                        try {
+                            parsedData = JSON.parse(data);
+                        } catch(e) {
+                            return;
+                        }
+                    }
+                    if (parsedData.statut === 'En retard') {
+                        eleves.push(parsedData);
+                    }
+                }
+            } catch(e) {
+                console.error('Erreur parsing data:', e);
+            }
+        });
+        return eleves;
+    }
+
     // ============================================
-    // 3. FORMATAGE DES MONTANTS
+    // 4. FORMATAGE DES MONTANTS
     // ============================================
     function formatMoney(amount) {
         if (typeof amount !== 'number') amount = 0;
@@ -519,7 +749,7 @@ function afficherResultats(data) {
         return new Intl.NumberFormat('fr-FR', { 
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        }).format(amount) + ' F';
+        }).format(amount) + ' FCFA';
     }
 
     function getEcoleName() {
@@ -527,14 +757,23 @@ function afficherResultats(data) {
     }
 
     // ============================================
-    // 4. IMPRESSION
+    // 5. IMPRESSION
     // ============================================
     $('#print-btn').click(function() {
+        const selectedEleves = getSelectedEleves();
+        
+        if (selectedEleves.length === 0) {
+            toastr.warning('Veuillez sélectionner au moins un élève');
+            return;
+        }
+        
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
         const tarifId = $('#tarif_id').val();
         const montantMin = $('#montant_min').val();
         const montantMax = $('#montant_max').val();
+        
+        const eleveIds = selectedEleves.map(e => e.id).filter(id => id);
         
         if (!classeId) {
             toastr.error('Veuillez sélectionner une classe');
@@ -557,12 +796,16 @@ function afficherResultats(data) {
         if (montantMax) {
             url += `&montant_max=${montantMax}`;
         }
+        
+        if (eleveIds.length > 0) {
+            url += `&eleve_ids[]=${eleveIds.join('&eleve_ids[]=')}`;
+        }
 
         window.open(url, '_blank');
     });
 
     // ============================================
-    // 5. EXPORTATION
+    // 6. EXPORTATION
     // ============================================
     $('#export-excel').click(function(e) {
         e.preventDefault();
@@ -575,6 +818,13 @@ function afficherResultats(data) {
     });
 
     function exporter(format) {
+        const selectedEleves = getSelectedEleves();
+        
+        if (selectedEleves.length === 0) {
+            toastr.warning('Veuillez sélectionner au moins un élève');
+            return;
+        }
+        
         const classeId = $('#classe_id').val();
         const dateRef = $('#date_reference').val();
         const tarifId = $('#tarif_id').val();
@@ -591,6 +841,8 @@ function afficherResultats(data) {
             return;
         }
 
+        const eleveIds = selectedEleves.map(e => e.id).filter(id => id);
+
         let url = `/relance/export?classe_id=${classeId}&date_reference=${dateRef}&format=${format}`;
         
         if (tarifId) {
@@ -602,59 +854,52 @@ function afficherResultats(data) {
         if (montantMax) {
             url += `&montant_max=${montantMax}`;
         }
+        
+        if (eleveIds.length > 0) {
+            url += `&eleve_ids[]=${eleveIds.join('&eleve_ids[]=')}`;
+        }
 
         window.location.href = url;
     }
 
     // ============================================
-    // 6. ENVOI DES SMS
+    // 7. ENVOI DES SMS
     // ============================================
     $('#send-sms-btn').click(function() {
         const selectedEleves = getSelectedEleves();
+        
         if (selectedEleves.length === 0) {
-            toastr.warning('Veuillez sélectionner au moins un élève');
+            toastr.warning('Veuillez sélectionner au moins un élève en retard');
             return;
         }
 
-        const sansTelephone = selectedEleves.filter(e => !e.telephone && !e.parent_telephone);
+        const elevesEnRetard = selectedEleves.filter(e => e.statut === 'En retard');
+        
+        if (elevesEnRetard.length === 0) {
+            toastr.warning('Veuillez sélectionner des élèves en retard');
+            return;
+        }
+
+        const sansTelephone = elevesEnRetard.filter(e => !e.telephone && !e.parent_telephone);
         if (sansTelephone.length > 0) {
             toastr.warning(sansTelephone.length + ' élève(s) n\'ont pas de numéro de téléphone');
         }
 
-        const message = generateDefaultSmsMessage(selectedEleves[0]);
+        const message = generateDefaultSmsMessage(elevesEnRetard[0]);
         
-        $('#sms-preview-content').text(message);
+        $('#sms-preview-content').html(`
+            <div style="border-left: 4px solid #dc3545; padding-left: 15px; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                ${message.replace(/\n/g, '<br>')}
+            </div>
+        `);
         $('#preview-char-count').text(message.length + ' caractères');
-        $('#sms-count-eleves').text(selectedEleves.length);
-        $('#sms-count-messages').text(selectedEleves.length);
-        $('#sms-total-characters').text(selectedEleves.length * message.length);
+        $('#sms-count-eleves').text(elevesEnRetard.length);
+        $('#sms-count-messages').text(elevesEnRetard.length);
+        $('#sms-total-characters').text(elevesEnRetard.length * message.length);
         $('#sms-template-name').text('Message de relance');
         
         $('#smsConfirmModal').modal('show');
     });
-
-    function getSelectedEleves() {
-        const eleves = [];
-        $('.eleve-checkbox:checked').each(function() {
-            try {
-                const data = $(this).data('eleve');
-                if (data) {
-                    if (typeof data === 'string') {
-                        try {
-                            eleves.push(JSON.parse(data));
-                        } catch(e) {
-                            eleves.push(data);
-                        }
-                    } else {
-                        eleves.push(data);
-                    }
-                }
-            } catch(e) {
-                console.error('Erreur parsing data:', e);
-            }
-        });
-        return eleves;
-    }
 
     function generateDefaultSmsMessage(eleveData) {
         if (!eleveData) return 'Message de relance de paiement.';
@@ -663,18 +908,20 @@ function afficherResultats(data) {
         const montant = formatMoneySms(eleveData.reste_cumul || 0);
         const mois = eleveData.mois_reference || 'ce mois';
         const ecole = getEcoleName();
+        const classe = eleveData.classe || '';
         
-        return `Mme/M. ${nom}, nous vous rappelons que le paiement du mois de ${mois} est en attente. Montant restant : ${montant}. Veuillez régulariser votre situation auprès de ${ecole}. Merci.`;
+        return `📢 RELANCE DE PAIEMENT\n\nMadame/Monsieur ${nom},\n\nNous vous rappelons que le paiement des frais de scolarité pour le mois de ${mois} est en attente.\n\n💰 Montant restant à payer : ${montant}\n🏫 Classe : ${classe}\n\nVeuillez régulariser votre situation auprès de ${ecole} dans les plus brefs délais.\n\nMerci pour votre compréhension.\n\n${ecole}`;
     }
 
     // ============================================
-    // 7. CONFIRMATION D'ENVOI DES SMS
+    // 8. CONFIRMATION D'ENVOI DES SMS
     // ============================================
     $('#confirm-send-sms').click(function() {
         const selectedEleves = getSelectedEleves();
+        const elevesEnRetard = selectedEleves.filter(e => e.statut === 'En retard');
         
-        if (selectedEleves.length === 0) {
-            toastr.warning('Aucun élève sélectionné');
+        if (elevesEnRetard.length === 0) {
+            toastr.warning('Aucun élève en retard sélectionné');
             return;
         }
 
@@ -682,11 +929,11 @@ function afficherResultats(data) {
         $('#smsProgressModal').modal('show');
         $('#sms-progress-bar').css('width', '0%');
         $('#sms-progress-text').text('Préparation des messages...');
-        $('#sms-progress-detail').text('0 / ' + selectedEleves.length);
+        $('#sms-progress-detail').text('0 / ' + elevesEnRetard.length);
 
         let sent = 0;
         let failed = 0;
-        const total = selectedEleves.length;
+        const total = elevesEnRetard.length;
 
         function sendNextSms(index) {
             if (index >= total) {
@@ -695,7 +942,7 @@ function afficherResultats(data) {
                 return;
             }
 
-            const eleve = selectedEleves[index];
+            const eleve = elevesEnRetard[index];
             const message = generateDefaultSmsMessage(eleve);
             
             let phone = eleve.parent_telephone || eleve.telephone || '';
@@ -778,21 +1025,732 @@ function afficherResultats(data) {
     }
 
     // ============================================
-    // 8. RECHARGE AU CHANGEMENT DE CLASSE
+    // 9. GESTION DU NOMBRE D'ÉLÉMENTS PAR PAGE
+    // ============================================
+    $(document).on('change', '#per-page', function() {
+        perPage = parseInt($(this).val());
+        displayPage(1);
+    });
+
+    // ============================================
+    // 10. RECHARGE AU CHANGEMENT DE CLASSE
     // ============================================
     $('#classe_id').change(function() {
         $('#relance-results').addClass('d-none');
         $('#no-data').removeClass('d-none');
         $('#result-title').text('');
         $('#result-summary').text('');
+        updateSmsButtonText();
     });
 
     // ============================================
-    // 9. INITIALISATION
+    // 11. INITIALISATION
     // ============================================
     if ($('#classe_id').val() && $('#date_reference').val()) {
         chargerRelance();
     }
+
+    updateSmsButtonText();
+});
+</script>
+@endsection --}}
+
+@section('scripts')
+<script>
+$(document).ready(function() {
+    let relanceData = [];
+    let selectedTemplateId = null;
+    let smsTemplates = [];
+    let allData = [];
+    let currentPage = 1;
+    let perPage = 50;
+
+    $('#filter-btn').click(function(e) {
+        e.preventDefault();
+        chargerRelance();
+    });
+
+    $('#classe_id, #date_reference, #tarif_id, #montant_min, #montant_max').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            chargerRelance();
+        }
+    });
+
+    function chargerRelance() {
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const tarifId = $('#tarif_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+        
+        if (montantMin && montantMax && parseFloat(montantMin) > parseFloat(montantMax)) {
+            toastr.error('Le montant minimum ne peut pas être supérieur au montant maximum');
+            return;
+        }
+        
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            $('#classe_id').focus();
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
+            $('#date_reference').focus();
+            return;
+        }
+
+        $('#loading').removeClass('d-none');
+        $('#relance-results').addClass('d-none');
+        $('#no-data').addClass('d-none');
+
+        $.ajax({
+            url: '{{ route("relance.data") }}',
+            type: 'GET',
+            data: { 
+                classe_id: classeId,
+                date_reference: dateRef,
+                tarif_id: tarifId,
+                montant_min: montantMin,
+                montant_max: montantMax
+            },
+            success: function(response) {
+                $('#loading').addClass('d-none');
+                
+                if (response.success) {
+                    relanceData = response.data;
+                    allData = response.data || [];
+                    afficherResultats(response);
+                } else {
+                    toastr.error(response.message);
+                    $('#no-data').removeClass('d-none');
+                }
+            },
+            error: function(xhr) {
+                $('#loading').addClass('d-none');
+                let errorMsg = 'Erreur lors du chargement des données';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+                $('#no-data').removeClass('d-none');
+            }
+        });
+    }
+
+    function afficherResultats(data) {
+        const classeNom = data.classe || 'Classe';
+        const moisNom = data.mois_reference || 'Mois';
+        const tarifLibelle = data.tarif_libelle || 'Tous les tarifs';
+        
+        $('#result-title').text(classeNom);
+        
+        let summaryText = `Relance générée pour la classe ${classeNom} du mois de ${moisNom}`;
+        if (data.tarif_id) {
+            summaryText += ` - Tarif: ${tarifLibelle}`;
+        }
+        if (data.montant_min) {
+            summaryText += ` - Min: ${formatMoney(parseFloat(data.montant_min))}`;
+        }
+        if (data.montant_max) {
+            summaryText += ` - Max: ${formatMoney(parseFloat(data.montant_max))}`;
+        }
+        $('#result-summary').text(summaryText);
+        
+        allData = data.data || [];
+        
+        if (!allData || allData.length === 0) {
+            const tbody = $('#relance-table tbody');
+            tbody.empty();
+            tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="ti ti-inbox fs-3 text-muted"></i>
+                        <p class="text-muted mt-2">Aucun élève en retard pour ces critères</p>
+                    </td>
+                </tr>
+            `);
+            $('#relance-results').removeClass('d-none');
+            updateSmsButtonText();
+            return;
+        }
+        
+        displayPage(1);
+        $('#relance-results').removeClass('d-none');
+        updateSmsButtonText();
+    }
+
+    function displayPage(page) {
+        if (perPage === -1) {
+            buildTableRows(allData);
+            updatePaginationInfo(1, allData.length, allData.length);
+            $('#pagination-controls').html('');
+            return;
+        }
+        
+        const totalItems = allData.length;
+        const totalPages = Math.ceil(totalItems / perPage);
+        
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        
+        const start = (page - 1) * perPage;
+        const end = Math.min(start + perPage, totalItems);
+        const pageData = allData.slice(start, end);
+        
+        buildTableRows(pageData);
+        updatePaginationInfo(start + 1, end, totalItems);
+        buildPaginationControls(totalPages, page);
+    }
+
+    function buildTableRows(data) {
+        const tbody = $('#relance-table tbody');
+        tbody.empty();
+        
+        if (!data || data.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="ti ti-inbox fs-3 text-muted"></i>
+                        <p class="text-muted mt-2">Aucun élève à afficher</p>
+                    </td>
+                </tr>
+            `);
+            updateSelectAllState();
+            updateSmsButtonText();
+            return;
+        }
+        
+        let totalMontantMois = 0;
+        let totalCumulAttendu = 0;
+        let totalCumulPaye = 0;
+        let totalResteMois = 0;
+        let totalResteCumul = 0;
+        let totalEnRetard = 0;
+        
+        data.forEach(function(eleve, index) {
+            const montantMois = parseFloat(eleve.montant_mois) || 0;
+            const cumulAttendu = parseFloat(eleve.cumul_attendu) || 0;
+            const totalPaye = parseFloat(eleve.total_paye) || 0;
+            const resteMois = parseFloat(eleve.reste_mois) || 0;
+            const resteCumul = parseFloat(eleve.reste_cumul) || 0;
+            
+            totalMontantMois += montantMois;
+            totalCumulAttendu += cumulAttendu;
+            totalCumulPaye += totalPaye;
+            totalResteMois += resteMois;
+            totalResteCumul += resteCumul;
+            if (eleve.statut === 'En retard') totalEnRetard++;
+            
+            const statutClass = eleve.statut === 'A jour' ? 'a-jour-badge' : 'retard-badge';
+            const eleveNom = eleve.eleve || 'Élève ' + (index + 1);
+            
+            const eleveJson = JSON.stringify(eleve).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+            
+            tbody.append(`
+                <tr>
+                    <td>
+                        <input type="checkbox" class="eleve-checkbox" 
+                               data-eleve='${eleveJson}'>
+                    </td>
+                    <td><div class="fw-semibold">${eleveNom}</div></td>
+                    <td class="fw-bold text-primary">${formatMoney(montantMois)}</td>
+                    <td>${formatMoney(cumulAttendu)}</td>
+                    <td class="text-success">${formatMoney(totalPaye)}</td>
+                    <td class="text-danger">${formatMoney(resteMois)}</td>
+                    <td class="text-danger fw-bold">${formatMoney(resteCumul)}</td>
+                    <td><span class="statut-badge ${statutClass}">${eleve.statut || 'En retard'}</span></td>
+                </tr>
+            `);
+        });
+        
+        const totalColor = totalResteCumul > 0 ? 'text-danger' : 'text-success';
+        tbody.append(`
+            <tr class="table-active fw-bold">
+                <td colspan="2" class="text-end">TOTAL (${data.length} élève${data.length > 1 ? 's' : ''})</td>
+                <td>${formatMoney(totalMontantMois)}</td>
+                <td>${formatMoney(totalCumulAttendu)}</td>
+                <td class="text-success">${formatMoney(totalCumulPaye)}</td>
+                <td class="text-danger">${formatMoney(totalResteMois)}</td>
+                <td class="${totalColor}">${formatMoney(totalResteCumul)}</td>
+                <td>${totalEnRetard > 0 ? totalEnRetard + ' en retard' : 'Tous à jour'}</td>
+            </tr>
+        `);
+        
+        updateSelectAllState();
+        updateSmsButtonText();
+    }
+
+    function updatePaginationInfo(start, end, total) {
+        if (total === 0) {
+            $('#pagination-info').text('Aucun résultat');
+            return;
+        }
+        $('#pagination-info').text(`Affichage ${start}-${end} sur ${total}`);
+    }
+
+    function buildPaginationControls(totalPages, currentPage) {
+        const controls = $('#pagination-controls');
+        controls.empty();
+        
+        if (totalPages <= 1) {
+            controls.html('<li class="page-item disabled"><a class="page-link" href="#">1</a></li>');
+            return;
+        }
+        
+        controls.append(`
+            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">Précédent</a>
+            </li>
+        `);
+        
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        
+        if (startPage > 1) {
+            controls.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`);
+            if (startPage > 2) {
+                controls.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            controls.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `);
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                controls.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+            }
+            controls.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`);
+        }
+        
+        controls.append(`
+            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">Suivant</a>
+            </li>
+        `);
+        
+        controls.find('a.page-link').click(function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            if (page && page !== 'prev' && page !== 'next') {
+                displayPage(parseInt(page));
+            }
+        });
+    }
+
+    function updateSelectAllState() {
+        const retardCheckboxes = $('.eleve-checkbox').filter(function() {
+            const data = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (data) {
+                statut = data.statut || '';
+            }
+            
+            return statut === 'En retard';
+        });
+        
+        const retardChecked = retardCheckboxes.filter(':checked').length;
+        const totalRetard = retardCheckboxes.length;
+        
+        $('#select-all').prop('checked', 
+            totalRetard > 0 && retardChecked === totalRetard
+        );
+    }
+
+    function updateSmsButtonText() {
+        const selected = $('.eleve-checkbox').filter(function() {
+            const data = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (data) {
+                statut = data.statut || '';
+            }
+            
+            return statut === 'En retard' && $(this).is(':checked');
+        }).length;
+        
+        if (selected > 0) {
+            $('#send-sms-btn').html(`<i class="ti ti-send me-2"></i>Envoyer les SMS (${selected} élève${selected > 1 ? 's' : ''})`);
+        } else {
+            $('#send-sms-btn').html(`<i class="ti ti-send me-2"></i>Envoyer les relances par SMS`);
+        }
+    }
+
+    $('#select-all').change(function() {
+        const isChecked = $(this).prop('checked');
+        
+        $('.eleve-checkbox').each(function() {
+            const eleveData = $(this).data('eleve');
+            let statut = '';
+            
+            if (typeof eleveData === 'string') {
+                try {
+                    const parsed = JSON.parse(eleveData);
+                    statut = parsed.statut || '';
+                } catch(e) {
+                    statut = '';
+                }
+            } else if (eleveData) {
+                statut = eleveData.statut || '';
+            }
+            
+            if (statut === 'En retard') {
+                $(this).prop('checked', isChecked);
+            } else {
+                $(this).prop('checked', false);
+            }
+        });
+        updateSelectAllState();
+        updateSmsButtonText();
+    });
+
+    $(document).on('change', '.eleve-checkbox', function() {
+        const data = $(this).data('eleve');
+        let statut = '';
+        
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                statut = parsed.statut || '';
+            } catch(e) {
+                statut = '';
+            }
+        } else if (data) {
+            statut = data.statut || '';
+        }
+        
+        if (statut !== 'En retard' && $(this).is(':checked')) {
+            $(this).prop('checked', false);
+            toastr.warning('Seuls les élèves en retard peuvent être sélectionnés');
+            return;
+        }
+        
+        updateSelectAllState();
+        updateSmsButtonText();
+    });
+
+    function getSelectedEleves() {
+        const eleves = [];
+        $('.eleve-checkbox:checked').each(function() {
+            try {
+                const data = $(this).data('eleve');
+                if (data) {
+                    let parsedData = data;
+                    if (typeof data === 'string') {
+                        try {
+                            parsedData = JSON.parse(data);
+                        } catch(e) {
+                            return;
+                        }
+                    }
+                    if (parsedData.statut === 'En retard') {
+                        eleves.push(parsedData);
+                    }
+                }
+            } catch(e) {}
+        });
+        return eleves;
+    }
+
+    function formatMoney(amount) {
+        if (typeof amount !== 'number') amount = 0;
+        return new Intl.NumberFormat('fr-FR', { 
+            style: 'currency', 
+            currency: 'XOF',
+            minimumFractionDigits: 0
+        }).format(amount);
+    }
+
+    function getEcoleName() {
+        return '{{ session("current_ecole") ? session("current_ecole")->nom_ecole ?? "" : "Ecole" }}';
+    }
+
+    $('#print-btn').click(function() {
+        const selectedEleves = getSelectedEleves();
+        
+        if (selectedEleves.length === 0) {
+            toastr.warning('Veuillez sélectionner au moins un élève');
+            return;
+        }
+        
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const tarifId = $('#tarif_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+        
+        const eleveIds = selectedEleves.map(e => e.id).filter(id => id);
+        
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
+            return;
+        }
+
+        let url = `/relance/imprimer?classe_id=${classeId}&date_reference=${dateRef}`;
+
+        if (tarifId) {
+            url += `&tarif_id=${tarifId}`;
+        }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
+        }
+        
+        if (eleveIds.length > 0) {
+            url += `&eleve_ids[]=${eleveIds.join('&eleve_ids[]=')}`;
+        }
+
+        window.open(url, '_blank');
+    });
+
+    $('#export-excel').click(function(e) {
+        e.preventDefault();
+        exporter('excel');
+    });
+
+    $('#export-pdf').click(function(e) {
+        e.preventDefault();
+        exporter('pdf');
+    });
+
+    function exporter(format) {
+        const selectedEleves = getSelectedEleves();
+        
+        if (selectedEleves.length === 0) {
+            toastr.warning('Veuillez sélectionner au moins un élève');
+            return;
+        }
+        
+        const classeId = $('#classe_id').val();
+        const dateRef = $('#date_reference').val();
+        const tarifId = $('#tarif_id').val();
+        const montantMin = $('#montant_min').val();
+        const montantMax = $('#montant_max').val();
+
+        if (!classeId) {
+            toastr.error('Veuillez sélectionner une classe');
+            return;
+        }
+
+        if (!dateRef) {
+            toastr.error('Veuillez sélectionner un mois');
+            return;
+        }
+
+        const eleveIds = selectedEleves.map(e => e.id).filter(id => id);
+
+        let url = `/relance/export?classe_id=${classeId}&date_reference=${dateRef}&format=${format}`;
+        
+        if (tarifId) {
+            url += `&tarif_id=${tarifId}`;
+        }
+        if (montantMin) {
+            url += `&montant_min=${montantMin}`;
+        }
+        if (montantMax) {
+            url += `&montant_max=${montantMax}`;
+        }
+        
+        if (eleveIds.length > 0) {
+            url += `&eleve_ids[]=${eleveIds.join('&eleve_ids[]=')}`;
+        }
+
+        window.location.href = url;
+    }
+
+    $('#send-sms-btn').click(function() {
+        const selectedEleves = getSelectedEleves();
+        
+        if (selectedEleves.length === 0) {
+            toastr.warning('Veuillez sélectionner au moins un élève en retard');
+            return;
+        }
+
+        const elevesEnRetard = selectedEleves.filter(e => e.statut === 'En retard');
+        
+        if (elevesEnRetard.length === 0) {
+            toastr.warning('Veuillez sélectionner des élèves en retard');
+            return;
+        }
+
+        const sansTelephone = elevesEnRetard.filter(e => !e.telephone && !e.parent_telephone);
+        if (sansTelephone.length > 0) {
+            toastr.warning(sansTelephone.length + ' élève(s) n\'ont pas de numéro de téléphone');
+        }
+
+        // Afficher l'aperçu du message (généré côté serveur)
+        $('#sms-preview-content').html(`
+            <div style="border-left: 4px solid #dc3545; padding-left: 15px; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                <em>Chargement de l'aperçu...</em>
+            </div>
+        `);
+        $('#sms-count-eleves').text(elevesEnRetard.length);
+        $('#sms-count-messages').text(elevesEnRetard.length);
+        $('#sms-template-name').text('Template base de données');
+        
+        $('#smsConfirmModal').modal('show');
+    });
+
+    $('#confirm-send-sms').click(function() {
+        const selectedEleves = getSelectedEleves();
+        const elevesEnRetard = selectedEleves.filter(e => e.statut === 'En retard');
+        
+        if (elevesEnRetard.length === 0) {
+            toastr.warning('Aucun élève en retard sélectionné');
+            return;
+        }
+
+        $('#smsConfirmModal').modal('hide');
+        $('#smsProgressModal').modal('show');
+        $('#sms-progress-bar').css('width', '0%');
+        $('#sms-progress-text').text('Préparation des messages...');
+        $('#sms-progress-detail').text('0 / ' + elevesEnRetard.length);
+
+        let sent = 0;
+        let failed = 0;
+        const total = elevesEnRetard.length;
+
+        function sendNextSms(index) {
+            if (index >= total) {
+                $('#smsProgressModal').modal('hide');
+                showSmsResult(sent, failed);
+                return;
+            }
+
+            const eleve = elevesEnRetard[index];
+            
+            let phone = eleve.parent_telephone || eleve.telephone || '';
+            phone = phone.replace(/\s/g, '');
+
+            if (!phone || phone.length < 8) {
+                failed++;
+                const progress = ((sent + failed) / total * 100);
+                $('#sms-progress-bar').css('width', progress + '%');
+                $('#sms-progress-bar').text(Math.round(progress) + '%');
+                $('#sms-progress-detail').text((sent + failed) + ' / ' + total);
+                sendNextSms(index + 1);
+                return;
+            }
+
+            $('#sms-progress-text').text(`Envoi à ${eleve.eleve} (${phone})...`);
+
+            // Envoyer l'ID de l'élève, le téléphone et les données pour générer le message côté serveur
+            $.ajax({
+                url: '{{ route("relance.send.sms") }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    phone: phone,
+                    eleve_id: eleve.id || 0,
+                    classe: eleve.classe || '',
+                    mois: eleve.mois_reference || '',
+                    montant: eleve.reste_cumul || 0,
+                    eleve_nom: eleve.eleve || '',
+                    parent_nom: eleve.parent_nom || ''
+                },
+                success: function(response) {
+                    if (response.success) {
+                        sent++;
+                    } else {
+                        failed++;
+                    }
+                },
+                error: function() {
+                    failed++;
+                },
+                complete: function() {
+                    const progress = ((sent + failed) / total * 100);
+                    $('#sms-progress-bar').css('width', progress + '%');
+                    $('#sms-progress-bar').text(Math.round(progress) + '%');
+                    $('#sms-progress-detail').text((sent + failed) + ' / ' + total);
+                    sendNextSms(index + 1);
+                }
+            });
+        }
+
+        sendNextSms(0);
+    });
+
+    function showSmsResult(sent, failed) {
+        let html = '';
+        if (sent > 0 && failed === 0) {
+            html = `
+                <div class="alert alert-success">
+                    <i class="ti ti-check-circle me-2"></i>
+                    <strong>${sent} SMS envoyés avec succès !</strong>
+                </div>
+                <p class="text-muted">Tous les messages ont été envoyés.</p>
+            `;
+        } else if (sent > 0 && failed > 0) {
+            html = `
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-circle me-2"></i>
+                    <strong>${sent} SMS envoyés, ${failed} échecs</strong>
+                </div>
+                <p class="text-muted">Vérifiez les numéros de téléphone des élèves concernés.</p>
+            `;
+        } else {
+            html = `
+                <div class="alert alert-danger">
+                    <i class="ti ti-alert-circle me-2"></i>
+                    <strong>Aucun SMS envoyé (${failed} échecs)</strong>
+                </div>
+                <p class="text-muted">Vérifiez les numéros de téléphone et les crédits SMS.</p>
+            `;
+        }
+        
+        $('#sms-result-content').html(html);
+        $('#smsResultModal').modal('show');
+    }
+
+    $(document).on('change', '#per-page', function() {
+        perPage = parseInt($(this).val());
+        displayPage(1);
+    });
+
+    $('#classe_id').change(function() {
+        $('#relance-results').addClass('d-none');
+        $('#no-data').removeClass('d-none');
+        $('#result-title').text('');
+        $('#result-summary').text('');
+        updateSmsButtonText();
+    });
+
+    if ($('#classe_id').val() && $('#date_reference').val()) {
+        chargerRelance();
+    }
+
+    updateSmsButtonText();
 });
 </script>
 @endsection
