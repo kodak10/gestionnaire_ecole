@@ -263,9 +263,10 @@ Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {
         Route::get('/recap/pdf', [NoteController::class, 'generateRecapMoyennes'])->name('recap.pdf');
         Route::get('/generate-bulletin-annuel', [NoteController::class, 'generateBulletinAnnuel'])->name('generateBulletinAnnuel');
         Route::get('/check-existing-mois-moyenne', [NoteController::class, 'checkExistingMoisMoyenne'])->name('checkExistingMoisMoyenne');
+        Route::get('/check-mois-with-moyennes', [NoteController::class, 'checkMoisWithMoyennes'])->name('checkMoisWithMoyennes');
     });
     Route::resource('notes', NoteController::class);
-    
+
     // ============================================
     // GESTION DES DOCUMENTS
     // ============================================

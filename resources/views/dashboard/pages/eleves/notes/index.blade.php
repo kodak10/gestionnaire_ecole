@@ -448,58 +448,101 @@ $(document).ready(function() {
     });
     
     // ==================== BULLETIN ANNUEL ====================
-    var moisDisponibles = @json($moisScolaire->map(function($m) { 
-        return ['id' => $m->id, 'nom' => $m->nom, 'ordre' => $m->ordre ?? $m->id]; 
-    }));
+
+    // ==================== BULLETIN ANNUEL ====================
+var moisDisponibles = @json($moisScolaire->map(function($m) { 
+    return ['id' => $m->id, 'nom' => $m->nom, 'ordre' => $m->ordre ?? $m->id]; 
+}));
+
+var moisSelectionnes = [];
+var moisCounter = 0;
+var classeIdAnnuel = null;
+
+// Fonction pour vérifier les mois disponibles avec moyennes
+function verifierMoisDisponibles(classeId) {
+    if (!classeId) return;
     
-    var moisSelectionnes = [];
-    var moisCounter = 0;
-    
-    function ajouterMois() {
-        var disponibles = moisDisponibles.filter(function(m) {
-            return !moisSelectionnes.some(function(s) { return s.id == m.id; });
-        });
-        
-        if (disponibles.length === 0) {
-            toastr.warning("Tous les mois ont déjà été ajoutés");
-            return;
+    $.ajax({
+        url: '{{ route("notes.checkMoisWithMoyennes") }}',
+        type: 'GET',
+        data: { classe_id: classeId },
+        success: function(response) {
+            if (response.success) {
+                // Mettre à jour les mois disponibles
+                moisDisponibles = response.mois.map(function(m) {
+                    return {
+                        id: m.id,
+                        nom: m.nom,
+                        ordre: m.ordre,
+                        a_moyenne: m.a_moyenne
+                    };
+                });
+                
+                // Filtrer pour n'afficher que les mois avec moyenne
+                var moisAvecMoyenne = moisDisponibles.filter(function(m) {
+                    return m.a_moyenne === true;
+                });
+                
+                if (moisAvecMoyenne.length === 0) {
+                    toastr.warning("Aucun mois avec moyenne enregistré pour cette classe");
+                    $('#ajouter_mois_btn').prop('disabled', true);
+                } else {
+                    $('#ajouter_mois_btn').prop('disabled', false);
+                }
+            }
+        },
+        error: function() {
+            toastr.error("Erreur lors de la vérification des mois");
         }
-        
-        var selectHtml = '<select class="form-select mois-select select2" data-index="' + moisCounter + '" style="width: 100%;">';
-        selectHtml += '<option value="">-- Sélectionner --</option>';
-        disponibles.forEach(function(m) {
-            selectHtml += '<option value="' + m.id + '">' + m.nom + '</option>';
-        });
-        selectHtml += '</select>';
-        
-        var html = '<div class="row mb-2 mois-row" data-index="' + moisCounter + '">';
-        html += '<div class="col-md-6">' + selectHtml + '</div>';
-        html += '<div class="col-md-3">';
-        html += '<input type="number" class="form-control mois-coeff" data-index="' + moisCounter + '" value="1" min="0.5" step="0.5" placeholder="Coeff">';
-        html += '</div>';
-        html += '<div class="col-md-3">';
-        html += '<button type="button" class="btn btn-danger btn-sm supprimer-mois" data-index="' + moisCounter + '"><i class="ti ti-trash"></i></button>';
-        html += '</div>';
-        html += '</div>';
-        
-        $('#mois_list .text-muted').remove();
-        $('#mois_list').append(html);
-        
-        var $newSelect = $('#mois_list .mois-select:last');
-        initSelect2($newSelect);
-        
-        $newSelect.on('change', function() {
-            updateMoisData();
-        });
-        
-        $('#mois_list .mois-coeff:last').on('input', function() {
-            updateMoisData();
-        });
-        
-        moisCounter++;
-        updateMoisData();
+    });
+}
+
+// Fonction pour ajouter un mois (uniquement ceux avec moyenne)
+function ajouterMois() {
+    var disponibles = moisDisponibles.filter(function(m) {
+        return m.a_moyenne === true && !moisSelectionnes.some(function(s) { return s.id == m.id; });
+    });
+    
+    if (disponibles.length === 0) {
+        toastr.warning("Tous les mois disponibles ont déjà été ajoutés");
+        return;
     }
     
+    var selectHtml = '<select class="form-select mois-select select2" data-index="' + moisCounter + '" style="width: 100%;">';
+    selectHtml += '<option value="">-- Sélectionner --</option>';
+    disponibles.forEach(function(m) {
+        selectHtml += '<option value="' + m.id + '" data-moyenne="' + (m.a_moyenne ? '1' : '0') + '">' + m.nom + ' ✓</option>';
+    });
+    selectHtml += '</select>';
+    
+    var html = '<div class="row mb-2 mois-row" data-index="' + moisCounter + '">';
+    html += '<div class="col-md-6">' + selectHtml + '</div>';
+    html += '<div class="col-md-3">';
+    html += '<input type="number" class="form-control mois-coeff" data-index="' + moisCounter + '" value="1" min="0.5" step="0.5" placeholder="Coeff">';
+    html += '</div>';
+    html += '<div class="col-md-3">';
+    html += '<button type="button" class="btn btn-danger btn-sm supprimer-mois" data-index="' + moisCounter + '"><i class="ti ti-trash"></i></button>';
+    html += '</div>';
+    html += '</div>';
+    
+    $('#mois_list .text-muted').remove();
+    $('#mois_list').append(html);
+    
+    var $newSelect = $('#mois_list .mois-select:last');
+    initSelect2($newSelect);
+    
+    $newSelect.on('change', function() {
+        updateMoisData();
+    });
+    
+    $('#mois_list .mois-coeff:last').on('input', function() {
+        updateMoisData();
+    });
+    
+    moisCounter++;
+    updateMoisData();
+}
+
     $(document).on('click', '.supprimer-mois', function() {
         var index = $(this).data('index');
         var $row = $('.mois-row[data-index="' + index + '"]');
@@ -557,41 +600,66 @@ $(document).ready(function() {
     });
     
     $(document).on('shown.bs.modal', '#bulletinAnnuelModal', function() {
+    $('#mois_list').html('');
+    moisSelectionnes = [];
+    moisCounter = 0;
+    classeIdAnnuel = $('#classe_annuelle').val();
+    
+    if (!classeIdAnnuel) {
+        $('#mois_list').html('<div class="text-muted text-center py-3">Veuillez d\'abord sélectionner une classe</div>');
+        return;
+    }
+    
+    // Vérifier les mois disponibles avec moyennes
+    verifierMoisDisponibles(classeIdAnnuel);
+    
+    // Ajouter les mois par défaut (3 premiers mois avec moyenne)
+    var moisAvecMoyenne = moisDisponibles.filter(function(m) {
+        return m.a_moyenne === true;
+    });
+    
+    var moisParDefaut = moisAvecMoyenne.slice(0, 3);
+    
+    if (moisParDefaut.length === 0) {
+        $('#mois_list').html('<div class="text-muted text-center py-3">Aucun mois avec moyenne disponible</div>');
+        return;
+    }
+    
+    moisParDefaut.forEach(function(mois, index) {
+        setTimeout(function() {
+            ajouterMois();
+            var lastRow = $('#mois_list .mois-row:last');
+            if (lastRow.length) {
+                lastRow.find('.mois-select').val(mois.id).trigger('change');
+                lastRow.find('.mois-coeff').val(1);
+            }
+            if (index === moisParDefaut.length - 1) {
+                updateMoisData();
+            }
+        }, index * 200);
+    });
+    
+    setTimeout(function() {
+        $('#bulletinAnnuelModal').find('.select2').each(function() {
+            initSelect2(this);
+        });
+    }, 500);
+    
+    if ($('#save_and_close').is(':checked')) {
+        chargerAppreciations();
+    }
+});
+
+// Quand la classe change, rafraîchir les mois
+$('#classe_annuelle').on('change', function() {
+    classeIdAnnuel = $(this).val();
+    if (classeIdAnnuel) {
         $('#mois_list').html('');
         moisSelectionnes = [];
         moisCounter = 0;
-        
-        var moisParDefaut = moisDisponibles.slice(0, 3);
-        
-        if (moisParDefaut.length === 0) {
-            $('#mois_list').html('<div class="text-muted text-center py-3">Aucun mois disponible</div>');
-            return;
-        }
-        
-        moisParDefaut.forEach(function(mois, index) {
-            setTimeout(function() {
-                ajouterMois();
-                var lastRow = $('#mois_list .mois-row:last');
-                if (lastRow.length) {
-                    lastRow.find('.mois-select').val(mois.id).trigger('change');
-                    lastRow.find('.mois-coeff').val(1);
-                }
-                if (index === moisParDefaut.length - 1) {
-                    updateMoisData();
-                }
-            }, index * 200);
-        });
-        
-        setTimeout(function() {
-            $('#bulletinAnnuelModal').find('.select2').each(function() {
-                initSelect2(this);
-            });
-        }, 500);
-        
-        if ($('#save_and_close').is(':checked')) {
-            chargerAppreciations();
-        }
-    });
+        verifierMoisDisponibles(classeIdAnnuel);
+    }
+});
     
     // ==================== BULLETIN MENSUEL ====================
     var classeIdMois = null;

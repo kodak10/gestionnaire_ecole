@@ -85,19 +85,35 @@ table.general th {
     use Carbon\Carbon;
     $ecole = \App\Models\Ecole::find(session('current_ecole_id'));
     
-    // Trier les mois par ordre chronologique (id croissant)
-    $moisScolairesTries = $moisScolaires->sortBy('id');
-    
-    // Obtenir le dernier mois (composition de passage)
-    $dernierMois = $moisScolairesTries->last();
+    $dernierMoisId = $dernierMois ? $dernierMois->id : null;
+    $dernierMoisNom = $dernierMois ? $dernierMois->nom : 'Non défini';
 @endphp
 
 @foreach($elevesAvecMoyennes as $eleveData)
 
+    @php
+        $eleve = $eleveData['eleve'];
+        $classeObjet = $classe;
+        // Récupérer les notes de l'élève
+        $notesEleve = isset($eleveData['notes']) ? $eleveData['notes'] : collect();
+        
+        $notesDernierMois = $notesEleve->filter(function($note) use ($dernierMoisId) {
+            if (is_object($note) && isset($note->mois_id)) {
+                return $note->mois_id == $dernierMoisId;
+            }
+            return false;
+        });
+        
+        // Récupérer les matières avec notes du dernier mois
+        $matieresAvecNotes = $matieres->filter(function ($matiere) use ($notesDernierMois) {
+            return $notesDernierMois->firstWhere('matiere_id', $matiere->id);
+        });
+    @endphp
+
     <!-- En-tête supérieur -->
     <div style="width:100%; overflow:hidden;">
         <div style="float:left; width:50%; font-weight:bold;text-transform:uppercase;">
-            {{ $ecole->nom }}
+            {{ $ecole->nom_ecole ?? $ecole->nom ?? '' }}
         </div>
         <div style="float:right; width:50%; text-align:right;">
             Édition : {{ Carbon::now()->format('d/m/Y') }}
@@ -115,7 +131,7 @@ table.general th {
             <b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b><br>
             MINISTÈRE DE L'ÉDUCATION NATIONALE ET DE L'ALPHABÉTISATION<br>
             <span>...........................</span><br>
-            <b>{{ $ecole->nom }}</b>
+            <b>{{ $ecole->nom_ecole ?? $ecole->nom ?? '' }}</b>
         </div>
         <div style="float:right; width:30%; text-align:left; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
             Code : <b>{{ $ecole->code ?? '' }}</b><br>
@@ -129,8 +145,8 @@ table.general th {
     <!-- Titre Bulletin Annuel -->
     <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
         <tr>
-            <td style="text-align:center; width:70%;">
-                <strong>COMPOSITION DE PASSAGE</strong>
+            <td style="text-align:left; width:70%;">
+                <strong>COMPOSITION DE PASSAGE : {{ strtoupper($dernierMoisNom) }}</strong>
             </td>
             <td style="text-align:right; width:30%;">
                 {{ $anneeScolaire->annee ?? $anneeScolaire->debut.'-'.$anneeScolaire->fin }}
@@ -138,6 +154,7 @@ table.general th {
         </tr>
     </table>
     
+   
 
     <div class="container">
 
@@ -145,10 +162,10 @@ table.general th {
         <table style="width:100%; border-collapse:collapse;margin-bottom:8px;">
             <tr style="text-transform:uppercase;background:#ccc">
                 <td style="text-align:left; width:70%; padding:5px;">
-                    <b>{{ strtoupper($eleveData['inscription']->eleve->nom) }} {{ strtoupper($eleveData['inscription']->eleve->prenom) }}</b> 
+                    <b>{{ strtoupper($eleve->nom ?? '') }} {{ strtoupper($eleve->prenom ?? '') }}</b> 
                 </td>
                 <td style="text-align:right; width:30%; padding:5px;">
-                    <b>Matricule :</b> {{ $eleveData['inscription']->eleve->code_national ?? $eleveData['inscription']->eleve->matricule }}
+                    <b>Matricule :</b> {{ $eleve->code_national ?? $eleve->matricule ?? '' }}
                 </td>
             </tr>
             <tr>
@@ -156,86 +173,82 @@ table.general th {
                     <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                         <tr>
                             <td style="padding:6px; width:60%;">
-                                <b>Classe :</b> {{ $classe->nom }}
+                                <b>Classe :</b> {{ $classeObjet->nom ?? '' }}
                             </td>
                             <td style="padding:6px; width:40%; text-align:left;">
-                                <b>Effectif :</b> {{ $effectif }}
+                                <b>Effectif :</b> {{ $effectif ?? 0 }}
                             </td>
                         </tr>
                         <tr>
                             <td style="padding:6px;">
-                                <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
+                                <b>Sexe :</b> {{ $eleve->sexe ?? '' }}
                             </td>
                             <td style="padding:6px; text-align:left;">
-                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee ?? '' }}
+                                <b>Né(e) le :</b> 
+                                @if($eleve->naissance)
+                                    {{ Carbon::parse($eleve->naissance)->format('d/m/Y') }}
+                                    @if($eleve->lieu_naissance)
+                                        à {{ strtoupper($eleve->lieu_naissance) }}
+                                    @endif
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td style="padding:6px;">
-                                <b>Nom du parent :</b> {{ strtoupper($eleveData['inscription']->eleve->parent_nom ?? '') }}
+                                <b>Nom du parent :</b> {{ strtoupper($eleve->parent_nom ?? '') }}
                             </td>
                             <td style="padding:6px;">
-                                <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
+                                <b>Téléphone :</b> {{ $eleve->parent_telephone ?? '' }}
                             </td>
                         </tr>
-
                     </table>
                 </td>
                 <td style="width:30%; padding:5px;">
                     <div style="width:100px; height:80px; border:1px solid #000; padding:4px;float:right; box-sizing:border-box; text-align:center;">
-                        <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
-                                ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
-                                : public_path('images/default.png') }}"
-                        alt="Photo"
-                        style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
+                        @php
+                            $photoPath = $eleve->photo_path ?? null;
+                            $photoExists = $photoPath && file_exists(storage_path('app/public/' . $photoPath));
+                        @endphp
+                        <img src="{{ $photoExists ? storage_path('app/public/' . $photoPath) : public_path('images/default.png') }}"
+                            alt="Photo"
+                            style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
                     </div>
                 </td>
             </tr>
         </table>
 
-       <!-- Matières avec notes du DERNIER MOIS (composition de passage) -->
-<table class="general">
-    <thead>
-        <tr>
-            <th>MATIÈRES</th>
-            <th>Note</th>
-            <th>Coeff.</th>
-            <th>Rang</th>
-            <th>Appréciation</th>
-        </tr>
-    </thead>
-    <tbody>
-        @php
-            // Utiliser les notes ORIGINALES (avec mois_id) au lieu de $eleveData['notes']
-            $notesDernierMois = $eleveData['notes_originales']->filter(function($note) use ($dernierMois) {
-                return $note->mois_id == $dernierMois->id;
-            });
-            
-            $matieresAvecNotes = $matieres->filter(function ($matiere) use ($notesDernierMois) {
-                return $notesDernierMois->firstWhere('matiere_id', $matiere->id);
-            });
-        @endphp
-
-        @foreach($matieresAvecNotes as $matiere)
-            @php
-                $note = $notesDernierMois->firstWhere('matiere_id', $matiere->id);
-            @endphp
-            <tr>
-                <td class="left">{{ $matiere->nom }}</td>
-                <td>
-                    @if($note && $note->valeur !== null)
-                        {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
-                    @else
-                        &nbsp;
-                    @endif
-                </td>
-                <td>{{ $note->coefficient ?? '' }}</td>
-                <td>{{ isset($note->rang_matiere_text) ? $note->rang_matiere_text : '-' }}</td>
-                <td>{{ $note->appreciation ?? '-' }}</td>
-            </tr>
-        @endforeach
-    </tbody>
-</table>
+        <!-- Matières avec notes du DERNIER MOIS (composition de passage) -->
+        <table class="general">
+            <thead>
+                <tr>
+                    <th>MATIÈRES</th>
+                    <th>Note</th>
+                    <th>Coeff.</th>
+                    <th>Rang</th>
+                    <th>Appréciation</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($matieresAvecNotes as $matiere)
+                    @php
+                        $note = $notesDernierMois->firstWhere('matiere_id', $matiere->id);
+                    @endphp
+                    <tr>
+                        <td class="left">{{ $matiere->nom }}</td>
+                        <td>
+                            @if($note && $note->valeur !== null)
+                                {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base ?? 20 }}
+                            @else
+                                &nbsp;
+                            @endif
+                        </td>
+                        <td>{{ $note->coefficient ?? '' }}</td>
+                        <td>{{ isset($note->rang_matiere_text) ? $note->rang_matiere_text : '-' }}</td>
+                        <td>{{ $note->appreciation ?? '-' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
 
         <!-- COMPOSITION DE PASSAGE (dernier mois) -->
         <table class="general" style="width:100%; border-collapse: collapse;">
@@ -244,14 +257,14 @@ table.general th {
                     @php
                         $compositionPasse = null;
                         if($dernierMois && isset($eleveData['moyennes_par_mois'])){
-                            $compositionPasse = collect($eleveData['moyennes_par_mois'])->firstWhere('mois', $dernierMois->nom);
+                            $compositionPasse = collect($eleveData['moyennes_par_mois'])->firstWhere('mois', $dernierMoisNom);
                         }
                     @endphp
                     @if($compositionPasse)
-                        <b>COMPOSITION DE PASSAGE ({{ $dernierMois->nom }}) :</b> 
-                        {{ number_format($compositionPasse['moyenne'], 2, ',', '') }} / {{ number_format($classe->moy_base, 0, '', '') }} &nbsp; | &nbsp; 
+                        <b>COMPOSITION DE PASSAGE ({{ $dernierMoisNom }}) :</b> 
+                        {{ number_format($compositionPasse['moyenne'], 2, ',', '') }} / {{ number_format($classeObjet->moy_base ?? 20, 0, '', '') }} &nbsp; | &nbsp; 
                         <b>RANG :</b> {{ $compositionPasse['rang'] }}e / {{ $compositionPasse['effectif'] }} &nbsp; | &nbsp;
-                        <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
+                        <b>APPRÉCIATION :</b> {{ $eleveData['mention'] ?? 'Non classé' }}
                     @else
                         <b>COMPOSITION DE PASSAGE :</b> Aucune donnée disponible
                     @endif
@@ -263,14 +276,14 @@ table.general th {
         <table class="general" style="width:100%; border-collapse: collapse;">
             <tr style="background:#ccc; text-align:center;">
                 <td style="padding:5px;">
-                    <b>MOYENNE ANNUELLE :</b> {{ number_format($eleveData['moyenne'], 2, ',', '') }} / {{ number_format($classe->moy_base, 0, '', '') }} &nbsp; | &nbsp; 
-                    <b>RANG :</b> {{ $eleveData['rang_text'] }} / {{ $effectif }} &nbsp; | &nbsp;
-                    <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
+                    <b>MOYENNE ANNUELLE :</b> {{ number_format($eleveData['moyenne'] ?? 0, 2, ',', '') }} / {{ number_format($classeObjet->moy_base ?? 20, 0, '', '') }} &nbsp; | &nbsp; 
+                    <b>RANG :</b> {{ $eleveData['rang_text'] ?? '-' }} / {{ $effectif ?? 0 }} &nbsp; | &nbsp;
+                    <b>APPRÉCIATION :</b> {{ $eleveData['mention'] ?? 'Non classé' }}
                 </td>
             </tr>
         </table>
 
-        <!-- Tableau avec 4 colonnes : RÉCAP DES COMPOSITIONS | RÉSULTAT DE CLASSE | DISTINCTIONS | SANCTIONS -->
+        <!-- Tableau avec 4 colonnes -->
         <table class="general">
             <thead>
                 <tr>
@@ -282,11 +295,11 @@ table.general th {
             </thead>
             <tbody>
                 <tr>
-                    <!-- Colonne 1: Récapitulatif des compositions par mois -->
+                    <!-- Colonne 1: Récapitulatif des compositions par mois (SANS STYLISATION) -->
                     <td style="text-align: left; vertical-align: top; padding: 3mm;">
                         @if(isset($eleveData['moyennes_par_mois']) && count($eleveData['moyennes_par_mois']) > 0)
                             @foreach($eleveData['moyennes_par_mois'] as $item)
-                                <div style="margin-bottom: 5px;">
+                                <div>
                                     <strong>{{ $item['mois'] }} :</strong> 
                                     {{ number_format($item['moyenne'], 2, ',', '') }} 
                                     (Rang: {{ $item['rang'] }}e/{{ $item['effectif'] }})
@@ -299,9 +312,9 @@ table.general th {
                     
                     <!-- Colonne 2: Résultat de classe -->
                     <td style="text-align: left; vertical-align: top;">
-                        Plus forte moyenne: <strong>{{ number_format($moyPremier, 2, ',', '') }}</strong><br>
-                        Plus faible moyenne: <strong>{{ number_format($moyDernier, 2, ',', '') }}</strong><br>
-                        Moyenne de la Classe: <strong>{{ number_format($moyClasse, 2, ',', '') }}</strong><br>
+                        Plus forte moyenne: <strong>{{ number_format($moyPremier ?? 0, 2, ',', '') }}</strong><br>
+                        Plus faible moyenne: <strong>{{ number_format($moyDernier ?? 0, 2, ',', '') }}</strong><br>
+                        Moyenne de la Classe: <strong>{{ number_format($moyClasse ?? 0, 2, ',', '') }}</strong><br>
                     </td>
                     
                     <!-- Colonne 3: Distinctions -->
@@ -356,13 +369,13 @@ table.general th {
                         <span style="text-decoration: underline;">L'enseignant</span>
                         <br> <br> <br>
                         <br><br>
-                        {{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '___________________') }}
+                        {{ strtoupper($classeObjet->enseignant->nom_prenoms ?? '___________________') }}
                     </td>
                     <td style="text-align: center; vertical-align: middle;">
                         @php
-                            $sexe = $eleveData['inscription']->eleve->sexe ?? '';
-                            $moyenne = $eleveData['moyenne'];
-                            $moyBase = $classe->moy_base;
+                            $sexe = $eleve->sexe ?? '';
+                            $moyenne = $eleveData['moyenne'] ?? 0;
+                            $moyBase = $classeObjet->moy_base ?? 20;
                             $pourcentage = ($moyBase > 0) ? ($moyenne / $moyBase) * 100 : 0;
                             
                             if ($pourcentage >= 50) {
