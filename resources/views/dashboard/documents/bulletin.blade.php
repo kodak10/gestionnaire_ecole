@@ -19,7 +19,7 @@ font-family: 'Georgia', Times, serif;    font-size: 12px;
     border-top: 1px solid #000;
     border-left: 1px solid #000;
     border-right: 1px solid #000;
-    border-bottom: none; /* ✅ Enlève la bordure du bas */
+    border-bottom: none;
     box-sizing: border-box;
 }
 
@@ -79,10 +79,14 @@ table.general th { background: #ccc; }
 
 @foreach($elevesAvecMoyennes as $eleveData)
 
+    @php
+        $eleve = $eleveData['eleve'];
+    @endphp
+
     <!-- En-tête supérieur : nom école à gauche, date d'édition à droite -->
     <div style="width:100%; overflow:hidden;">
         <div style="float:left; width:50%; font-weight:bold;text-transform:uppercase;">
-            {{ $ecole->nom }}
+            {{ $ecole->nom_ecole }}
         </div>
         <div style="float:right; width:50%; text-align:right;">
             Édition : {{ Carbon::now()->format('d/m/Y') }}
@@ -95,22 +99,22 @@ table.general th { background: #ccc; }
     <div class="header" style="width:100%; overflow:hidden">
         <!-- Logo -->
         <div style="float:left; width:15%; text-align:center;">
-            <img src="{{ $ecole->logo ?? 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Logo_ministere_education_civ.png' }}" alt="Logo école" style=" width:100%;">
+            <img src="{{ $ecole->logo }}" alt="Logo école" style=" width:100%;">
         </div>
 
         <!-- Partie centrale (plus large) -->
         <div style="float:left; width:50%; text-align:center; border:1px solid #000; padding:2mm; box-sizing:border-box;border-radius:10px;">
             <b>RÉPUBLIQUE DE CÔTE D'IVOIRE</b><br>
-            MINISTÈRE DE L’ÉDUCATION NATIONALE ET DE L'ALPHABÉTISATION<br>
+            MINISTÈRE DE L'ÉDUCATION NATIONALE ET DE L'ALPHABÉTISATION<br>
             <span>...........................</span><br>
-            <b>{{ $ecole->nom }}</b>
+            <b>{{ $ecole->nom_ecole }}</b>
         </div>
 
         <!-- Partie droite -->
         <div style="float:right; width:30%; text-align:left; border:1px solid #000; padding:2mm; box-sizing:border-box; border-radius:10px;">
             Code Etablissement : <b>{{ $ecole->code ?? '' }}</b><br>
             Adresse : <b>{{ $ecole->adresse ?? '' }}</b><br>
-            Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '0274839310' }}</b><br>
+            Tél. / Fax : <b>{{ $ecole->telephone ?? '' }}</b> / <b>{{ $ecole->fax ?? '' }}</b><br>
             Email : <b>{{ $ecole->email ?? '' }}</b><br>
             <br>
         </div>
@@ -121,18 +125,14 @@ table.general th { background: #ccc; }
     <!-- Bulletin / Année -->
     <table class="bulletin-row" style="width:100%; text-align:center; font-size:16px; text-transform:uppercase; border-collapse:collapse;">
         <tr>
-            <!-- Colonne pour le titre -->
             <td style="text-align:left; width:70%;">
                 <strong>BULLETIN DE NOTES : {{ $mois->nom }}</strong>
             </td>
-
-            <!-- Colonne pour l'année à droite -->
             <td style="text-align:right; width:30%;">
-                {{ $anneeScolaire->annee ?? 'Année' }}
+                {{ $anneeScolaire->annee }}
             </td>
         </tr>
     </table>
-
 
     <div class="container">
 
@@ -141,12 +141,11 @@ table.general th { background: #ccc; }
             <!-- Première ligne : Matricule + Nom et Prénoms -->
             <tr style="text-transform:uppercase;background:#ccc">
                 <td style="text-align:left; width:70%; padding:5px;text-transform:uppercase;">
-                    <b>{{ strtoupper($eleveData['inscription']->eleve->nom_complet) }}</b> 
+                    <b>{{ strtoupper($eleve->nom ?? '') }} {{ strtoupper($eleve->prenom ?? '') }}</b> 
                 </td>
                 <td style="text-align:right; width:30%; padding:5px;">
-                    <b>Matricule :</b> {{ $eleveData['inscription']->eleve->code_national ?? $eleveData['inscription']->eleve->matricule }}
+                    <b>Matricule :</b> {{ $eleve->code_national ?? $eleve->matricule ?? '' }}
                 </td>
-                
             </tr>
 
             <!-- Deuxième ligne : infos + photo -->
@@ -155,39 +154,34 @@ table.general th { background: #ccc; }
                 <td style="vertical-align:top; padding:5px; width:70%;">
                     <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                         <tr>
-                            <!-- Colonne gauche large -->
                             <td style="padding:6px; width:60%;">
-                                <b>Classe :</b> {{ $classe->nom }}
+                                <b>Classe :</b> {{ $classe->nom ?? '' }}
                             </td>
-
-                            <!-- Colonne droite pour effectif -->
                             <td style="padding:6px; width:40%; text-align:left;">
-                                <b>Effectif :</b> {{ $effectif }}
+                                <b>Effectif :</b> {{ $effectif ?? 0 }}
                             </td>
                         </tr>
-
                         <tr>
                             <td style="padding:6px;">
-                                <b>Sexe :</b> {{ $eleveData['inscription']->eleve->sexe ?? '' }}
+                                <b>Sexe :</b> {{ $eleve->sexe ?? '' }}
                             </td>
                             <td style="padding:6px; text-align:left; white-space:nowrap;">
-                                <b>Né(e) le :</b> {{ $eleveData['inscription']->eleve->naissance_formattee }}
-                                @if(!empty($eleveData['inscription']->eleve->lieu_naissance))
-                                    à {{ strtoupper($eleveData['inscription']->eleve->lieu_naissance) }}
+                                <b>Né(e) le :</b> 
+                                @if($eleve->naissance)
+                                    {{ Carbon::parse($eleve->naissance)->format('d/m/Y') }}
+                                    @if($eleve->lieu_naissance)
+                                        à {{ strtoupper($eleve->lieu_naissance) }}
+                                    @endif
                                 @endif
                             </td>
-
-                            
                         </tr>
-
                         <tr>
-                            <td style="padding:6px; ">
-                                <b>Nom du parent :</b> {{ strtoupper($eleveData['inscription']->eleve->parent_nom ?? '') }}
+                            <td style="padding:6px;">
+                                <b>Nom du parent :</b> {{ strtoupper($eleve->parent_nom ?? '') }}
                             </td>
                             <td style="padding:6px; text-align:left;">
-                                <b>Téléphone :</b> {{ $eleveData['inscription']->eleve->parent_telephone ?? '' }}
+                                <b>Téléphone :</b> {{ $eleve->parent_telephone ?? '' }}
                             </td>
-                            
                         </tr>
                     </table>
                 </td>
@@ -195,75 +189,64 @@ table.general th { background: #ccc; }
                 <!-- Photo -->
                 <td style="width:30%; padding:5px;">
                     <div style="width:100px; height:80px; border:1px solid #000; padding:4px;float:right; box-sizing:border-box; text-align:center;">
-                    <img src="{{ $eleveData['inscription']->eleve->photo_path && file_exists(storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path))
-                            ? storage_path('app/public/' . $eleveData['inscription']->eleve->photo_path)
-                            : public_path('images/default.png') }}"
-                    alt="Photo"
-                    style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
-
+                        @php
+                            $photoPath = $eleve->photo_path ?? null;
+                            $photoExists = $photoPath && file_exists(storage_path('app/public/' . $photoPath));
+                        @endphp
+                        <img src="{{ $photoExists ? storage_path('app/public/' . $photoPath) : public_path('images/default.png') }}"
+                             alt="Photo"
+                             style="width:80px; height:80px; object-fit:cover; border-radius:5px;">
                     </div>
                 </td>
             </tr>
-
         </table>
 
         <!-- Matières -->
         <table class="general">
-    <thead>
-        <tr>
-            <th>Matières</th>
-            <th>Notes</th>
-            <th>Coeff.</th>
-            {{-- <th>M. x C</th> --}}
-            <th>Rang</th>
-            <th>Appréciation</th>
-        </tr>
-    </thead>
-    <tbody> 
-    @php
-        // Filtrer uniquement les matières où il existe une note pour cet élève
-        $matieresAvecNotes = $matieres->filter(function ($matiere) use ($eleveData) {
-            return $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
-        });
-    @endphp
+            <thead>
+                <tr>
+                    <th>Matières</th>
+                    <th>Notes</th>
+                    <th>Coeff.</th>
+                    <th>Rang</th>
+                    <th>Appréciation</th>
+                </tr>
+            </thead>
+            <tbody> 
+                @php
+                    $matieresAvecNotes = $matieres->filter(function ($matiere) use ($eleveData) {
+                        return $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+                    });
+                @endphp
 
-    @foreach($matieresAvecNotes as $matiere)
-        @php
-            $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
-        @endphp
-        <tr>
-            <td class="left">{{ $matiere->nom }}</td>
-            
-            {{-- ✅ Afficher vide si la note est 0 --}}
-            <td>
-                @if($note->valeur > 0)
-                    {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
-                @else
-                    &nbsp;
-                @endif
-            </td>
-
-            <td>{{ $note->coefficient }}</td>
-            <td>{{ $note->rang_matiere_text ?? '-' }}</td>
-            <td>{{ $note->appreciation ?? '-' }}</td>
-        </tr>
-    @endforeach
-</tbody>
-
-</tbody>
-
-</table>
-
+                @foreach($matieresAvecNotes as $matiere)
+                    @php
+                        $note = $eleveData['notes']->firstWhere('matiere_id', $matiere->id);
+                    @endphp
+                    <tr>
+                        <td class="left">{{ $matiere->nom }}</td>
+                        <td>
+                            @if($note->valeur > 0)
+                                {{ number_format($note->valeur, 2, ',', '') }} / {{ $note->base }}
+                            @else
+                                &nbsp;
+                            @endif
+                        </td>
+                        <td>{{ $note->coefficient }}</td>
+                        <td>{{ $note->rang_matiere_text ?? '-' }}</td>
+                        <td>{{ $note->appreciation ?? '-' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
 
         <!-- Totaux -->
         <table class="general" style="width:100%; border-collapse: collapse;">
             <tr style="background:#ccc; text-align:center;">
                 <td style="padding:5px;">
-<b>MOYENNE :</b> {{ number_format($eleveData['moyenne'], 2, ',', '') }} / {{ number_format($classe->moy_base, 0, '', '') }} &nbsp; | &nbsp; 
-
-                    {{-- <b>MOYENNE :</b> {{ number_format($eleveData['moyenne'],2,',','') }} /20 &nbsp; | &nbsp; --}}
-                    <b>RANG :</b> {{ $eleveData['rang_text'] }} / {{ $effectif }} &nbsp; | &nbsp;
-                    <b>APPRÉCIATION :</b> {{ $eleveData['mention'] }}
+                    <b>MOYENNE :</b> {{ number_format($eleveData['moyenne'] ?? 0, 2, ',', '') }} / {{ number_format($classe->moy_base ?? 20, 0, '', '') }} &nbsp; | &nbsp; 
+                    <b>RANG :</b> {{ $eleveData['rang_text'] ?? '-' }} / {{ $effectif ?? 0 }} &nbsp; | &nbsp;
+                    <b>APPRÉCIATION :</b> {{ $eleveData['mention'] ?? 'Non classé' }}
                 </td>
             </tr>
         </table>
@@ -280,58 +263,45 @@ table.general th { background: #ccc; }
             <tbody>
                 <tr>
                     <td>
-                        Plus forte moyenne: {{ $moyPremier }}<br>
-                        Plus faible moyenne: {{ $moyDernier }}<br>
-                        Moyenne de la Classe: {{ $moyClasse }}<br><br>
-                        
+                        Plus forte moyenne: {{ $moyPremier ?? 0 }}<br>
+                        Plus faible moyenne: {{ $moyDernier ?? 0 }}<br>
+                        Moyenne de la Classe: {{ $moyClasse ?? 0 }}<br><br>
                     </td>
                     <td>
-    <span class="checkbox">
-        {{ isset($eleveData['distinctions']['tableau_honneur']) && $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}
-    </span> Tableau d'Honneur<br>
+                        <span class="checkbox">
+                            {{ isset($eleveData['distinctions']['tableau_honneur']) && $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}
+                        </span> Tableau d'Honneur<br>
 
-    <span class="checkbox">
-        {{ isset($eleveData['distinctions']['encouragement']) && $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}
-    </span> Tableau d'Honneur + Encouragement<br>
+                        <span class="checkbox">
+                            {{ isset($eleveData['distinctions']['encouragement']) && $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}
+                        </span> Tableau d'Honneur + Encouragement<br>
 
-    <span class="checkbox">
-        {{ isset($eleveData['distinctions']['felicitation']) && $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}
-    </span> Tableau d'Honneur + Félicitation
-</td>
-
-<td>
-    <span class="checkbox">
-        {{ isset($eleveData['sanctions']['avertissement_travail']) && $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}
-    </span> Avertissement pour travail insuffisant<br>
-
-    <span class="checkbox">
-        {{ isset($eleveData['sanctions']['blame_travail']) && $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}
-    </span> Blâme pour travail insuffisant<br>
-
-    <span class="checkbox">
-        {{ isset($eleveData['sanctions']['avertissement_conduite']) && $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}
-    </span> Avertissement pour mauvaise conduite<br>
-
-    <span class="checkbox">
-        {{ isset($eleveData['sanctions']['blame_conduite']) && $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}
-    </span> Blâme pour mauvaise conduite
-</td>
-                    {{-- <td>
-                        <span class="checkbox">{{ $eleveData['distinctions']['tableau_honneur'] ? '☑' : '□' }}</span> Tableau d'Honneur<br>
-                        <span class="checkbox">{{ $eleveData['distinctions']['encouragement'] ? '☑' : '□' }}</span> Tableau d'Honneur + Encouragement<br>
-                        <span class="checkbox">{{ $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}</span> Tableau d'Honneur + Félicitation
+                        <span class="checkbox">
+                            {{ isset($eleveData['distinctions']['felicitation']) && $eleveData['distinctions']['felicitation'] ? '☑' : '□' }}
+                        </span> Tableau d'Honneur + Félicitation
                     </td>
                     <td>
-                        <span class="checkbox">{{ $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}</span> Avertissement pour travail insuffisant<br>
-                        <span class="checkbox">{{ $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}</span> Blâme pour travail insuffisant<br>
-                        <span class="checkbox">{{ $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}</span> Avertissement pour mauvaise conduite<br>
-                        <span class="checkbox">{{ $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}</span> Blâme pour mauvaise conduite
-                    </td> --}}
+                        <span class="checkbox">
+                            {{ isset($eleveData['sanctions']['avertissement_travail']) && $eleveData['sanctions']['avertissement_travail'] ? '☑' : '□' }}
+                        </span> Avertissement pour travail insuffisant<br>
+
+                        <span class="checkbox">
+                            {{ isset($eleveData['sanctions']['blame_travail']) && $eleveData['sanctions']['blame_travail'] ? '☑' : '□' }}
+                        </span> Blâme pour travail insuffisant<br>
+
+                        <span class="checkbox">
+                            {{ isset($eleveData['sanctions']['avertissement_conduite']) && $eleveData['sanctions']['avertissement_conduite'] ? '☑' : '□' }}
+                        </span> Avertissement pour mauvaise conduite<br>
+
+                        <span class="checkbox">
+                            {{ isset($eleveData['sanctions']['blame_conduite']) && $eleveData['sanctions']['blame_conduite'] ? '☑' : '□' }}
+                        </span> Blâme pour mauvaise conduite
+                    </td>
                 </tr>
             </tbody>
         </table>
 
-        <!-- Appreciation du conseil de classe et visa du chef d'etabilssement -->
+        <!-- Appreciation du conseil de classe et visa du chef d'etablissement -->
         <table class="general">
             <thead>
                 <tr>
@@ -345,22 +315,20 @@ table.general th { background: #ccc; }
                         <span style="text-decoration: underline;">L'enseignant</span> <br>
                         <br> <br> <br>
                         <br>
-{{ strtoupper($eleveData['inscription']->classe->enseignant->nom_prenoms ?? '...') }}
+                        {{ $eleve->enseignant_nom ?? $classe->enseignant->nom_prenoms ?? '...' }}
                     </td>
                     <td>
-                        {{ $ecole->ville }} le {{ Carbon::now()->format('d/m/Y') }}<br>
+                        {{ $ecole->ville ?? '' }} le {{ Carbon::now()->format('d/m/Y') }}<br>
                         <span style="text-decoration: underline;">Le Directeur des Etudes</span> <br>
-
                         <br> <br> <br>
-                        {{ $ecole->directeur }}
+                        {{ $ecole->directeur ?? '' }}
                     </td>
                 </tr>
             </tbody>
         </table>
 
-
     </div>
-        <p style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</p>
+    <p style="text-decoration: underline; text-align:center">Bulletin informatisé : Ne doit contenir ni rature, ni grattage. Aucun duplicata ne sera délivré.</p>
 
     @if(!$loop->last)
         <div class="page-break"></div>

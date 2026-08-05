@@ -44,7 +44,7 @@
             text-align: left;
             width: 25%;
         }
-        .champ-moyenne {
+        .champ-note {
             width: 60px;
             background: white;
         }
@@ -57,34 +57,41 @@
     <!-- En-tête -->
     <div class="header">
         <div class="info-ecole">
-            {{ auth()->user()->ecole->nom ?? 'GS EXCELLE' }}
+            {{ $ecole->nom_ecole ?? $ecole->nom ?? 'GS EXCELLE' }}
         </div>
         <div class="info-classe">
-            FICHE DE MOYENNES - {{ $classe->nom }} - {{ $mois->nom }}
+            FICHE DE NOTES - {{ $classe->nom ?? '' }} - {{ $mois->nom ?? '' }}
         </div>
     </div>
 
-    <!-- Tableau des moyennes -->
+    <!-- Tableau des notes -->
     <table>
         <thead>
             <tr>
                 <th class="numero-ligne">N°</th>
-                <th class="nom-eleve">NOM ET PRÉNOM DE L'ÉLÈVE</th>
-                @foreach($classe->niveau->matieres as $matiere)
-                <th class="champ-moyenne">{{ $matiere->nom }}</th>
+                <th class="nom-eleve">NOM ET PRÉNOMS</th>
+                @foreach($matieres as $matiere)
+                <th class="champ-note">{{ $matiere->nom }}</th>
                 @endforeach
             </tr>
         </thead>
         <tbody>
-            @foreach($eleves as $index => $eleve)
+            @foreach($elevesAvecNotes as $index => $eleveData)
+            @php $eleve = $eleveData['eleve']; @endphp
             <tr>
                 <td class="numero-ligne">{{ $index + 1 }}</td>
                 <td class="nom-eleve">
-                    {{ $eleve->eleve->nom }} {{ $eleve->eleve->prenom }}
+                    {{ $eleve->nom ?? '' }} {{ $eleve->prenom ?? '' }}
                 </td>
                 
-                @foreach($classe->niveau->matieres as $matiere)
-                <td class="champ-moyenne"></td>
+                @foreach($matieres as $matiere)
+                <td class="champ-note">
+                    @php
+                        // Récupérer la base de la matière
+                        $base = $matiere->pivot->denominateur;
+                    @endphp
+                    .../{{ $base }}
+                </td>
                 @endforeach
             </tr>
             @endforeach

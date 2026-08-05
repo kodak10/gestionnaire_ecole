@@ -1,76 +1,51 @@
 <?php
-// app/Models/Niveau.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\TableService;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 class Niveau extends Model
 {
-    protected $fillable = ['nom', 'ordre', 'ecole_id'];
+    protected $fillable = ['ecole_id', 'nom', 'ordre', 'moy_base', 'coeff_transfert', 'actif'];
 
     protected $table = 'niveaux';
 
     /**
-     * Normaliser un sigle (minuscules, sans espaces, sans caractères spéciaux)
+     * Définir la table dynamique pour le modèle
      */
-    private function normalizeSigle(string $sigle): string
+    public function getTable()
     {
-        $sigle = strtolower(trim($sigle));
-        $sigle = str_replace(' ', '_', $sigle);
-        $sigle = preg_replace('/[^a-z0-9_]/', '_', $sigle);
-        $sigle = preg_replace('/_+/', '_', $sigle);
-        return trim($sigle, '_');
+        if ($this->table !== 'niveaux') {
+            return $this->table;
+        }
+        
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        if ($ecoleId && $annee) {
+            $this->table = $tableService->getNiveauxTableName($ecoleId, $annee);
+        }
+        
+        return $this->table;
     }
 
     /**
-     * Récupérer le sigle de l'école normalisé
-     */
-    private function getEcoleSigle(int $ecoleId): string
-    {
-        $ecole = \DB::table('ecoles')->where('id', $ecoleId)->first();
-        
-        if (!$ecole) {
-            return 'ecole';
-        }
-        
-        if (!empty($ecole->sigle_ecole)) {
-            return $this->normalizeSigle($ecole->sigle_ecole);
-        }
-        
-        $nom = strtolower(trim($ecole->nom_ecole ?? 'ecole'));
-        $sigle = preg_replace('/[^a-z0-9]/', '', $nom);
-        $sigle = substr($sigle, 0, 10);
-        
-        return !empty($sigle) ? $sigle : 'ecole';
-    }
-
-    /**
-     * Obtenir le nom de la table dynamique
+     * Obtenir le nom de la table des niveaux
      */
     public function getTableName(int $ecoleId, string $annee): string
     {
-        $sigle = $this->getEcoleSigle($ecoleId);
-        $anneeFormatted = str_replace('-', '_', $annee);
-        return 'niveaux_' . $sigle . '_' . $anneeFormatted;
+        $tableService = App::make(TableService::class);
+        return $tableService->getNiveauxTableName($ecoleId, $annee);
     }
 
     public function classes()
     {
-        return $this->hasMany(Classe::class)->orderBy('nom', 'asc');
-    }
-
-    public function tarifs()
-    {
-        return $this->hasMany(Tarif::class);
-    }
-
-    public function matieres()
-    {
-        return $this->belongsToMany(Matiere::class, 'niveau_matiere')
-                    ->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id')
-                    ->withTimestamps();
+        return $this->hasMany(Classe::class);
     }
 
     public function ecole()
@@ -78,13 +53,36 @@ class Niveau extends Model
         return $this->belongsTo(Ecole::class);
     }
 
+    /**
+     * Relation avec les matières (dynamique)
+     */
+    public function matieres()
+    {
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        $matieresTable = $tableService->getMatieresTableName($ecoleId, $annee);
+        $niveauMatiereTable = $tableService->getNiveauMatiereTableName($ecoleId, $annee);
+        
+        if (!Schema::hasTable($matieresTable) || !Schema::hasTable($niveauMatiereTable)) {
+            return $this->belongsToMany(Matiere::class, 'niveau_matiere');
+        }
+        
+        return $this->belongsToMany(
+            Matiere::class,
+            $niveauMatiereTable,
+            'niveau_id',
+            'matiere_id'
+        )->withPivot('coefficient', 'ordre', 'denominateur', 'ecole_id')
+         ->withTimestamps();
+    }
+
+    /**
+     * Scope pour trier par ordre
+     */
     public function scopeOrdered($query)
     {
         return $query->orderBy('ordre', 'asc');
-    }
-
-    public function scopeForEcole($query, $ecoleId)
-    {
-        return $query->where('ecole_id', $ecoleId);
     }
 }

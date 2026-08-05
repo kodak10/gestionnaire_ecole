@@ -1,78 +1,36 @@
 <?php
-// app/Models/Classe.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use App\Services\TableService;
+use Illuminate\Support\Facades\App;
 
 class Classe extends Model
 {
     protected $fillable = ['ecole_id', 'niveau_id', 'annee_scolaire_id', 'nom', 'capacite', 'moy_base', 'enseignant_id'];
 
-    // Le nom de la table est défini dynamiquement
     protected $table = 'classes';
 
     /**
-     * Normaliser un sigle (minuscules, sans espaces, sans caractères spéciaux)
+     * Définir la table dynamique pour le modèle
      */
-    private function normalizeSigle(string $sigle): string
+    public function getTable()
     {
-        // Convertir en minuscules
-        $sigle = strtolower(trim($sigle));
-        
-        // Remplacer les espaces par des underscores
-        $sigle = str_replace(' ', '_', $sigle);
-        
-        // Remplacer les points, virgules et autres caractères spéciaux par des underscores
-        $sigle = preg_replace('/[^a-z0-9_]/', '_', $sigle);
-        
-        // Supprimer les underscores multiples
-        $sigle = preg_replace('/_+/', '_', $sigle);
-        
-        // Supprimer les underscores en début et fin
-        $sigle = trim($sigle, '_');
-        
-        return $sigle;
-    }
-
-    /**
-     * Récupérer le sigle de l'école normalisé
-     */
-    private function getEcoleSigle(int $ecoleId): string
-    {
-        $ecole = \DB::table('ecoles')->where('id', $ecoleId)->first();
-        
-        if (!$ecole) {
-            Log::warning('⚠️ École non trouvée', ['ecole_id' => $ecoleId]);
-            return 'ecole';
+        if ($this->table !== 'classes') {
+            return $this->table;
         }
         
-        if (!empty($ecole->sigle_ecole)) {
-            $sigle = $this->normalizeSigle($ecole->sigle_ecole);
-            Log::debug('✅ Sigle normalisé', [
-                'ecole_id' => $ecoleId,
-                'original' => $ecole->sigle_ecole,
-                'normalized' => $sigle
-            ]);
-            return $sigle;
+        $tableService = App::make(TableService::class);
+        $ecoleId = $this->ecole_id ?? session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        if ($ecoleId && $annee) {
+            $this->table = $tableService->getClassesTableName($ecoleId, $annee);
         }
         
-        // Fallback : générer un sigle à partir du nom
-        $nom = strtolower(trim($ecole->nom_ecole ?? 'ecole'));
-        $sigle = preg_replace('/[^a-z0-9]/', '', $nom);
-        $sigle = substr($sigle, 0, 10);
-        
-        if (empty($sigle)) {
-            $sigle = 'ecole';
-        }
-        
-        Log::debug('⚠️ Sigle généré depuis le nom', [
-            'ecole_id' => $ecoleId,
-            'sigle' => $sigle
-        ]);
-        
-        return $sigle;
+        return $this->table;
     }
 
     /**
@@ -80,11 +38,8 @@ class Classe extends Model
      */
     public function getTableName(int $ecoleId, string $annee): string
     {
-        $sigle = $this->getEcoleSigle($ecoleId);
-        $anneeFormatted = str_replace('-', '_', $annee);
-        $tableName = 'classes_' . $sigle . '_' . $anneeFormatted;
-                
-        return $tableName;
+        $tableService = App::make(TableService::class);
+        return $tableService->getClassesTableName($ecoleId, $annee);
     }
 
     public function niveau()
@@ -107,7 +62,14 @@ class Classe extends Model
      */
     public function scopeOrdered($query)
     {
-        return $query->join('niveaux', 'classes.niveau_id', '=', 'niveaux.id')
+        $ecoleId = session('current_ecole_id');
+        $annee = session('current_annee_scolaire');
+        
+        $tableService = App::make(TableService::class);
+        $classesTable = $this->getTable();
+        $niveauxTable = $tableService->getNiveauxTableName($ecoleId, $annee);
+        
+        return $query->join($niveauxTable . ' as niveaux', 'classes.niveau_id', '=', 'niveaux.id')
                     ->orderBy('niveaux.ordre', 'asc')
                     ->orderBy('classes.nom', 'asc')
                     ->select('classes.*');
@@ -118,16 +80,14 @@ class Classe extends Model
      */
     public function scopeForEcoleAndAnnee($query, $ecoleId, $anneeScolaireId)
     {
-        // Utiliser le nom de la table dynamique
+        $tableService = App::make(TableService::class);
         $annee = \DB::table('annee_scolaires')->where('id', $anneeScolaireId)->value('annee');
-        $sigle = $this->getEcoleSigle($ecoleId);
-        $tableName = 'classes_' . $sigle . '_' . str_replace('-', '_', $annee);
+        $tableName = $tableService->getClassesTableName($ecoleId, $annee);
         
         Log::debug('📋 ForEcoleAndAnnee', [
             'ecole_id' => $ecoleId,
             'annee_scolaire_id' => $anneeScolaireId,
             'annee' => $annee,
-            'sigle' => $sigle,
             'table_name' => $tableName
         ]);
         
@@ -143,8 +103,8 @@ class Classe extends Model
     {
         $ecoleId = $this->ecole_id;
         $annee = \DB::table('annee_scolaires')->where('id', $this->annee_scolaire_id)->value('annee');
-        $sigle = $this->getEcoleSigle($ecoleId);
-        $tableName = 'eleves_' . $sigle . '_' . str_replace('-', '_', $annee);
+        $tableService = App::make(TableService::class);
+        $tableName = $tableService->getElevesTableName($ecoleId, $annee);
         
         return $this->hasMany(Eleve::class, 'classe_id')->from($tableName);
     }

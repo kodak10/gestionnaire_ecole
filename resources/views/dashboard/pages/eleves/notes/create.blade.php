@@ -18,7 +18,7 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-body">
-                <form method="POST" action="{{ route('notes.store') }}">
+                <form id="notesForm">
                     @csrf
                     
                     <div class="row">
@@ -42,7 +42,6 @@
                                 <label class="form-label">Matière <span class="text-danger">*</span></label>
                                 <select name="matiere_id" id="matiere_id" class="form-select" required>
                                     <option value="">Sélectionner une matière</option>
-                                    <!-- Les options seront ajoutées dynamiquement via AJAX -->
                                 </select>
                             </div>
                         </div>
@@ -50,7 +49,7 @@
                         <div class="col-md-2">
                             <div class="mb-3">
                                 <label class="form-label">Coefficient <span class="text-danger">*</span></label>
-                                <input type="number" name="coefficient" class="form-control" min="1" 
+                                <input type="number" name="coefficient" id="coefficient" class="form-control" min="1" 
                                     value="{{ old('coefficient', 1) }}" readonly required>
                             </div>
                         </div>
@@ -72,14 +71,17 @@
                     </div>
                     
                     <div id="eleves-container">
-                        <!-- Les élèves seront chargés ici via AJAX -->
-                        <div class="alert alert-info">
-                            Veuillez sélectionner une classe pour afficher la liste des élèves
-                        </div>
+                        @if(old('classe_id'))
+                            <div class="text-center"><div class="spinner-border text-primary"></div><p>Chargement des élèves...</p></div>
+                        @else
+                            <div class="alert alert-info">
+                                Veuillez sélectionner une classe pour afficher la liste des élèves
+                            </div>
+                        @endif
                     </div>
                     
                     <div class="text-end mt-4">
-                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                        <button type="button" class="btn btn-primary" id="submit-btn" {{ old('classe_id') ? '' : 'disabled' }}>
                             <i class="ti ti-check me-2"></i>Enregistrer toutes les notes
                         </button>
                     </div>
@@ -93,13 +95,6 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
-    toastr.options = {
-        "closeButton": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "timeOut": "4000"
-    };
-    
     var matieresData = {};
     var oldValues = {
         classe_id: "{{ old('classe_id') }}",
@@ -108,16 +103,24 @@ $(document).ready(function() {
         coefficient: "{{ old('coefficient', 1) }}"
     };
 
-    // Fonction pour charger les matières
+    // ==================== CHARGEMENT DES MATIÈRES ====================
     function chargerMatieres(classeId, matiereId = null) {
         if(classeId) {
+            var matSelect = $('#matiere_id');
+            matSelect.html('<option value="">Chargement...</option>');
+            
             $.ajax({
                 url: '{{ route("notes.matieres_by_classe") }}',
                 type: 'GET',
                 data: { classe_id: classeId },
                 success: function(matieres) {
-                    var matSelect = $('#matiere_id');
                     matSelect.empty().append('<option value="">Sélectionner une matière</option>');
+
+                    if (matieres.length === 0) {
+                        matSelect.append('<option value="">Aucune matière trouvée</option>');
+                        toastr.warning("Aucune matière trouvée pour cette classe");
+                        return;
+                    }
 
                     matieres.forEach(function(m) {
                         var selected = (matiereId && m.id == matiereId) ? 'selected' : '';
@@ -128,25 +131,27 @@ $(document).ready(function() {
                         };
                     });
 
-                    // Si une matière était sélectionnée, mettre à jour le coefficient
                     if (matiereId && matieresData[matiereId]) {
                         var coef = matieresData[matiereId].coef;
                         var base = matieresData[matiereId].base;
-                        $('input[name="coefficient"]').val(coef);
+                        $('#coefficient').val(coef);
                     }
                 },
-                error: function() {
+                error: function(xhr) {
                     toastr.error("Erreur lors du chargement des matières ❌");
+                    matSelect.empty().append('<option value="">Sélectionner une matière</option>');
                 }
             });
         }
     }
 
-    // Fonction pour charger les élèves
+    // ==================== CHARGEMENT DES ÉLÈVES ====================
     function chargerEleves(classeId) {
         if(classeId) {
+            $('#eleves-container').html('<div class="text-center"><div class="spinner-border text-primary"></div><p>Chargement des élèves...</p></div>');
+            
             $.ajax({
-                url: '{{ route("notes.inscriptions_by_classe") }}',
+                url: '{{ route("notes.eleves_by_classe") }}',
                 type: 'GET',
                 data: { classe_id: classeId },
                 success: function(data) {
@@ -154,16 +159,13 @@ $(document).ready(function() {
                     if (data.length > 0) {
                         html += '<div class="table-responsive"><table class="table table-bordered"><tbody>';
                         $.each(data, function(i, e) {
+                            var oldNote = getOldNoteValue(e.id);
                             html += '<tr>';
                             html += '<td>'+(i+1)+'</td>';
                             html += '<td>'+e.nom_complet+'</td>';
                             html += '<td>';
-                            html += '<input type="hidden" name="notes['+i+'][inscription_id]" value="'+e.id+'">';
-                            
-                            // Récupérer l'ancienne valeur si elle existe
-                            var oldNote = getOldNoteValue(e.id);
-                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" value="'+oldNote+'" style="width:70px; display:inline-block;">';
-
+                            html += '<input type="hidden" name="notes['+i+'][eleve_id]" value="'+e.id+'">';
+                            html += '<input type="number" name="notes['+i+'][valeur]" class="form-control note-input" step="0.01" min="0" value="'+oldNote+'" style="width:80px; display:inline-block;">';
                             html += ' / <input type="number" class="form-control note-base" readonly style="width:50px; display:inline-block;">';
                             html += '</td></tr>';
                         });
@@ -172,177 +174,42 @@ $(document).ready(function() {
                         $('#eleves-container').html(html);
                         $('#submit-btn').prop('disabled', false);
                         
-                        // Mettre à jour les bases si une matière est sélectionnée
                         var matiereId = $('#matiere_id').val();
                         if(matiereId && matieresData[matiereId]) {
                             var base = matieresData[matiereId].base;
                             $('#eleves-container tr').each(function() {
-                                var baseInput = $(this).find('input.note-base');
-                                baseInput.val(base);
+                                $(this).find('input.note-base').val(base);
                             });
                         }
                     } else {
-                        $('#eleves-container').html('<div class="alert alert-warning">Aucun élève trouvé</div>');
+                        $('#eleves-container').html('<div class="alert alert-warning">Aucun élève trouvé dans cette classe</div>');
                         $('#submit-btn').prop('disabled', true);
                         toastr.warning("Aucun élève trouvé pour cette classe ⚠️");
                     }
                 },
-                error: function() {
+                error: function(xhr) {
                     toastr.error("Erreur lors du chargement des élèves ❌");
+                    $('#eleves-container').html('<div class="alert alert-danger">Erreur lors du chargement des élèves</div>');
                 }
             });
         }
     }
 
-    // Fonction pour récupérer les anciennes valeurs de notes
-    function getOldNoteValue(inscriptionId) {
+    function getOldNoteValue(eleveId) {
         var oldNotes = {!! json_encode(old('notes', [])) !!};
         for (var i in oldNotes) {
-            if (oldNotes[i].inscription_id == inscriptionId) {
-                return oldNotes[i].valeur || '';
+            if (oldNotes[i] && oldNotes[i].eleve_id == eleveId) {
+                return oldNotes[i].valeur !== undefined && oldNotes[i].valeur !== null ? oldNotes[i].valeur : '';
             }
         }
         return '';
     }
 
-    // Initialisation au chargement de la page
-    if (oldValues.classe_id) {
-        $('#classe_id').val(oldValues.classe_id);
-        chargerMatieres(oldValues.classe_id, oldValues.matiere_id);
-        chargerEleves(oldValues.classe_id);
-        
-        if (oldValues.mois_id) {
-            $('#mois_id').val(oldValues.mois_id);
-        }
-        
-        // Charger les notes existantes après un délai pour laisser le temps au chargement
-        setTimeout(function() {
-            if (oldValues.matiere_id && oldValues.mois_id) {
-                chargerNotes();
-            }
-        }, 500);
-    }
-
-    // Événement changement de classe
-    $('#classe_id').change(function() {
-        var classeId = $(this).val();
-        if(classeId) {
-            chargerMatieres(classeId);
-            chargerEleves(classeId);
-        } else {
-            $('#eleves-container').html('<div class="alert alert-info">Veuillez sélectionner une classe pour afficher la liste des élèves</div>');
-            $('#submit-btn').prop('disabled', true);
-        }
-    });
-
-    // Quand la matière change → maj du coef
-    $('#matiere_id').change(function() {
-        var matId = $(this).val();
-        if(matId && matieresData[matId]) {
-            var coef = matieresData[matId].coef;
-            var base = matieresData[matId].base;
-
-            $('input[name="coefficient"]').val(coef);
-
-            $('#eleves-container tr').each(function() {
-                var noteInput = $(this).find('input.note-input');
-                var baseInput = $(this).find('input.note-base');
-
-                baseInput.val(base);
-                noteInput.attr('max', base);
-            });
-
-            chargerNotes();
-        }
-    });
-
-    // Quand la matière change → maj du coef
-    $('select[name="matiere_id"]').change(function() {
-        var matId = $(this).val();
-        if(matId && matieresData[matId]) {
-            var coef = matieresData[matId].coef;
-            var base = matieresData[matId].base;
-
-            // Met à jour le coefficient
-            $('input[name="coefficient"]').val(coef);
-
-            // Met à jour les bases et max des notes
-            $('#eleves-container tr').each(function() {
-                var noteInput = $(this).find('input.note-input');
-                var baseInput = $(this).find('input.note-base');
-
-                // Update readonly display
-                baseInput.val(base);
-
-                // Update max de l’input note
-                noteInput.attr('max', base);
-            });
-
-            // Charger les notes existantes pour cette matière
-            chargerNotes();
-        }
-    });
-
-   $('form').on('submit', function(e) {
-    var mois = $('select[name="mois_id"]').val();
-    if(!mois) {
-        e.preventDefault();
-        toastr.error("Veuillez sélectionner un mois ou trimestre avant d'enregistrer ⚠️");
-        return false;
-    }
-
-    var valid = true;
-
-    $('#eleves-container .note-input').each(function() {
-        var val = $(this).val();
-        var max = parseFloat($(this).attr('max')) || 20;
-
-        // Si la note est vide, on l'ignore (pas d'erreur)
-        if(val === '' || val === null) {
-            return true; // continue la boucle each
-        }
-
-        val = parseFloat(val);
-        if(val < 0 || val > max) {
-            valid = false;
-            toastr.warning("Chaque note doit être entre 0 et la base ("+max+") ⚠️");
-            return false; // sort de la boucle each
-        }
-    });
-
-    if(!valid) {
-        e.preventDefault();
-        return false;
-    }
-});
-
-
-
-
-    $('#eleves-container').on('input', '.note-input', function() {
-        var max = parseFloat($(this).attr('max')) || 20; // récupère le max défini
-        var val = parseFloat($(this).val());
-
-        if(val > max) {
-            $(this).val(max); // remet au maximum si dépassé
-            toastr.warning("La note ne peut pas dépasser la base (" + max + ")");
-        } else if(val < 0) {
-            $(this).val(0); // empêche les valeurs négatives
-        }
-    });
-
-
-
-    // Quand le mois change → charger les notes
-    $('select[name="mois_id"]').change(function() {
-        chargerNotes();
-    });
-
-    // Fonction pour charger les notes existantes
+    // ==================== CHARGEMENT DES NOTES EXISTANTES ====================
     function chargerNotes() {
         var classeId = $('#classe_id').val();
-        var matiereId = $('select[name="matiere_id"]').val();
-        var moisId = $('select[name="mois_id"]').val();
+        var matiereId = $('#matiere_id').val();
+        var moisId = $('#mois_id').val();
 
         if(classeId && matiereId && moisId) {
             $.ajax({
@@ -354,20 +221,17 @@ $(document).ready(function() {
                     mois_id: moisId
                 },
                 success: function(notes) {
-                    if (notes.length > 0) {
+                    if (notes && notes.length > 0) {
                         notes.forEach(function(note) {
-                            // On trouve l'input hidden qui correspond à l'inscription
-                            var hidden = $('input[type="hidden"][name^="notes"][name$="[inscription_id]"][value="'+note.inscription_id+'"]');
-                            
+                            var hidden = $('input[type="hidden"][name*="[eleve_id]"][value="'+note.eleve_id+'"]');
                             if (hidden.length) {
-                                // On prend l'input note juste après (dans la même cellule <td>)
-                                hidden.closest('td').find('input[name^="notes"][name$="[valeur]"]').val(note.valeur);
+                                var td = hidden.closest('td');
+                                td.find('input.note-input').val(note.valeur);
                             }
                         });
-                        toastr.success("Notes existantes chargées et pré-remplies 📑");
+                        // Supprimé toastr.success ici pour éviter le double message
                     } else {
-                        toastr.info("Aucune note enregistrée pour ce mois/matière");
-                        $('input[name^="notes"][name$="[valeur]"]').val('');
+                        $('.note-input').val('');
                     }
                 },
                 error: function() {
@@ -377,16 +241,161 @@ $(document).ready(function() {
         }
     }
 
-    // Messages Laravel backend
-    @if(session('success'))
-        toastr.success("{{ session('success') }}");
-    @endif
-    @if($errors->any())
-        @foreach($errors->all() as $error)
-            toastr.error("{{ $error }}");
-        @endforeach
-    @endif
+    // ==================== RESTAURATION DES VALEURS ====================
+    function restaurerValeurs() {
+        if (oldValues.classe_id) {
+            $('#classe_id').val(oldValues.classe_id);
+            chargerMatieres(oldValues.classe_id, oldValues.matiere_id);
+            chargerEleves(oldValues.classe_id);
+            
+            if (oldValues.mois_id) {
+                $('#mois_id').val(oldValues.mois_id);
+            }
+            
+            setTimeout(function() {
+                if (oldValues.matiere_id && oldValues.mois_id) {
+                    chargerNotes();
+                }
+            }, 1000);
+        }
+    }
+
+    // ==================== INITIALISATION ====================
+    restaurerValeurs();
+
+    // ==================== ÉVÉNEMENTS ====================
+    $('#classe_id').change(function() {
+        var classeId = $(this).val();
+        if(classeId) {
+            matieresData = {};
+            chargerMatieres(classeId);
+            chargerEleves(classeId);
+            $('input[name^="notes"][name$="[valeur]"]').val('');
+        } else {
+            $('#eleves-container').html('<div class="alert alert-info">Veuillez sélectionner une classe pour afficher la liste des élèves</div>');
+            $('#submit-btn').prop('disabled', true);
+            $('#matiere_id').html('<option value="">Sélectionner une matière</option>');
+        }
+    });
+
+    $('#matiere_id').change(function() {
+        var matId = $(this).val();
+        if(matId && matieresData[matId]) {
+            var coef = matieresData[matId].coef;
+            var base = matieresData[matId].base;
+
+            $('#coefficient').val(coef);
+
+            $('#eleves-container tr').each(function() {
+                var noteInput = $(this).find('input.note-input');
+                var baseInput = $(this).find('input.note-base');
+
+                baseInput.val(base);
+                noteInput.attr('max', base);
+            });
+
+            chargerNotes();
+        } else {
+            $('#coefficient').val(1);
+        }
+    });
+
+    $('#mois_id').change(function() {
+        chargerNotes();
+    });
+
+    // ==================== VALIDATION DES NOTES ====================
+    $('#eleves-container').on('input', '.note-input', function() {
+        var max = parseFloat($(this).attr('max')) || 20;
+        var val = parseFloat($(this).val());
+
+        if(val > max) {
+            $(this).val(max);
+            toastr.warning("La note ne peut pas dépasser la base (" + max + ")");
+        } else if(val < 0) {
+            $(this).val(0);
+        }
+    });
+
+    // ==================== ENREGISTREMENT AJAX ====================
+    $('#submit-btn').click(function(e) {
+        e.preventDefault();
+        
+        var classeId = $('#classe_id').val();
+        var matiereId = $('#matiere_id').val();
+        var moisId = $('#mois_id').val();
+        var coefficient = $('#coefficient').val();
+        var notes = [];
+
+        if (!classeId) {
+            toastr.error("Veuillez sélectionner une classe");
+            return;
+        }
+        if (!matiereId) {
+            toastr.error("Veuillez sélectionner une matière");
+            return;
+        }
+        if (!moisId) {
+            toastr.error("Veuillez sélectionner un mois");
+            return;
+        }
+
+        $('#eleves-container .note-input').each(function() {
+            var eleveId = $(this).closest('td').find('input[name*="[eleve_id]"]').val();
+            var valeur = $(this).val();
+            
+            if (eleveId) {
+                notes.push({
+                    eleve_id: eleveId,
+                    valeur: valeur || ''
+                });
+            }
+        });
+
+        var hasNotes = notes.some(function(n) { 
+            return n.valeur !== '' && n.valeur !== null; 
+        });
+
+        if (!hasNotes) {
+            toastr.warning("Veuillez saisir au moins une note");
+            return;
+        }
+
+        $('#submit-btn').prop('disabled', true);
+        $('#submit-btn').html('<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement...');
+
+        $.ajax({
+            url: '{{ route("notes.store") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                classe_id: classeId,
+                matiere_id: matiereId,
+                mois_id: moisId,
+                coefficient: coefficient,
+                notes: notes
+            },
+            success: function(response) {
+                toastr.success("Notes enregistrées avec succès !");
+                $('#submit-btn').html('<i class="ti ti-check me-2"></i>Enregistrer toutes les notes');
+                $('#submit-btn').prop('disabled', false);
+                chargerNotes();
+            },
+            error: function(xhr) {
+                $('#submit-btn').html('<i class="ti ti-check me-2"></i>Enregistrer toutes les notes');
+                $('#submit-btn').prop('disabled', false);
+                
+                var errorMsg = "Erreur lors de l'enregistrement ❌";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    var errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMsg = errors.join(', ');
+                }
+                toastr.error(errorMsg);
+            }
+        });
+    });
 });
 </script>
-
 @endsection

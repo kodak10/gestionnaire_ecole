@@ -15,6 +15,8 @@ return new class extends Migration
             $table->enum('type', [
                 'recu_paiement',
                 'relance',
+                'relanceSms',
+                'relancePapier',
                 'information',
                 'bulletin',
                 'autre'

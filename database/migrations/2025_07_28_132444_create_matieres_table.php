@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('matieres', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ecole_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('annee_scolaire_id')->constrained()->cascadeOnDelete();
             $table->foreignId('niveau_id')->constrained()->cascadeOnDelete();
             $table->string('nom');
             $table->timestamps();

@@ -55,11 +55,16 @@
             border-collapse: collapse;
             margin-top: 5px;
             font-size: 10px;
+            table-layout: fixed;
         }
         th, td {
             border: 1px solid #000;
-            padding: 6px;
+            padding: 4px 3px;
             text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         th {
             background-color: #f0f0f0;
@@ -78,12 +83,18 @@
             color: red;
         }
         .rang {
-            font-size: 9px;
+            font-size: 8px;
             color: #666;
+            display: inline-block;
         }
         .page-break {
             page-break-after: always;
         }
+        .col-nom { width: 18%; }
+        .col-matiere { width: 8%; }
+        .col-moyenne { width: 8%; }
+        .col-rang { width: 6%; }
+        .col-appreciation { width: 12%; }
     </style>
 </head>
 <body>
@@ -101,42 +112,41 @@
 </footer>
 
 <main>
-    <h2>{{ strtoupper($data['classe']->nom) }} — {{ strtoupper($data['mois']->nom) }}</h2>
+    <h2>{{ strtoupper($data['classe']->nom ?? '') }} — {{ strtoupper($data['mois']->nom ?? '') }}</h2>
     
     <div class="stats">
         <strong>Statistiques de la classe :</strong> 
-        Moyenne: {{ number_format($data['moyenne_classe'], 2, ',', '') }} / {{ $data['moy_base'] }} | 
-        Max: {{ number_format($data['moyenne_max'], 2, ',', '') }} | 
-        Min: {{ number_format($data['moyenne_min'], 2, ',', '') }} | 
-        Effectif: {{ $data['effectif'] }}
+        Moyenne: {{ number_format($data['moyenne_classe'] ?? 0, 2, ',', '') }} / {{ $data['moy_base'] ?? 20 }} | 
+        Max: {{ number_format($data['moyenne_max'] ?? 0, 2, ',', '') }} | 
+        Min: {{ number_format($data['moyenne_min'] ?? 0, 2, ',', '') }} | 
+        Effectif: {{ $data['effectif'] ?? 0 }}
     </div>
 
     <!-- Tableau des matières -->
     <table>
         <thead>
             <tr>
-                <th style="width:18%">Nom & Prénoms</th>
-                @foreach($data['matieres'] as $matiere)
+                <th class="col-nom">Nom & Prénoms</th>
+                @foreach($data['matieres'] ?? [] as $matiere)
                     @if(($matiere->pivot->coefficient ?? 0) > 0)
-                        <th>
-                            {{ strtoupper($matiere->nom) }}<br>
-                            <small>(Coeff {{ $matiere->pivot->coefficient ?? 1 }})</small>
+                        <th class="col-matiere">
+                            {{ strtoupper($matiere->nom) }}
+                            <br><small>(Coef {{ $matiere->pivot->coefficient ?? 1 }})</small>
                         </th>
                     @endif
                 @endforeach
-                <th style="width:10%">Moyenne<br><small>/{{ $data['moy_base'] }}</small></th>
-                <th style="width:8%">Rang<br><small>/{{ $data['effectif'] }}</small></th>
-                <th style="width:15%">Appréciation</th>
+                <th class="col-moyenne">Moy.<br><small>/{{ $data['moy_base'] ?? 20 }}</small></th>
+                <th class="col-rang">Rang<br><small>/{{ $data['effectif'] ?? 0 }}</small></th>
+                <th class="col-appreciation">Appréciation</th>
             </tr>
         </thead>
         <tbody>
             @php
-                // Trier les élèves par nom puis prénom alphabétique
-                $elevesTries = $data['eleves'];
+                $elevesTries = $data['eleves'] ?? [];
                 usort($elevesTries, function($a, $b) {
-                    $cmpNom = strcmp($a['nom'], $b['nom']);
+                    $cmpNom = strcmp($a['nom'] ?? '', $b['nom'] ?? '');
                     if ($cmpNom == 0) {
-                        return strcmp($a['prenom'], $b['prenom']);
+                        return strcmp($a['prenom'] ?? '', $b['prenom'] ?? '');
                     }
                     return $cmpNom;
                 });
@@ -147,17 +157,14 @@
                     $notesParMatiere = isset($eleve['details']) ? $eleve['details'] : [];
                 @endphp
                 <tr>
-                    <td class="left">{{ strtoupper($eleve['nom']) }} {{ ucfirst($eleve['prenom']) }}</td>
+                    <td class="left">{{ strtoupper($eleve['nom'] ?? '') }} {{ ucfirst($eleve['prenom'] ?? '') }}</td>
                     
-                    @foreach($data['matieres'] as $matiere)
+                    @foreach($data['matieres'] ?? [] as $matiere)
                         @if(($matiere->pivot->coefficient ?? 0) > 0)
                             <td>
                                 @if(isset($notesParMatiere[$matiere->id]))
-                                    <strong>{{ number_format($notesParMatiere[$matiere->id]['valeur'], 2, ',', '') }}</strong>
-                                    <br><span class="rang">/{{ $notesParMatiere[$matiere->id]['base'] }}</span>
-                                    @if(isset($notesParMatiere[$matiere->id]['rang']))
-                                        <br><span class="rang">Rg: {{ $notesParMatiere[$matiere->id]['rang'] }}</span>
-                                    @endif
+                                    <strong>{{ number_format($notesParMatiere[$matiere->id]['valeur'] ?? 0, 2, ',', '') }}</strong>
+                                    <span>/{{ $notesParMatiere[$matiere->id]['base'] ?? 20 }}</span>
                                 @else
                                     -
                                 @endif
@@ -165,11 +172,11 @@
                         @endif
                     @endforeach
                     
-                    <td class="bold">{{ $eleve['moyenne'] }}</td>
+                    <td class="bold">{{ $eleve['moyenne'] ?? '0,00' }}</td>
                     <td class="bold">
-                        {{ $eleve['rang'] }}{{ $eleve['exaequo'] ? 'e ex æquo' : 'e' }}
+                        {{ $eleve['rang_general'] ?? '-' }}{{ isset($eleve['exaequo']) && $eleve['exaequo'] ? 'e ex æquo' : 'e' }}
                     </td>
-                    <td class="left">{{ $eleve['appreciation'] }}</td>
+                    <td class="left">{{ $eleve['appreciation'] ?? '-' }}</td>
                 </tr>
             @endforeach
         </tbody>

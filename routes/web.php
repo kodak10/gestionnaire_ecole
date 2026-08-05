@@ -254,7 +254,7 @@ Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {
     // GESTION DES NOTES
     // ============================================
     Route::prefix('notes')->name('notes.')->group(function () {
-        Route::get('/inscriptions-by-classe', [NoteController::class, 'getInscriptionsByClasse'])->name('inscriptions_by_classe');
+        Route::get('/eleves-by-classe', [NoteController::class, 'getElevesByClasse'])->name('eleves_by_classe');
         Route::get('/matieres-by-classe', [NoteController::class, 'getMatieresByClasse'])->name('matieres_by_classe');
         Route::get('/by-classe', [NoteController::class, 'getNotesByClasse'])->name('byClasse');
         Route::get('/generate-bulletin', [NoteController::class, 'generateBulletin'])->name('generateBulletin');
@@ -265,7 +265,7 @@ Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {
         Route::get('/check-existing-mois-moyenne', [NoteController::class, 'checkExistingMoisMoyenne'])->name('checkExistingMoisMoyenne');
     });
     Route::resource('notes', NoteController::class);
-
+    
     // ============================================
     // GESTION DES DOCUMENTS
     // ============================================
