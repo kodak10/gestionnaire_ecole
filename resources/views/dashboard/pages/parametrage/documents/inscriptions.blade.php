@@ -95,14 +95,11 @@
                             @endif
                         </td>
                         <td>
-                            {{-- ✅ Utiliser la colonne disponible --}}
-                            <span class="badge bg-light text-dark">
-                                {{ $eleve->classe_nom_classe ?? $eleve->classe_nom ?? $eleve->classe_libelle ?? 'Non assigné' }}
-                            </span>
+                            <span class="badge bg-light text-dark">{{ $eleve->classe->nom ?? 'Non assigné' }}</span>
                         </td>
                         <td>
                             <div class="d-flex">
-                                <a href="{{ route('documents.generer-fiche-inscription', $eleve->id) }}" 
+                                <a href="{{ route('documents.generer-fiche-inscription', $eleve) }}" 
                                    class="btn btn-sm btn-outline-primary me-2" target="_blank">
                                     <i class="ti ti-printer me-1"></i>Imprimer
                                 </a>

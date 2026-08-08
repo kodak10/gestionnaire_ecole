@@ -155,16 +155,16 @@
                                             </div>
                                         </div>
             
-                                        <div class="form-wrap form-wrap-checkbox mb-3">
+                                        {{-- <div class="form-wrap form-wrap-checkbox mb-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="form-check form-check-md mb-0">
                                                     <input class="form-check-input mt-0" type="checkbox" 
                                                            name="remember" id="remember" 
                                                            {{ old('remember') ? 'checked' : '' }}>
                                                 </div>
-                                                {{-- <label class="ms-1 mb-0" for="remember">Se souvenir de moi</label> --}}
+                                                <label class="ms-1 mb-0" for="remember">Se souvenir de moi</label>
                                             </div>
-                                        </div>
+                                        </div> --}}
 
                                         <div class="mb-3">
                                             <button type="submit" class="btn btn-primary w-100">Se connecter</button>

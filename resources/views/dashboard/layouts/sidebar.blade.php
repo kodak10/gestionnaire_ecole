@@ -136,6 +136,12 @@
                             </a>
                             <ul>
                                 <li>
+                                    <a class="{{ request()->routeIs('documents.cartes-eleves*') ? 'active' : '' }}" href="{{ route('documents.cartes-eleves') }}">
+                                        
+                                        <span>Carte d'Eleves</span>
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="{{ request()->routeIs('documents.inscriptions*') ? 'active' : '' }}" href="{{ route('documents.inscriptions') }}">
                                         
                                         <span>Fiches Inscription</span>
@@ -159,7 +165,6 @@
                                         <span>Fiches de Présence</span>
                                     </a>
                                 </li>
-                                <li><a href="#" class=""><span>Carte d'Eleves</span></a></li>
                             </ul>
                         </li>
                         @endhasanyrole

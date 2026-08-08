@@ -35,10 +35,21 @@ class EcoleController extends Controller
             'telephone' => 'required|string|max:20',
             'email' => 'required|email',
             'directeur' => 'required|string|max:255',
+            'entete_document' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'sous_entete_document' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'footer_bulletin' => 'nullable|string',
             'fax' => 'nullable|string|max:20',
             'sms_notification' => 'nullable|boolean',
             'arrondi_moyenne' => 'nullable|in:coupe,arrondi,arrondi_superieur',
+
+            'iepp' => 'nullable|string|max:255',
+            'secteur_pedagogique' => 'nullable|string|max:255',
+            'sous_prefecture' => 'nullable|string|max:255',
+            'circonscription_primaire' => 'nullable|string|max:255',
+            'num_registre' => 'nullable|string|max:255',
+            'directeur_etudes' => 'nullable|string|max:255',
+
+            'logo_republique' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $ecoleId = session('current_ecole_id');
@@ -58,6 +69,32 @@ class EcoleController extends Controller
             $ecole->logo = 'storage/' . $path;
         }
 
+        // Entête du document
+        if ($request->hasFile('entete_document')) {
+            if (
+                $ecole->entete_document &&
+                file_exists(public_path($ecole->entete_document))
+            ) {
+                unlink(public_path($ecole->entete_document));
+            }
+
+            $path = $request->file('entete_document')->store('ecole/entetes', 'public');
+            $ecole->entete_document = 'storage/' . $path;
+        }
+
+        // Sous-entête du document
+        if ($request->hasFile('sous_entete_document')) {
+            if (
+                $ecole->sous_entete_document &&
+                file_exists(public_path($ecole->sous_entete_document))
+            ) {
+                unlink(public_path($ecole->sous_entete_document));
+            }
+
+            $path = $request->file('sous_entete_document')->store('ecole/entetes', 'public');
+            $ecole->sous_entete_document = 'storage/' . $path;
+        }
+
         // Mise à jour des champs
         $ecole->nom_ecole = $request->nom_ecole;
         $ecole->code = $request->code;
@@ -71,6 +108,13 @@ class EcoleController extends Controller
         $ecole->fax = $request->fax;
         $ecole->sms_notification = $request->has('sms_notification') ? $request->sms_notification : false;
         $ecole->arrondi_moyenne = $request->arrondi_moyenne ?? 'coupe';
+
+        $ecole->iepp = $request->iepp;
+        $ecole->secteur_pedagogique = $request->secteur_pedagogique;
+        $ecole->sous_prefecture = $request->sous_prefecture;
+        $ecole->circonscription_primaire = $request->circonscription_primaire;
+        $ecole->num_registre = $request->num_registre;
+        $ecole->directeur_etudes = $request->directeur_etudes;
 
         $ecole->save();
 

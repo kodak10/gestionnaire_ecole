@@ -23,6 +23,10 @@ return new class extends Migration
             $table->string('fax')->nullable();
             $table->string('email');
             $table->string('directeur');
+            $table->longText('entete_document')->nullable();
+            $table->longText('sous_entete_document')->nullable();
+            
+
             $table->text('footer_bulletin')->nullable();
             $table->boolean('sms_notification')->default(false);
             $table->integer('sms_disponible')->default(0);

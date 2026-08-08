@@ -8,6 +8,12 @@ class Ecole extends Model
 {
     protected $fillable = [
         'nom_ecole',
+        'iepp',
+        'secteur_pedagogique',
+        'sous_prefecture',
+        'circonscription_primaire',
+        'num_registre',
+
         'sigle_ecole',
         'code',
         'logo',
@@ -17,10 +23,16 @@ class Ecole extends Model
         'fax',
         'email',
         'directeur',
+        'directeur_etudes',
+
         'footer_bulletin',
         'sms_notification',
         'sms_disponible',
         'arrondi_moyenne',
+
+        'entete_document',
+        'logo_republique',
+        'sous_entete_document',
     ];
 
     public function getNomAttribute()

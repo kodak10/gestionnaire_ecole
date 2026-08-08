@@ -6,22 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->string('type')->nullable(); // ex: fiche_inscription
-            $table->longText('content'); // stocke le HTML du CKEditor
+
+            $table->string('type')->comment(
+                'certificat_scolaire, attestation_frequentation, fiche_inscription'
+            );
+            $table->longText('content'); // HTML généré avec CKEditor
             $table->timestamps();
+
+            $table->unique('type');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('documents');

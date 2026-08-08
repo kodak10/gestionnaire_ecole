@@ -7,15 +7,20 @@
         <nav>
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Tableau de bord</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Certificats</li>
+                <li class="breadcrumb-item active" aria-current="page">Certificats de Scolarité</li>
             </ol>
         </nav>
+    </div>
+    <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
+        <div class="pe-1 mb-2">
+            <span class="text-muted">Année Académique: {{ \App\Models\AnneeScolaire::find(session('current_annee_scolaire_id'))->annee ?? 'N/A' }}</span>
+        </div>
     </div>
 </div>
 
 <!-- Filter -->
 <div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
-    <h4 class="mb-3">Liste des Élèves Inscrits</h4>
+    <h4 class="mb-3">Liste des Élèves</h4>
     <div class="d-flex align-items-center flex-wrap">		
         <form method="GET" action="{{ route('documents.certificats-scolarite') }}" class="d-flex flex-wrap">
             <div class="input-group mb-3 me-2" style="width: 200px;">
@@ -50,7 +55,6 @@
         </form>
     </div>	
 </div>
-<!-- /Filter -->
 
 <div class="card">
     <div class="card-body">
@@ -60,44 +64,52 @@
                     <tr>
                         <th>Matricule</th>
                         <th>Élève</th>
-                        <th>Date Nais.</th>
                         <th>Classe</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($inscriptions as $inscription)
+                    @forelse($eleves as $eleve)
                     <tr>
                         <td>
-                            <span class="fw-bold text-primary">{{ $inscription->eleve->matricule }}</span>
+                            <span class="fw-bold text-primary">{{ $eleve->code_national ?? $eleve->matricule ?? '-' }}</span>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0">
-                                    <img src="{{ $inscription->eleve->photo_url }}" alt="Photo" class="rounded-circle" width="40" height="40">
+                                    @php
+                                        $photoPath = $eleve->photo_path ?? null;
+                                        $photoExists = $photoPath && file_exists(storage_path('app/public/' . $photoPath));
+                                        $photoUrl = $photoExists ? asset('storage/' . $photoPath) : asset('assets/img/user.jpg');
+                                    @endphp
+                                    <img src="{{ $photoUrl }}" alt="Photo" class="rounded-circle" width="40" height="40">
                                 </div>
                                 <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">{{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</h6>
-                                    <small class="text-muted">{{ $inscription->eleve->sexe }}</small>
+                                    <h6 class="mb-0">{{ $eleve->nom ?? '' }} {{ $eleve->prenom ?? '' }}</h6>
+                                    <small class="text-muted">{{ $eleve->sexe ?? '' }}</small>
                                 </div>
                             </div>
                         </td>
-                        <td>{{ $inscription->eleve->naissance_formattee }}</td>
                         <td>
-                            <span class="badge bg-light text-dark">{{ $inscription->classe->nom }}</span>
+                            <span class="badge bg-light text-dark">
+                                {{ $eleve->classe_libelle ?? $eleve->classe_nom ?? 'Non assigné' }}
+                            </span>
                         </td>
                         <td>
                             <div class="d-flex">
-                                <a href="{{ route('documents.generer-certificat-scolarite', $inscription->eleve) }}" 
+                                <a href="{{ route('documents.generer-certificat-scolarite', $eleve->id) }}" 
                                    class="btn btn-sm btn-outline-primary me-2" target="_blank">
-                                    <i class="ti ti-certificate me-1"></i>Générer
+                                    <i class="ti ti-file-text me-1"></i>Générer
                                 </a>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center">Aucun Elève trouvé pour cette année scolaire</td>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="ti ti-user-off fs-1 text-muted"></i>
+                            <p class="text-muted mt-2">Aucun élève trouvé pour cette année académique</p>
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -107,6 +119,6 @@
 </div>
 
 <div class="col-md-12 text-center mt-4">
-    {{ $inscriptions->appends(request()->query())->links() }}
+    {{ $eleves->appends(request()->query())->links() }}
 </div>
 @endsection

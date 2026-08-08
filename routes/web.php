@@ -271,18 +271,64 @@ Route::middleware(['auth', 'EcoleAnnee.status'])->group(function () {
     // GESTION DES DOCUMENTS
     // ============================================
     Route::prefix('documents')->name('documents.')->group(function () {
-        // Listes
-        Route::get('/inscriptions', [DocumentController::class, 'inscriptions'])->name('inscriptions');
-        Route::get('/certificats-scolarite', [DocumentController::class, 'certificatsScolarite'])->name('certificats-scolarite');
-        Route::get('/fiches-presence', [DocumentController::class, 'fichesPresence'])->name('fiches-presence');
-        Route::get('/fiches-frequentation', [DocumentController::class, 'fichesFrequentation'])->name('fiches-frequentation');
 
-        // Génération
-        Route::get('/generer-fiche-inscription/{eleve}', [DocumentController::class, 'genererFicheInscription'])->name('generer-fiche-inscription');
-        Route::get('/generer-certificat-scolarite/{eleve}', [DocumentController::class, 'genererCertificatScolarite'])->name('generer-certificat-scolarite');
-        Route::get('/generer-fiche-presence/{classe}', [DocumentController::class, 'genererFichePresence'])->name('generer-fiche-presence');
-        Route::get('/generer-fiche-frequentation/{eleve}', [DocumentController::class, 'genererFicheFrequentation'])->name('generer-fiche-frequentation');
+        // ============================================
+    // CARTES ÉLÈVES
+    // ============================================
+    Route::get('/cartes-eleves', [DocumentController::class, 'cartesEleves'])->name('cartes-eleves');
+
+    Route::get('/generer-cartes-classe/{classeId}', [DocumentController::class, 'genererParClasse'])
+        ->name('generer-cartes-classe')
+        ->where('classeId', '[0-9]+');
+
+    Route::get('/generer-carte-eleve/{id}', [DocumentController::class, 'genererCarteIndividuelle'])
+        ->name('generer-carte-eleve')
+        ->where('id', '[0-9]+');
+
+    // ============================================
+    // LISTES
+    // ============================================
+    Route::get('/inscriptions', [DocumentController::class, 'inscriptions'])->name('inscriptions');
+    Route::get('/certificats-scolarite', [DocumentController::class, 'certificatsScolarite'])->name('certificats-scolarite');
+    Route::get('/attestations-frequentation', [DocumentController::class, 'attestationsFrequentation'])->name('attestations-frequentation');
+    Route::get('/fiches-presence', [DocumentController::class, 'fichesPresence'])->name('fiches-presence');
+    Route::get('/fiches-frequentation', [DocumentController::class, 'fichesFrequentation'])->name('fiches-frequentation');
+
+    // ============================================
+    // GÉNÉRATION
+    // ============================================
+    Route::get('/generer-fiche-inscription/{id}', [DocumentController::class, 'genererFicheInscription'])
+        ->name('generer-fiche-inscription')
+        ->where('id', '[0-9]+');
+
+    Route::get('/generer-certificat-scolarite/{id}', [DocumentController::class, 'genererCertificatScolarite'])
+        ->name('generer-certificat-scolarite')
+        ->where('id', '[0-9]+');
+
+    Route::get('/generer-attestation-frequentation/{id}', [DocumentController::class, 'genererAttestationFrequentation'])
+        ->name('generer-attestation-frequentation')
+        ->where('id', '[0-9]+');
+
+    Route::get('/generer-fiche-presence/{id}', [DocumentController::class, 'genererFichePresence'])
+        ->name('generer-fiche-presence')
+        ->where('id', '[0-9]+');
+
+    Route::get('/generer-fiche-frequentation/{id}', [DocumentController::class, 'genererFicheFrequentation'])
+        ->name('generer-fiche-frequentation')
+        ->where('id', '[0-9]+');
+
+    // ============================================
+    // GESTION DES TEMPLATES DE DOCUMENTS
+    // ============================================
+    Route::prefix('templates')->name('templates.')->group(function () {
+        Route::get('/', [DocumentController::class, 'templatesIndex'])->name('index');
+        Route::get('/create', [DocumentController::class, 'templatesCreate'])->name('create');
+        Route::post('/', [DocumentController::class, 'templatesStore'])->name('store');
+        Route::get('/{id}/edit', [DocumentController::class, 'templatesEdit'])->name('edit');
+        Route::put('/{id}', [DocumentController::class, 'templatesUpdate'])->name('update');
+        Route::delete('/{id}', [DocumentController::class, 'templatesDestroy'])->name('destroy');
     });
+});
 
     // ============================================
     // TABLEAUX D'HONNEUR

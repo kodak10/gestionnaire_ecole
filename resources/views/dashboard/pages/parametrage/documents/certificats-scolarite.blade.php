@@ -3,11 +3,11 @@
 @section('content')
 <div class="d-md-flex d-block align-items-center justify-content-between mb-3">
     <div class="my-auto mb-2">
-        <h3 class="page-title mb-1">Fiches d'Inscription</h3>
+        <h3 class="page-title mb-1">Certificats de Scolarité</h3>
         <nav>
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Tableau de bord</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Fiches Inscription</li>
+                <li class="breadcrumb-item active" aria-current="page">Certificats</li>
             </ol>
         </nav>
     </div>
@@ -17,7 +17,7 @@
 <div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
     <h4 class="mb-3">Liste des Élèves Inscrits</h4>
     <div class="d-flex align-items-center flex-wrap">		
-        <form method="GET" action="{{ route('documents.inscriptions') }}" class="d-flex flex-wrap">
+        <form method="GET" action="{{ route('documents.certificats-scolarite') }}" class="d-flex flex-wrap">
             <div class="input-group mb-3 me-2" style="width: 200px;">
                 <input type="text" name="nom" class="form-control" placeholder="Nom élève..." value="{{ request('nom') }}">
                 <button class="btn btn-primary" type="submit"><i class="ti ti-search"></i></button>
@@ -42,7 +42,7 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('documents.inscriptions') }}" class="btn btn-light me-3">Réinitialiser</a>
+                        <a href="{{ route('documents.certificats-scolarite') }}" class="btn btn-light me-3">Réinitialiser</a>
                         <button type="submit" class="btn btn-primary">Appliquer</button>
                     </div>
                 </div>
@@ -66,55 +66,38 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($eleves as $eleve)
+                    @forelse($inscriptions as $inscription)
                     <tr>
                         <td>
-                            <span class="fw-bold text-primary">{{ $eleve->code_national ?? $eleve->matricule ?? '-' }}</span>
+                            <span class="fw-bold text-primary">{{ $inscription->eleve->matricule }}</span>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0">
-                                    @php
-                                        $photoPath = $eleve->photo_path ?? null;
-                                        $photoExists = $photoPath && file_exists(storage_path('app/public/' . $photoPath));
-                                        $photoUrl = $photoExists ? asset('storage/' . $photoPath) : asset('assets/img/user.jpg');
-                                    @endphp
-                                    <img src="{{ $photoUrl }}" alt="Photo" class="rounded-circle" width="40" height="40">
+                                    <img src="{{ $inscription->eleve->photo_url }}" alt="Photo" class="rounded-circle" width="40" height="40">
                                 </div>
                                 <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">{{ $eleve->nom ?? '' }} {{ $eleve->prenom ?? '' }}</h6>
-                                    <small class="text-muted">{{ $eleve->sexe ?? '' }}</small>
+                                    <h6 class="mb-0">{{ $inscription->eleve->nom }} {{ $inscription->eleve->prenom }}</h6>
+                                    <small class="text-muted">{{ $inscription->eleve->sexe }}</small>
                                 </div>
                             </div>
                         </td>
+                        <td>{{ $inscription->eleve->naissance_formattee }}</td>
                         <td>
-                            @if($eleve->naissance)
-                                {{ \Carbon\Carbon::parse($eleve->naissance)->format('d/m/Y') }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>
-                            {{-- ✅ Utiliser la colonne disponible --}}
-                            <span class="badge bg-light text-dark">
-                                {{ $eleve->classe_nom_classe ?? $eleve->classe_nom ?? $eleve->classe_libelle ?? 'Non assigné' }}
-                            </span>
+                            <span class="badge bg-light text-dark">{{ $inscription->classe->nom }}</span>
                         </td>
                         <td>
                             <div class="d-flex">
-                                <a href="{{ route('documents.generer-fiche-inscription', $eleve->id) }}" 
+                                <a href="{{ route('documents.generer-certificat-scolarite', $inscription->eleve) }}" 
                                    class="btn btn-sm btn-outline-primary me-2" target="_blank">
-                                    <i class="ti ti-printer me-1"></i>Imprimer
+                                    <i class="ti ti-certificate me-1"></i>Générer
                                 </a>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center py-4">
-                            <i class="ti ti-user-off fs-1 text-muted"></i>
-                            <p class="text-muted mt-2">Aucun élève trouvé pour cette année scolaire</p>
-                        </td>
+                        <td colspan="6" class="text-center">Aucun Elève trouvé pour cette année scolaire</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -124,6 +107,6 @@
 </div>
 
 <div class="col-md-12 text-center mt-4">
-    {{ $eleves->appends(request()->query())->links() }}
+    {{ $inscriptions->appends(request()->query())->links() }}
 </div>
 @endsection

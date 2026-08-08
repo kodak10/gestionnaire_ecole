@@ -3,21 +3,26 @@
 @section('content')
 <div class="d-md-flex d-block align-items-center justify-content-between mb-3">
     <div class="my-auto mb-2">
-        <h3 class="page-title mb-1">Fiches d'Inscription</h3>
+        <h3 class="page-title mb-1">Attestation de Fréquentation</h3>
         <nav>
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Tableau de bord</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Fiches Inscription</li>
+                <li class="breadcrumb-item active" aria-current="page">Attestations de Fréquentation</li>
             </ol>
         </nav>
+    </div>
+    <div class="d-flex my-xl-auto right-content align-items-center flex-wrap">
+        <div class="pe-1 mb-2">
+            <span class="text-muted">Année Académique: {{ \App\Models\AnneeScolaire::find(session('current_annee_scolaire_id'))->annee ?? 'N/A' }}</span>
+        </div>
     </div>
 </div>
 
 <!-- Filter -->
 <div class="bg-white p-3 border rounded-1 d-flex align-items-center justify-content-between flex-wrap mb-4 pb-0">
-    <h4 class="mb-3">Liste des Élèves Inscrits</h4>
+    <h4 class="mb-3">Liste des Élèves</h4>
     <div class="d-flex align-items-center flex-wrap">		
-        <form method="GET" action="{{ route('documents.inscriptions') }}" class="d-flex flex-wrap">
+        <form method="GET" action="{{ route('documents.attestations-frequentation') }}" class="d-flex flex-wrap">
             <div class="input-group mb-3 me-2" style="width: 200px;">
                 <input type="text" name="nom" class="form-control" placeholder="Nom élève..." value="{{ request('nom') }}">
                 <button class="btn btn-primary" type="submit"><i class="ti ti-search"></i></button>
@@ -42,7 +47,7 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('documents.inscriptions') }}" class="btn btn-light me-3">Réinitialiser</a>
+                        <a href="{{ route('documents.attestations-frequentation') }}" class="btn btn-light me-3">Réinitialiser</a>
                         <button type="submit" class="btn btn-primary">Appliquer</button>
                     </div>
                 </div>
@@ -50,7 +55,6 @@
         </form>
     </div>	
 </div>
-<!-- /Filter -->
 
 <div class="card">
     <div class="card-body">
@@ -60,7 +64,6 @@
                     <tr>
                         <th>Matricule</th>
                         <th>Élève</th>
-                        <th>Date Nais.</th>
                         <th>Classe</th>
                         <th>Actions</th>
                     </tr>
@@ -88,32 +91,24 @@
                             </div>
                         </td>
                         <td>
-                            @if($eleve->naissance)
-                                {{ \Carbon\Carbon::parse($eleve->naissance)->format('d/m/Y') }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>
-                            {{-- ✅ Utiliser la colonne disponible --}}
                             <span class="badge bg-light text-dark">
-                                {{ $eleve->classe_nom_classe ?? $eleve->classe_nom ?? $eleve->classe_libelle ?? 'Non assigné' }}
+                                {{ $eleve->classe_libelle ?? $eleve->classe_nom ?? 'Non assigné' }}
                             </span>
                         </td>
                         <td>
                             <div class="d-flex">
-                                <a href="{{ route('documents.generer-fiche-inscription', $eleve->id) }}" 
+                                <a href="{{ route('documents.generer-attestation-frequentation', $eleve->id) }}" 
                                    class="btn btn-sm btn-outline-primary me-2" target="_blank">
-                                    <i class="ti ti-printer me-1"></i>Imprimer
+                                    <i class="ti ti-file-text me-1"></i>Générer
                                 </a>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center py-4">
+                        <td colspan="4" class="text-center py-4">
                             <i class="ti ti-user-off fs-1 text-muted"></i>
-                            <p class="text-muted mt-2">Aucun élève trouvé pour cette année scolaire</p>
+                            <p class="text-muted mt-2">Aucun élève trouvé pour cette année académique</p>
                         </td>
                     </tr>
                     @endforelse

@@ -247,22 +247,74 @@
                                 </div>
                             </div>
 
-                            <!-- Footer bulletin -->
-                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                           <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
                                 <div class="row align-items-center flex-fill">
                                     <div class="col-xxl-8 col-lg-6">
                                         <div class="mb-3">
-                                            <h6>Pied de page des bulletins</h6>
-                                            <p>Texte à afficher en bas des bulletins</p>
+                                            <h6>Entête du document</h6>
+                                            <p>Image affichée en haut des documents</p>
                                         </div>
                                     </div>
+
                                     <div class="col-xxl-4 col-lg-6">
                                         <div class="mb-3">
-                                            <textarea rows="4" class="form-control" name="footer_bulletin" placeholder="Entrez le texte du pied de page">{{ $ecoleInfos->footer_bulletin ?? '' }}</textarea>
+                                            <input
+                                                type="file"
+                                                class="form-control"
+                                                name="entete_document"
+                                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                            >
+
+                                            @if($ecoleInfos->entete_document)
+                                                <div class="mt-2">
+                                                    <img
+                                                        src="{{ asset($ecoleInfos->entete_document) }}"
+                                                        alt="Entête du document"
+                                                        style="max-width: 100%; max-height: 100px;"
+                                                        class="img-thumbnail"
+                                                    >
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                                <div class="row align-items-center flex-fill">
+                                    <div class="col-xxl-8 col-lg-6">
+                                        <div class="mb-3">
+                                            <h6>Sous-entête du document</h6>
+                                            <p>Image affichée sous l'entête</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xxl-4 col-lg-6">
+                                        <div class="mb-3">
+                                            <input
+                                                type="file"
+                                                class="form-control"
+                                                name="sous_entete_document"
+                                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                            >
+
+                                            @if($ecoleInfos->sous_entete_document)
+                                                <div class="mt-2">
+                                                    <img
+                                                        src="{{ asset($ecoleInfos->sous_entete_document) }}"
+                                                        alt="Sous-entête du document"
+                                                        style="max-width: 100%; max-height: 100px;"
+                                                        class="img-thumbnail"
+                                                    >
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            
                             <!-- Notification SMS -->
                             <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
                                 <div class="row align-items-center flex-fill">
@@ -279,41 +331,198 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>*
+                            </div>
 
-                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                            <!-- IEPP -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
     <div class="row align-items-center flex-fill">
         <div class="col-xxl-8 col-lg-6">
             <div class="mb-3">
-                <h6>Mode d'arrondi des moyennes</h6>
-                <p>Comment doivent être traitées les moyennes ?</p>
+                <h6>IEPP</h6>
+                <p>Inspection de l'Enseignement Préscolaire et Primaire</p>
             </div>
         </div>
         <div class="col-xxl-4 col-lg-6">
             <div class="mb-3">
-                <select class="form-select" name="arrondi_moyenne" id="arrondi_moyenne">
-                    <option value="coupe" {{ ($ecoleInfos->arrondi_moyenne ?? 'coupe') == 'coupe' ? 'selected' : '' }}>
-                        Coupe à 2 chiffres (ex: 12.345 → 12.34)
-                    </option>
-                    <option value="arrondi" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi' ? 'selected' : '' }}>
-                        Arrondi classique (ex: 12.345 → 12.35)
-                    </option>
-                    <option value="arrondi_superieur" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi_superieur' ? 'selected' : '' }}>
-                        Arrondi au supérieur (ex: 12.001 → 12.01)
-                    </option>
-                </select>
-                <small class="text-muted">Ce paramètre s'applique aux moyennes des bulletins et bilans.</small>
+                <input type="text"
+                       class="form-control"
+                       name="iepp"
+                       value="{{ $ecoleInfos->iepp ?? '' }}"
+                       placeholder="Entrez l'IEPP">
             </div>
         </div>
     </div>
-    <!-- Ajouter une info sur l'arrondi actuel -->
-@if($ecoleInfos)
-<div class="alert alert-info mt-2">
-    <i class="ti ti-info-circle me-2"></i>
-    <strong>Mode actuel :</strong> {{ $ecoleInfos->arrondi_moyenne_label }}
 </div>
-@endif
+
+<!-- Secteur pédagogique -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Secteur pédagogique</h6>
+                <p>Secteur pédagogique de l'établissement</p>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="text"
+                       class="form-control"
+                       name="secteur_pedagogique"
+                       value="{{ $ecoleInfos->secteur_pedagogique ?? '' }}"
+                       placeholder="Entrez le secteur pédagogique">
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Sous-préfecture -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Sous-préfecture</h6>
+                <p>Sous-préfecture de l'établissement</p>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="text"
+                       class="form-control"
+                       name="sous_prefecture"
+                       value="{{ $ecoleInfos->sous_prefecture ?? '' }}"
+                       placeholder="Entrez la sous-préfecture">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Circonscription primaire -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Circonscription primaire</h6>
+                <p>Circonscription de l'enseignement primaire</p>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="text"
+                       class="form-control"
+                       name="circonscription_primaire"
+                       value="{{ $ecoleInfos->circonscription_primaire ?? '' }}"
+                       placeholder="Entrez la circonscription">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Numéro de registre -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Numéro de registre</h6>
+                <p>Numéro d'enregistrement de l'établissement</p>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="text"
+                       class="form-control"
+                       name="num_registre"
+                       value="{{ $ecoleInfos->num_registre ?? '' }}"
+                       placeholder="Entrez le numéro de registre">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Directeur des études -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Directeur des études</h6>
+                <p>Nom du directeur des études</p>
+            </div>
+        </div>
+
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="text"
+                       class="form-control"
+                       name="directeur_etudes"
+                       value="{{ $ecoleInfos->directeur_etudes ?? '' }}"
+                       placeholder="Entrez le nom du directeur des études">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logo République -->
+<div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+    <div class="row align-items-center flex-fill">
+        <div class="col-xxl-8 col-lg-6">
+            <div class="mb-3">
+                <h6>Logo de la République</h6>
+                <p>Logo officiel affiché sur les documents</p>
+            </div>
+        </div>
+
+        <div class="col-xxl-4 col-lg-6">
+            <div class="mb-3">
+                <input type="file"
+                       class="form-control"
+                       name="logo_republique"
+                       accept="image/jpeg,image/png,image/jpg,image/webp">
+
+                @if($ecoleInfos->logo_republique)
+                    <div class="mt-2">
+                        <img src="{{ asset($ecoleInfos->logo_republique) }}"
+                             alt="Logo République"
+                             style="max-width: 100%; max-height: 100px;"
+                             class="img-thumbnail">
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap border mb-3 p-3 pb-0 rounded">
+                                <div class="row align-items-center flex-fill">
+                                    <div class="col-xxl-8 col-lg-6">
+                                        <div class="mb-3">
+                                            <h6>Mode d'arrondi des moyennes</h6>
+                                            <p>Comment doivent être traitées les moyennes ?</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-4 col-lg-6">
+                                        <div class="mb-3">
+                                            <select class="form-select" name="arrondi_moyenne" id="arrondi_moyenne">
+                                                <option value="coupe" {{ ($ecoleInfos->arrondi_moyenne ?? 'coupe') == 'coupe' ? 'selected' : '' }}>
+                                                    Coupe à 2 chiffres (ex: 12.345 → 12.34)
+                                                </option>
+                                                <option value="arrondi" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi' ? 'selected' : '' }}>
+                                                    Arrondi classique (ex: 12.345 → 12.35)
+                                                </option>
+                                                <option value="arrondi_superieur" {{ ($ecoleInfos->arrondi_moyenne ?? '') == 'arrondi_superieur' ? 'selected' : '' }}>
+                                                    Arrondi au supérieur (ex: 12.001 → 12.01)
+                                                </option>
+                                            </select>
+                                            <small class="text-muted">Ce paramètre s'applique aux moyennes des bulletins et bilans.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Ajouter une info sur l'arrondi actuel -->
+                            @if($ecoleInfos)
+                            <div class="alert alert-info mt-2">
+                                <i class="ti ti-info-circle me-2"></i>
+                                <strong>Mode actuel :</strong> {{ $ecoleInfos->arrondi_moyenne_label }}
+                            </div>
+                            @endif
+                            </div>
 
 
 
